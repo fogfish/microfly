@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brain point-cloud inspector</title>
+<style>
+  :root { --bg:#0e1016; --panel:#161a23; --fg:#e7e9ee; --muted:#8c93a3; --line:#2b3140; --accent:#7aa2f7; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; }
+  #app { display:flex; height:100vh; }
+  #side { width:340px; min-width:300px; background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:14px; box-sizing:border-box; }
+  #view { flex:1; position:relative; min-width:0; }
+  canvas { display:block; }
+  h1 { font-size:15px; margin:0 0 4px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 6px; display:flex; align-items:center; justify-content:space-between; }
+  .row { display:flex; align-items:center; gap:8px; margin:4px 0; flex-wrap:wrap; }
+  label.opt { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  input[type=range] { width:100%; }
+  .muted { color:var(--muted); }
+  button { background:#222838; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:4px 9px; cursor:pointer; font:inherit; font-size:12px; }
+  button:hover { border-color:var(--accent); }
+  .list { max-height:230px; overflow:auto; border:1px solid var(--line); border-radius:6px; padding:6px; }
+  .list label.opt { padding:2px 0; }
+  .sw { width:11px; height:11px; border-radius:3px; display:inline-block; flex:none; }
+  .dim { opacity:.4; }
+  #info { border:1px solid var(--line); border-radius:6px; padding:10px; margin-top:8px; min-height:60px; background:#11141c; }
+  #info b { color:var(--accent); }
+  #info ul { margin:4px 0; padding-left:16px; }
+  #tip { position:absolute; pointer-events:none; background:rgba(15,17,23,.92); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:12px; display:none; max-width:320px; }
+  #help { position:absolute; left:12px; bottom:10px; color:var(--muted); font-size:12px; pointer-events:none; }
+  #empty { position:absolute; inset:0; display:none; align-items:center; justify-content:center; color:var(--muted); pointer-events:none; }
+  a { color:var(--accent); }
+  .pill { font-size:11px; border:1px solid var(--line); border-radius:99px; padding:1px 7px; color:var(--muted); }
+  [hidden] { display:none !important; }
+  #scene { width:100%; height:100%; }
+  #error { position:absolute; left:16px; right:16px; top:16px; background:#3a1d24; border:1px solid #e57373; border-radius:6px; padding:10px 12px; color:#ffd7d7; z-index:2; }
+  #error code { font-size:12px; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/three.module.min.js",
+    "three/addons/": "./vendor/three/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <h1>Brain point cloud</h1>
+    <div class="muted">A brain snapshot from the MaleCNS v1.0 extract, drawn at each neuron's soma position. Positions are dataset voxel coordinates.</div>
+
+    <h2>Brain</h2>
+    <select id="brain" style="width:100%"></select>
+    <div id="counts" class="muted" style="font-size:12px;margin-top:8px"></div>
+
+    <h2>Level</h2>
+    <div class="row">
+      <label class="opt"><input type="radio" name="level" value="region"> Region</label>
+      <label class="opt"><input type="radio" name="level" value="superclass"> Superclass</label>
+      <label class="opt"><input type="radio" name="level" value="class" checked> Class</label>
+      <label class="opt"><input type="radio" name="level" value="type"> Type</label>
+    </div>
+
+    <h2>Connections</h2>
+    <div class="row">
+      <label class="opt"><input type="radio" name="mode" value="group" checked> Group graph</label>
+      <label class="opt"><input type="radio" name="mode" value="body"> Top body-to-body</label>
+    </div>
+    <div class="row"><span>Min synapses: <b id="minSynV"></b></span></div>
+    <input type="range" id="minSyn" min="0" max="100" value="0">
+    <div id="topBlock">
+      <div class="row"><span>Top edges: <b id="topNv"></b></span></div>
+      <input type="range" id="topN" min="20" max="3000" step="10" value="300">
+    </div>
+    <div class="muted" style="font-size:12px;margin-top:4px">Snapshots hold only Traced bodies, so the reference status filter is not shown.</div>
+
+    <h2>Display</h2>
+    <div class="row">
+      <label class="opt"><input type="checkbox" id="points" checked> Soma points</label>
+      <label class="opt"><input type="checkbox" id="edges" checked> Edges</label>
+      <label class="opt"><input type="checkbox" id="unann"> Unannotated</label>
+      <label class="opt"><input type="checkbox" id="spin"> Auto-rotate</label>
+    </div>
+    <div class="row"><span>Point density: <b id="densityV"></b></span></div>
+    <input type="range" id="density" min="1" max="100" value="100">
+    <div class="row"><button id="reset">Reset view</button></div>
+
+    <h2>Groups <span><button id="grpAll">Show all</button> <button id="grpNone">Hide all</button></span></h2>
+    <div class="list" id="legend"></div>
+
+    <h2>Selected / hovered</h2>
+    <div id="info"><span class="muted">Hover a point or a group to see it. Click to pin.</span></div>
+
+    <h2>Sources for role descriptions</h2>
+    <div id="sources" class="muted" style="font-size:12px"></div>
+  </aside>
+  <main id="view">
+    <canvas id="scene"></canvas>
+    <div id="help">Drag: rotate · Right-drag: pan · Wheel: zoom</div>
+    <div id="empty">Nothing to show. Tick a group or show a level.</div>
+    <div id="error" hidden></div>
+  </main>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

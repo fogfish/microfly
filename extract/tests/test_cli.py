@@ -46,6 +46,14 @@ class CliTest(unittest.TestCase):
         self.assertIn("self-check     identical", result.stdout)
         self.assertIn("neurons        5", result.stdout)
 
+    def test_report_counts_positions_and_writes_position_source(self):
+        result = run_cli("extract", "--config", SYNTHETIC_CONFIG, "--dataset", self.dataset, "--out", self.out)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("positions      4 with soma, 1 without", result.stdout)
+        header = read_container(read_bytes(self.out))["header"]
+        self.assertEqual(header["provenance"]["positionSource"],
+                         "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation")
+
     def test_output_matches_the_shared_fixture_body(self):
         result = run_cli("extract", "--config", SYNTHETIC_CONFIG, "--dataset", self.dataset, "--out", self.out)
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -142,6 +142,34 @@ class ContainerTest(unittest.TestCase):
         struct.pack_into("<H", bad, self.section_offset("synapses"), 0)
         self.assertRejects(bytes(bad), "snapshot CSR is inconsistent: a synapse count is 0")
 
+    def test_round_trip_of_position_and_superclass(self):
+        def add_fields(header):
+            header["neurons"][0].update(soma=[1, 2, 3], superclass="ascending_neuron")
+            header["neurons"][3].update(soma=None, superclass=None)
+        result = read_container(rebuild(self.data, add_fields))
+        self.assertEqual(result["header"]["neurons"][0]["soma"], [1, 2, 3])
+        self.assertEqual(result["header"]["neurons"][0]["superclass"], "ascending_neuron")
+        self.assertIsNone(result["header"]["neurons"][3]["soma"])
+
+    def test_header_without_position_or_superclass_is_accepted(self):
+        self.assertNotIn("soma", read_container(self.data)["header"]["neurons"][0])
+        self.assertEqual(read_container(self.data)["neuronCount"], 4)
+
+    def test_rejects_malformed_soma(self):
+        def bad_soma(header):
+            header["neurons"][3]["soma"] = [1, 2]
+        self.assertRejects(rebuild(self.data, bad_soma), "snapshot neuron 3 has a malformed soma position")
+
+    def test_rejects_soma_with_bool_component(self):
+        def bad_soma(header):
+            header["neurons"][1]["soma"] = [True, 2, 3]
+        self.assertRejects(rebuild(self.data, bad_soma), "snapshot neuron 1 has a malformed soma position")
+
+    def test_rejects_malformed_superclass(self):
+        def bad_superclass(header):
+            header["neurons"][3]["superclass"] = 5
+        self.assertRejects(rebuild(self.data, bad_superclass), "snapshot neuron 3 has a malformed superclass")
+
     def section_offset(self, name):
         header_length = struct.unpack("<I", self.data[8:12])[0]
         header = json.loads(self.data[12:12 + header_length].decode("utf-8"))

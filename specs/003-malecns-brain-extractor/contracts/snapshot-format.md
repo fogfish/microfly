@@ -68,6 +68,10 @@ The browser loader (`snapshot.js`) and the Python reader both check, in this ord
 
 A reader never guesses past these checks.
 
+## Header additions (spec 004)
+
+Within version 2, three optional fields carry the 3D view: `neurons[i].soma` (`[int, int, int]` or `null`), `neurons[i].superclass` (string or `null`) and `provenance.positionSource`. Missing `soma` or `superclass` means `null`. Readers check the first two with rules 8 and 9 in [specs/004-brain-point-cloud-inspector/contracts/snapshot-header-additions.md](../../004-brain-point-cloud-inspector/contracts/snapshot-header-additions.md), which is the full amendment.
+
 ## Determinism
 
 For the same config and dataset, the body bytes and the header bytes are identical except `provenance.createdAt`. The extractor's self-check compares them (E-NONDETERMINISTIC).

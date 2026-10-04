@@ -15,7 +15,7 @@ ANNOTATIONS = "body-annotations-male-cns-v1.0-minconf-0.5.feather"
 NEUROTRANSMITTERS = "body-neurotransmitters-male-cns-v1.0.feather"
 EDGES = "connectome-weights-male-cns-v1.0-minconf-0.5-traced-only.feather"
 
-ANNOTATION_COLUMNS = ["bodyId", "class", "superclass", "somaSide", "status", "type"]
+ANNOTATION_COLUMNS = ["bodyId", "class", "superclass", "somaSide", "somaLocation", "status", "type"]
 NEUROTRANSMITTER_COLUMNS = ["body", "predicted_nt", "predicted_nt_confidence"]
 EDGE_COLUMNS = ["body_pre", "body_post", "weight"]
 

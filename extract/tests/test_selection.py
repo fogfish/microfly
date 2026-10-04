@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from malecns_brain.config import load_config  # noqa: E402
 from malecns_brain.errors import ExtractError  # noqa: E402
 from malecns_brain.selection import admit, select_brain  # noqa: E402
-from tests.make_fixture import ANNOTATION_ROWS, EDGE_ROWS, TRANSMITTER_ROWS, CONFIG  # noqa: E402
+from tests.make_fixture import ANNOTATION_ROWS, EDGE_ROWS, SOMA_LOCATIONS, TRANSMITTER_ROWS, CONFIG  # noqa: E402
 
 REFERENCE = os.path.join(HERE, "..", "configs", "smallest-functional-brain.json")
 
@@ -196,6 +196,46 @@ class SelectionTest(unittest.TestCase):
         weights = dict(zip(zip(brain["pre"], brain["post"]), brain["weights"]))
         self.assertAlmostEqual(weights[(0, 3)], 1.0)                 # min(40, 5) / 5
         self.assertEqual(dict(zip(zip(brain["pre"], brain["post"]), brain["synapses"]))[(0, 3)], 40)
+
+
+class SomaTest(unittest.TestCase):
+    def test_three_integer_location_is_carried_to_the_neuron(self):
+        neurons = run_with_soma()["neurons"]
+        self.assertEqual(neurons[0]["soma"], SOMA_LOCATIONS[100])
+        self.assertEqual(neurons[1]["soma"], SOMA_LOCATIONS[200])
+
+    def test_missing_location_gives_none_on_the_neuron(self):
+        neurons = run_with_soma()["neurons"]
+        self.assertIsNone(neurons[4]["soma"])   # body 302 has no position in the fixture
+
+    def test_malformed_locations_become_none(self):
+        for location in (None, [], [1, 2], [1.0, 2.0, 3.0], [True, 2, 3], "1,2,3"):
+            with self.subTest(location=location):
+                annotations, transmitters, _ = base_rows()
+                for row in annotations:
+                    row["somaLocation"] = location if row["bodyId"] == 201 else None
+                bodies = admit(annotations, transmitters, base_config())
+                self.assertIsNone(bodies[201]["soma"])
+
+    def test_superclass_is_carried_to_the_neuron(self):
+        neurons = run_with_soma()["neurons"]
+        self.assertEqual(neurons[0]["superclass"], "ascending_neuron")
+        self.assertEqual(neurons[1]["superclass"], "descending_neuron")
+        self.assertEqual(neurons[3]["superclass"], "intrinsic")
+
+    def test_positions_do_not_change_admission_or_edges(self):
+        plain = run()
+        positioned = run_with_soma()
+        self.assertEqual([n["bodyId"] for n in plain["neurons"]], [n["bodyId"] for n in positioned["neurons"]])
+        self.assertEqual(plain["edgeCount"], positioned["edgeCount"])
+        self.assertEqual(plain["targets"].tobytes(), positioned["targets"].tobytes())
+
+
+def run_with_soma():
+    annotations, transmitters, edges = base_rows()
+    for row, source in zip(annotations, ANNOTATION_ROWS):
+        row["somaLocation"] = SOMA_LOCATIONS[source[0]]
+    return run(annotations=annotations, transmitters=transmitters, edges=edges)
 
 
 if __name__ == "__main__":

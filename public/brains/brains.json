@@ -1,0 +1,8 @@
+{
+  "format": "brain-manifest",
+  "version": 1,
+  "default": "smallest-functional-brain.brain",
+  "brains": [
+    { "file": "smallest-functional-brain.brain", "label": "Smallest functional brain" }
+  ]
+}

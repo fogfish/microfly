@@ -109,6 +109,12 @@ def _reject(message):
     raise ValueError(message)
 
 
+def _is_position(value):
+    """True for a list of exactly three ints (bools are not ints here)."""
+    return (isinstance(value, list) and len(value) == 3
+            and all(isinstance(v, int) and not isinstance(v, bool) for v in value))
+
+
 def read_container(data):
     """Parse and check a container (rules 1–7 of snapshot-format.md).
 
@@ -150,6 +156,14 @@ def read_container(data):
             roles_ok = [neurons[i].get("role") for i in range(3)] == list(ROLES)
     if not roles_ok:
         _reject("snapshot roles out of order: expected sensory, left, right")
+
+    for index, neuron in enumerate(neurons):
+        soma = neuron.get("soma")
+        if soma is not None and not _is_position(soma):
+            _reject(f"snapshot neuron {index} has a malformed soma position")
+        superclass = neuron.get("superclass")
+        if superclass is not None and not isinstance(superclass, str):
+            _reject(f"snapshot neuron {index} has a malformed superclass")
 
     expected, end = _section_table(header_length, neuron_count, edge_count)
     sections = header.get("sections")

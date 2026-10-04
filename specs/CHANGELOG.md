@@ -18,4 +18,8 @@
 
 /speckit-plan Write the extraction utility in python. Make a decision about the serialization format for the graph, keep in-mind that full brain might be injected. Use the domain langauge established at malecns.md to configure the utility but make configurability minimal covering only ADR needs 002-smallest-functional-brain. Validate the utility with real brain extraction and integrating into lif.js. Keep existing mock implementation alive and configurable. The goal is comparision of both methods of brain modelling (random vs nature). 
 
+--
 
+/speckit-specify Create a visual inspection of brain snapshot as point cloud with edges, similar to inspector of the dataset malecns-3d.html (keep malecns-3d.html unchange, implement a parallel version at `public/brains` so that it is loadable through webserver as simulation). If the brain snapshot does not conatin 3d dimensional data as available at main dataset extend it, it would be required for further visualization inside the world.
+
+/speckit-plan Update the data extractor to carry 3d data point. It is nessesary for the brain inspectof and further visualization features. Implement a brain inspector similar to `inspector/malecns-3d.html` inside `public/brains` so that user can switch throught different brains available in the simulator. Keep similar level filering and annotations as `inspector/malecns-3d.html` has.

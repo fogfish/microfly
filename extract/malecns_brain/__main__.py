@@ -26,6 +26,7 @@ def build_header(config, brain, created_at):
             "configHash": config_hash(config),
             "toolVersion": __version__,
             "createdAt": created_at,
+            "positionSource": "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation",
         },
         "synapseCap": config["synapseCap"],
         "neuronCount": len(brain["neurons"]),
@@ -53,6 +54,7 @@ def report(config, brain, output, size, self_check):
         counts[n["transmitter"]] = counts.get(n["transmitter"], 0) + 1
     transmitters = ", ".join(f"{name} {count}" for name, count in sorted(counts.items()))
     interneurons = len(neurons) - 3
+    with_soma = sum(1 for n in neurons if isinstance(n["soma"], list))
     weights = brain["weights"]
     synapses = brain["synapses"]
     left, right = neurons[1], neurons[2]
@@ -61,6 +63,7 @@ def report(config, brain, output, size, self_check):
         f"dataset        {config['datasetRelease']} ({config['edgeVariant']})",
         f"neurons        {len(neurons)}   (sensory 1, left 1, right 1, interneurons {interneurons})",
         f"edges          {brain['edgeCount']}",
+        f"positions      {with_soma} with soma, {len(neurons) - with_soma} without",
         f"transmitters   {transmitters}",
         f"weights        min {float(weights.min()):g}, max {float(weights.max()):g}; "
         f"synapses min {int(synapses.min())}, max {int(synapses.max())}",

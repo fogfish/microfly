@@ -43,6 +43,20 @@ function checkRoles(neurons, neuronCount) {
   if (!ok) reject('snapshot roles out of order: expected sensory, left, right');
 }
 
+// Optional per-neuron fields (contracts/snapshot-header-additions.md, rules 8 and 9). Missing or null is allowed.
+const isPosition = (value) => Array.isArray(value) && value.length === 3 && value.every(Number.isInteger);
+
+function checkPositions(neurons) {
+  neurons.forEach((neuron, index) => {
+    if (neuron.soma != null && !isPosition(neuron.soma)) {
+      reject(`snapshot neuron ${index} has a malformed soma position`);
+    }
+    if (neuron.superclass != null && typeof neuron.superclass !== 'string') {
+      reject(`snapshot neuron ${index} has a malformed superclass`);
+    }
+  });
+}
+
 export function parseSnapshot(arrayBuffer) {
   const bytes = new Uint8Array(arrayBuffer);
   if (!LITTLE_ENDIAN) reject('brain snapshots need a little-endian platform');
@@ -77,6 +91,7 @@ export function parseSnapshot(arrayBuffer) {
     reject('snapshot roles out of order: expected sensory, left, right');
   }
   checkRoles(neurons, neuronCount);
+  checkPositions(neurons);
 
   const { table, end } = sectionTable(headerLength, neuronCount, edgeCount);
   if (!sections || typeof sections !== 'object') reject('snapshot section sections is out of bounds');

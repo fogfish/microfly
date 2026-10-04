@@ -128,3 +128,54 @@ test('rejects a synapse count of 0', () => {
     message: 'snapshot CSR is inconsistent: a synapse count is 0',
   });
 });
+
+test('accepts neurons with a soma position and a superclass', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.neurons[0].soma = [1200, 3400, 560];
+    m.neurons[0].superclass = 'ascending_neuron';
+    m.neurons[4].soma = null;
+    m.neurons[4].superclass = null;
+  });
+  const snap = parseSnapshot(toBuffer(bytes));
+  assert.deepEqual(snap.manifest.neurons[0].soma, [1200, 3400, 560]);
+  assert.equal(snap.manifest.neurons[0].superclass, 'ascending_neuron');
+});
+
+test('accepts neurons with neither soma nor superclass', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    for (const n of m.neurons) {
+      delete n.soma;
+      delete n.superclass;
+    }
+  });
+  const snap = parseSnapshot(toBuffer(bytes));
+  assert.equal(snap.neuronCount, 5);
+  assert.equal(snap.manifest.neurons[0].soma, undefined);
+});
+
+test('rejects a soma that is not three integers', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.neurons[3].soma = [1, 2];
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot neuron 3 has a malformed soma position',
+  });
+});
+
+test('rejects a soma with a non-integer component', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.neurons[1].soma = [1, 2, 'x'];
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot neuron 1 has a malformed soma position',
+  });
+});
+
+test('rejects a superclass that is not a string', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.neurons[3].superclass = 5;
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot neuron 3 has a malformed superclass',
+  });
+});

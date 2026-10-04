@@ -49,6 +49,22 @@ ANNOTATION_ROWS = [
     (305, None, "intrinsic", None, "Traced", "synthetic-305"),
 ]
 
+# bodyId → somaLocation. Body 302 (a selected interneuron) has none, to exercise the null path.
+SOMA_LOCATIONS = {
+    100: [1200, 3400, 560],
+    101: [1210, 3410, 570],
+    102: [1220, 3420, 580],
+    200: [2100, 1800, 900],
+    201: [2900, 1850, 905],
+    202: [2110, 1790, 910],
+    300: [1500, 2600, 740],
+    301: [1520, 2610, 745],
+    302: None,
+    303: [1600, 2650, 760],
+    304: [1650, 2700, 770],
+    305: [1580, 2620, 750],
+}
+
 # body, predicted_nt, predicted_nt_confidence
 TRANSMITTER_ROWS = [
     (100, "acetylcholine", 0.9),
@@ -112,6 +128,7 @@ def write_dataset(directory):
         "class": [r[1] for r in ANNOTATION_ROWS],
         "superclass": [r[2] for r in ANNOTATION_ROWS],
         "somaSide": [r[3] for r in ANNOTATION_ROWS],
+        "somaLocation": [SOMA_LOCATIONS[r[0]] for r in ANNOTATION_ROWS],
         "status": [r[4] for r in ANNOTATION_ROWS],
         "type": [r[5] for r in ANNOTATION_ROWS],
     })
@@ -144,15 +161,20 @@ def write_fixture_container(path):
     """
     neurons = [
         {"index": 0, "role": "sensory", "bodyId": 100, "class": "ALPN", "type": "synthetic-alpn-a",
-         "somaSide": None, "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
+         "somaSide": None, "superclass": "ascending_neuron", "soma": SOMA_LOCATIONS[100],
+         "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
         {"index": 1, "role": "left", "bodyId": 200, "class": None, "type": "synthetic-dn-l",
-         "somaSide": "L", "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
+         "somaSide": "L", "superclass": "descending_neuron", "soma": SOMA_LOCATIONS[200],
+         "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
         {"index": 2, "role": "right", "bodyId": 201, "class": None, "type": "synthetic-dn-r",
-         "somaSide": "R", "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
+         "somaSide": "R", "superclass": "descending_neuron", "soma": SOMA_LOCATIONS[201],
+         "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
         {"index": 3, "role": "interneuron", "bodyId": 300, "class": None, "type": "synthetic-300",
-         "somaSide": None, "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
+         "somaSide": None, "superclass": "intrinsic", "soma": SOMA_LOCATIONS[300],
+         "transmitter": "acetylcholine", "transmitterConfidence": 0.9, "sign": 1},
         {"index": 4, "role": "interneuron", "bodyId": 302, "class": None, "type": "synthetic-302",
-         "somaSide": None, "transmitter": "glutamate", "transmitterConfidence": 0.7, "sign": -1},
+         "somaSide": None, "superclass": "intrinsic", "soma": SOMA_LOCATIONS[302],
+         "transmitter": "glutamate", "transmitterConfidence": 0.7, "sign": -1},
     ]
     # CSR, rows by presynaptic index then postsynaptic index.
     offsets = [0, 2, 2, 2, 3, 4]
@@ -172,6 +194,7 @@ def write_fixture_container(path):
             "configHash": config_hash(CONFIG),
             "toolVersion": "0.1.0",
             "createdAt": "1970-01-01T00:00:00Z",
+            "positionSource": "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation",
         },
         "synapseCap": cap,
         "neuronCount": len(neurons),

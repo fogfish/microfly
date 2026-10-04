@@ -52,6 +52,7 @@ def admit(annotations, transmitters, config):
             "class": row.get("class"),
             "superclass": row.get("superclass"),
             "somaSide": row.get("somaSide"),
+            "soma": _soma(row.get("somaLocation")),
             "type": row.get("type"),
             "status": row.get("status"),
             "transmitter": transmitter,
@@ -59,6 +60,15 @@ def admit(annotations, transmitters, config):
             "sign": sign,
         }
     return bodies
+
+
+def _soma(location):
+    """A soma position as [int, int, int], or None when the dataset has no usable position."""
+    if not isinstance(location, list) or len(location) != 3:
+        return None
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in location):
+        return None
+    return [int(v) for v in location]
 
 
 def _check_unique_edges(pre, post):
@@ -187,6 +197,8 @@ def select_brain(config, bodies, edges):
             "class": b["class"],
             "type": b["type"],
             "somaSide": b["somaSide"],
+            "superclass": b["superclass"],
+            "soma": b["soma"],
             "transmitter": b["transmitter"],
             "transmitterConfidence": b["transmitterConfidence"],
             "sign": b["sign"],
