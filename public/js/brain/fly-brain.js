@@ -1,6 +1,8 @@
-// Two-channel toy network (ADR 001 Annex A, research R5). Pure: no DOM, no workers.
+// Two-channel brain (ADR 001 Annex A, research R5; ADR 002 for the snapshot). Pure: no DOM, no workers.
 // Neuron 0 is the sensory input, neuron 1 drives LEFT, neuron 2 drives RIGHT.
 // Each motor output is an exponential moving average of its spike rate.
+// Toy brains are random graphs. A snapshot brain (brainConfig.snapshot, a parsed container) is the
+// connectome graph from the file; the seed is not used by it (contracts/integration.md §2).
 
 import { createPrng } from '../world/prng.js';
 import { addMotorDrive, randomGraph } from './graph.js';
@@ -20,6 +22,8 @@ export const BRAIN_DEFAULTS = Object.freeze({
 });
 
 export function createFlyBrain(brainConfig, seed) {
+  if (brainConfig.snapshot !== undefined) return createSnapshotBrain(brainConfig);
+
   const cfg = { ...BRAIN_DEFAULTS, ...brainConfig };
   const { neuronCount, motorSmoothing, telemetry } = cfg;
 
@@ -30,8 +34,31 @@ export function createFlyBrain(brainConfig, seed) {
     rand: createPrng(seed).next,
   }), { sensory: SENSORY, motors: [LEFT, RIGHT] });
   const net = createNetwork(graph, brainConfig.lif ?? {});
-  const external = new Float64Array(neuronCount);
+  return runner({ net, neuronCount, motorSmoothing, telemetry });
+}
 
+function createSnapshotBrain(brainConfig) {
+  const snap = brainConfig.snapshot;
+  if (typeof snap === 'string') {
+    throw new Error('snapshot must be resolved to a parsed container before the brain is built');
+  }
+  const { motorSmoothing, telemetry } = { ...BRAIN_DEFAULTS, ...brainConfig };
+  const neuronCount = snap.neuronCount;
+  for (const neuron of telemetry) {
+    if (!(neuron >= 0 && neuron < neuronCount)) {
+      throw new Error(`telemetry neuron ${neuron} is outside the snapshot's ${neuronCount} neurons`);
+    }
+  }
+  const net = createNetwork(
+    { neuronCount, offsets: snap.offsets, targets: snap.targets, weights: snap.weights },
+    brainConfig.lif ?? {},
+  );
+  return runner({ net, neuronCount, motorSmoothing, telemetry });
+}
+
+// The per-tick loop, shared by both kinds. Only the graph construction differs.
+function runner({ net, neuronCount, motorSmoothing, telemetry }) {
+  const external = new Float64Array(neuronCount);
   let ticks = 0;
   let left = 0;
   let right = 0;

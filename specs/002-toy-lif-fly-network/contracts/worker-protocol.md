@@ -31,6 +31,8 @@ Sent once per fly, before any `sense`.
 
 Reply: `ready` on success, or `error` if the network cannot be built (for example, invalid parameters that slipped past validation).
 
+**Snapshot brains (feature 003).** `brain.snapshot` is optional. When it is set, `neuronCount`, `outDegree` and `inhibitoryFraction` are absent, and the value is a URL of a `.brain` file. The worker shell (`fly.worker.js`) fetches the URL, parses it with `snapshot.js`, and passes the parsed snapshot to the handler, so the handler only sees the resolved form. The worker replies `ready` with the snapshot's `neuronCount`, or `error` with `flyId` and the reason (missing file, bad format). The host sends no `sense` before `ready`, so nothing is queued. `seed` is still required by the message but is not used by a snapshot brain. Its output is the same for any seed. See `specs/003-malecns-brain-extractor/contracts/integration.md` §2.
+
 ### `sense`
 
 One per brain tick, after the previous `motor` has been received.

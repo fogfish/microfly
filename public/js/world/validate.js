@@ -362,18 +362,34 @@ function validateFlyBrain(brain, err) {
     return;
   }
 
-  const n = brain.neuronCount ?? 40;
-  const neuronsOk = isInt(n, 3, 1000);
-  if (!neuronsOk) err('flies.brain.neuronCount', 'must be an integer from 3 to 1000');
-
-  const outDegree = brain.outDegree ?? 4;
-  if (neuronsOk && !isInt(outDegree, 1, n - 1)) {
-    err('flies.brain.outDegree', `must be an integer from 1 to ${n - 1} (neuronCount - 1)`);
+  // A snapshot brain takes its size from the file, so toy-only settings are a conflict (contracts/integration.md §1).
+  const snapshot = brain.snapshot;
+  const isSnapshot = snapshot !== undefined;
+  if (isSnapshot) {
+    if (typeof snapshot !== 'string' || snapshot === '') {
+      err('flies.brain.snapshot', 'must be a non-empty path to a .brain file');
+    }
+    for (const key of ['neuronCount', 'outDegree', 'inhibitoryFraction']) {
+      if (brain[key] !== undefined) {
+        err('flies.brain', `"snapshot" cannot be combined with "${key}"`);
+      }
+    }
   }
 
-  const inhibitory = brain.inhibitoryFraction ?? 0.2;
-  if (!(isNum(inhibitory) && inhibitory >= 0 && inhibitory <= 1)) {
-    err('flies.brain.inhibitoryFraction', 'must be a number from 0 to 1');
+  const n = brain.neuronCount ?? 40;
+  const neuronsOk = isSnapshot || isInt(n, 3, 1000);
+  if (!isSnapshot && !neuronsOk) err('flies.brain.neuronCount', 'must be an integer from 3 to 1000');
+
+  if (!isSnapshot) {
+    const outDegree = brain.outDegree ?? 4;
+    if (neuronsOk && !isInt(outDegree, 1, n - 1)) {
+      err('flies.brain.outDegree', `must be an integer from 1 to ${n - 1} (neuronCount - 1)`);
+    }
+
+    const inhibitory = brain.inhibitoryFraction ?? 0.2;
+    if (!(isNum(inhibitory) && inhibitory >= 0 && inhibitory <= 1)) {
+      err('flies.brain.inhibitoryFraction', 'must be a number from 0 to 1');
+    }
   }
 
   const smoothing = brain.motorSmoothing ?? 0.05;
@@ -381,13 +397,16 @@ function validateFlyBrain(brain, err) {
     err('flies.brain.motorSmoothing', 'must be a number greater than 0 and at most 1');
   }
 
+  // A snapshot's neuronCount is only known after the file is read, so the host checks the bounds then.
   const telemetry = brain.telemetry ?? [0, 1, 2];
+  const upper = isSnapshot ? Number.MAX_SAFE_INTEGER : (neuronsOk ? n - 1 : -1);
   const telemetryOk =
     Array.isArray(telemetry) &&
-    telemetry.every((t) => isInt(t, 0, neuronsOk ? n - 1 : -1)) &&
+    telemetry.every((t) => isInt(t, 0, upper)) &&
     new Set(telemetry).size === telemetry.length;
   if (!telemetryOk) {
-    err('flies.brain.telemetry', `must be a list of unique integers from 0 to ${neuronsOk ? n - 1 : 'neuronCount - 1'}`);
+    const bound = isSnapshot ? 'the snapshot neuronCount - 1' : (neuronsOk ? n - 1 : 'neuronCount - 1');
+    err('flies.brain.telemetry', `must be a list of unique integers from 0 to ${bound}`);
   }
 
   if (brain.lif !== undefined) {

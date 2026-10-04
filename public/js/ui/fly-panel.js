@@ -27,7 +27,7 @@ export function renderFlyPanel(container, records, selectedId, onSelect) {
   records.forEach((r, i) => {
     const btn = list.children[i].firstChild;
     btn.type = 'button';
-    btn.textContent = `Fly ${r.state.id} · ${MODE_LABEL[r.state.mode]} · ${r.status} · contacts ${r.state.body.contacts}`;
+    btn.textContent = `Fly ${r.state.id} · ${r.brainLabel ?? MODE_LABEL[r.state.mode]} · ${r.status} · contacts ${r.state.body.contacts}`;
     btn.setAttribute('aria-pressed', String(r.state.id === selectedId));
     btn.onclick = () => onSelect(r.state.id);
   });

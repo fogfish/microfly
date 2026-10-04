@@ -1,0 +1,32 @@
+{
+  "formatVersion": 2,
+  "datasetRelease": "synthetic-test-fixture",
+  "edgeVariant": "traced-only",
+  "expect": {
+    "annotationRows": 12,
+    "edgeRows": 13,
+    "neurotransmitterRows": 12
+  },
+  "sensory": {
+    "class": "ALPN",
+    "status": "Traced"
+  },
+  "readouts": {
+    "superclass": "descending_neuron",
+    "status": "Traced",
+    "somaSides": [
+      "L",
+      "R"
+    ]
+  },
+  "transmitterSign": {
+    "acetylcholine": 1,
+    "gaba": -1,
+    "glutamate": -1
+  },
+  "minConfidence": 0.5,
+  "synapseCap": 5,
+  "minInterneurons": 2,
+  "maxInterneurons": 2,
+  "expectedNeuronCount": 5
+}

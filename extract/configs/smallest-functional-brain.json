@@ -1,0 +1,32 @@
+{
+  "formatVersion": 2,
+  "datasetRelease": "male-cns-v1.0",
+  "edgeVariant": "traced-only",
+  "expect": {
+    "annotationRows": 211577,
+    "edgeRows": 25563197,
+    "neurotransmitterRows": 1835518
+  },
+  "sensory": {
+    "class": "ALPN",
+    "status": "Traced"
+  },
+  "readouts": {
+    "superclass": "descending_neuron",
+    "status": "Traced",
+    "somaSides": [
+      "L",
+      "R"
+    ]
+  },
+  "transmitterSign": {
+    "acetylcholine": 1,
+    "gaba": -1,
+    "glutamate": -1
+  },
+  "minConfidence": 0.5,
+  "synapseCap": 5,
+  "minInterneurons": 2,
+  "maxInterneurons": 8,
+  "expectedNeuronCount": 11
+}

@@ -1,0 +1,196 @@
+{
+  "format": "arcade-world",
+  "version": 1,
+  "name": "Meadow Arcade",
+  "seed": 1990,
+
+  "world": {
+    "width": 100,
+    "height": 100,
+    "tileSize": 16
+  },
+
+  "camera": {
+    "zoom": { "min": 0.5, "max": 4, "default": 2 }
+  },
+
+  "sprites": {
+    "grass": { "sheet": "assets/terrain/roguelike-16.png", "x": 51, "y": 272, "w": 16, "h": 16 },
+    "water": { "sheet": "assets/terrain/roguelike-16.png", "x": 17, "y": 51, "w": 16, "h": 16 },
+    "rock": { "sheet": "assets/terrain/roguelike-16.png", "x": 136, "y": 272, "w": 16, "h": 16 },
+    "rock-n": { "sheet": "assets/terrain/roguelike-16.png", "x": 136, "y": 255, "w": 16, "h": 16 },
+    "rock-e": { "sheet": "assets/terrain/roguelike-16.png", "x": 153, "y": 272, "w": 16, "h": 16 },
+    "rock-s": { "sheet": "assets/terrain/roguelike-16.png", "x": 136, "y": 289, "w": 16, "h": 16 },
+    "rock-w": { "sheet": "assets/terrain/roguelike-16.png", "x": 119, "y": 272, "w": 16, "h": 16 },
+    "rock-ne": { "sheet": "assets/terrain/roguelike-16.png", "x": 153, "y": 255, "w": 16, "h": 16 },
+    "rock-nw": { "sheet": "assets/terrain/roguelike-16.png", "x": 119, "y": 255, "w": 16, "h": 16 },
+    "rock-se": { "sheet": "assets/terrain/roguelike-16.png", "x": 153, "y": 289, "w": 16, "h": 16 },
+    "rock-sw": { "sheet": "assets/terrain/roguelike-16.png", "x": 119, "y": 289, "w": 16, "h": 16 },
+    "rock-ns": { "sheet": "assets/terrain/roguelike-16.png", "x": 153, "y": 238, "w": 16, "h": 16 },
+    "rock-ew": { "sheet": "assets/terrain/roguelike-16.png", "x": 153, "y": 221, "w": 16, "h": 16 },
+    "rock-all": { "sheet": "assets/terrain/roguelike-16.png", "x": 136, "y": 204, "w": 16, "h": 16 },
+    "tree": { "sheet": "assets/terrain/roguelike-16.png", "x": 221, "y": 187, "w": 16, "h": 16 },
+    "bush": { "sheet": "assets/terrain/roguelike-16.png", "x": 221, "y": 153, "w": 16, "h": 16 },
+    "rock-small": { "sheet": "assets/terrain/roguelike-16.png", "x": 935, "y": 374, "w": 16, "h": 16 },
+
+    "apple": {
+      "pixels": [
+        "....s.....",
+        "...sg.....",
+        "..rrrrr...",
+        ".rrwrrrr..",
+        ".rrwrrrr..",
+        ".rrrrrrr..",
+        ".rrrrrrr..",
+        "..rrrrr...",
+        "...rrr...."
+      ],
+      "palette": { "r": "#e63946", "w": "#f1faee", "s": "#6b4226", "g": "#2a9d8f" }
+    },
+
+    "cherry": {
+      "pixels": [
+        "....g.g...",
+        "...g..g...",
+        "..cc.cc...",
+        ".cwc.cwc..",
+        ".cccc.ccc.",
+        ".cccc.ccc.",
+        "..cc...cc."
+      ],
+      "palette": { "c": "#9d0208", "w": "#ffb3c1", "g": "#2a6f2a" }
+    },
+
+    "honey": {
+      "pixels": [
+        "...llll...",
+        "..hhhhhh..",
+        ".hhwwhhhh.",
+        ".hhwhhhhh.",
+        ".hhhhhhhh.",
+        ".hhhhhhhh.",
+        ".hhhhhhhh.",
+        "..hhhhhh..",
+        "...hhhh..."
+      ],
+      "palette": { "l": "#5c3a1e", "h": "#f4a300", "w": "#fff3b0" }
+    },
+
+    "fire": {
+      "pixels": [
+        "....r.....",
+        "...rr.....",
+        "..rroo....",
+        ".rroyy....",
+        ".royyy....",
+        "..yyw.....",
+        "..yyyy...."
+      ],
+      "palette": { "r": "#d62828", "o": "#f77f00", "y": "#fcbf49", "w": "#ffffff" }
+    },
+
+    "spider": {
+      "pixels": [
+        "..k....k..",
+        ".k.pppp.k.",
+        "k..pppp..k",
+        "..pepep...",
+        "..ppppp...",
+        ".k.ppp.k..",
+        "k..p.p..k."
+      ],
+      "palette": { "k": "#1b1b1b", "p": "#5a189a", "e": "#ffffff" }
+    },
+
+    "fly": {
+      "pixels": [
+        "ww.ee.ww",
+        "ww.kk.ww",
+        ".wkkkkw.",
+        "..kkkk..",
+        "..kkkk..",
+        ".wkkkkw.",
+        "ww.kk.ww",
+        "k.k..k.k"
+      ],
+      "palette": { "w": "#dfe9f5", "k": "#1b1b1b", "e": "#ff3b3b" }
+    },
+
+    "fly-baseline": {
+      "pixels": [
+        "ww.ee.ww",
+        "ww.kk.ww",
+        ".wkkkkw.",
+        "..kkkk..",
+        "..kkkk..",
+        ".wkkkkw.",
+        "ww.kk.ww",
+        "k.k..k.k"
+      ],
+      "palette": { "w": "#e6e6e6", "k": "#8ecae6", "e": "#ffb703" }
+    }
+  },
+
+  "terrain": [
+    { "id": "grass", "name": "Grass", "sprite": "grass", "walkable": true, "base": true },
+    { "id": "water", "name": "Water", "sprite": "water", "walkable": false },
+    { "id": "rock", "name": "Rock", "sprite": "rock", "walkable": false }
+  ],
+
+  "groups": {
+    "rock": {
+      "fill": "rock",
+      "edges": {
+        "N": "rock-n", "E": "rock-e", "S": "rock-s", "W": "rock-w",
+        "NE": "rock-ne", "NW": "rock-nw", "SE": "rock-se", "SW": "rock-sw",
+        "NS": "rock-ns", "EW": "rock-ew", "NESW": "rock-all"
+      }
+    }
+  },
+
+  "terrainLayers": [
+    { "shape": "blobs", "terrain": "water", "count": 6, "radius": [3, 7], "on": ["grass"] },
+    { "shape": "noise", "terrain": "rock", "threshold": 0.82, "scale": 9, "on": ["grass"] }
+  ],
+
+  "objects": [
+    { "id": "tree", "kind": "scenery", "sprite": "tree", "count": 300, "allowedTerrain": ["grass"], "minSpacing": 1 },
+    { "id": "rock-small", "kind": "scenery", "sprite": "rock-small", "count": 60, "allowedTerrain": ["grass"], "minSpacing": 1 },
+    { "id": "bush", "kind": "scenery", "sprite": "bush", "count": 120, "allowedTerrain": ["grass"], "minSpacing": 1 },
+    { "id": "apple", "kind": "edible", "sprite": "apple", "count": 40, "allowedTerrain": ["grass"], "minSpacing": 2 },
+    { "id": "cherry", "kind": "edible", "sprite": "cherry", "count": 40, "allowedTerrain": ["grass"], "minSpacing": 2 },
+    { "id": "honey", "kind": "edible", "sprite": "honey", "count": 25, "allowedTerrain": ["grass"], "minSpacing": 3 },
+    { "id": "fire", "kind": "danger", "sprite": "fire", "count": 12, "allowedTerrain": ["grass"], "minSpacing": 4 },
+    { "id": "spider", "kind": "danger", "sprite": "spider", "count": 20, "allowedTerrain": ["grass"], "minSpacing": 3 }
+  ],
+
+  "flies": {
+    "count": 6,
+    "mode": "toy",
+    "tickHz": 20,
+    "sprite": "fly",
+    "baselineSprite": "fly-baseline",
+
+    "body": { "maxSpeed": 3, "turnRate": 4 },
+
+    "stimulus": {
+      "objects": ["apple", "cherry"],
+      "radius": 3,
+      "gain": 1.0,
+      "max": 1.0,
+      "resting": 0.2
+    },
+
+    "brain": {
+      "snapshot": "brains/smallest-functional-brain.brain",
+      "motorSmoothing": 0.05,
+      "telemetry": [0, 1, 2],
+      "lif": { "synapticScale": 0.85 }
+    },
+
+    "experiment": {
+      "seeds": [1, 2, 3, 4, 5],
+      "ticks": 3000
+    }
+  }
+}

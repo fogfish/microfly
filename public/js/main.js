@@ -10,7 +10,7 @@ import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
 import { buildWorld, spawnFlies } from './fly/fly-world.js';
-import { startFlies } from './fly/fly-host.js';
+import { loadSnapshot, startFlies } from './fly/fly-host.js';
 import { renderFlyPanel } from './ui/fly-panel.js';
 
 // main.js lives in public/js/, so its parent is the web root that holds world/ and assets/
@@ -33,10 +33,21 @@ async function boot() {
   const { sprites, errors: spriteErrors } = await loadSprites(loaded.config.sprites, APP_ROOT);
   if (spriteErrors.length > 0) return fail(spriteErrors);
 
-  startWorld({ config: loaded.config, sprites });
+  // A snapshot brain is read before anything starts. A bad file shows the error panel and no fly starts.
+  let snapshot = null;
+  const flies = loaded.config.flies;
+  if (flies !== undefined && (flies.mode ?? 'toy') === 'toy' && flies.brain?.snapshot !== undefined) {
+    try {
+      snapshot = await loadSnapshot(flies.brain, APP_ROOT);
+    } catch (e) {
+      return fail([{ path: 'flies.brain.snapshot', message: e.message }]);
+    }
+  }
+
+  startWorld({ config: loaded.config, sprites, snapshot });
 }
 
-function startWorld({ config, sprites }) {
+function startWorld({ config, sprites, snapshot }) {
   hideErrors();
 
   const canvas = document.getElementById('world');
@@ -96,7 +107,7 @@ function startWorld({ config, sprites }) {
       const flyWorld = buildWorld(config, grid, objects);
       const flies = spawnFlies(config, flyWorld);
       world.flies = flies;
-      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate });
+      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate, snapshot });
     } catch (e) {
       console.error(`flies: ${e.message}`);
       panel.textContent = `Flies could not start: ${e.message}`;

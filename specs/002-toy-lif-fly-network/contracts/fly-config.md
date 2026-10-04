@@ -32,9 +32,10 @@
     },
 
     "brain": {                           // required when mode is "toy"; ignored in baseline
-      "neuronCount": 40,                 // optional, 3..1000, default 40
-      "outDegree": 4,                    // optional, 1..neuronCount-1, default 4
-      "inhibitoryFraction": 0.2,         // optional, 0..1, default 0.2
+      "snapshot": "brains/smallest-functional-brain.brain",  // optional, URL relative to the web root (feature 003)
+      "neuronCount": 40,                 // optional, 3..1000, default 40; rejected with "snapshot"
+      "outDegree": 4,                    // optional, 1..neuronCount-1, default 4; rejected with "snapshot"
+      "inhibitoryFraction": 0.2,         // optional, 0..1, default 0.2; rejected with "snapshot"
       "motorSmoothing": 0.05,            // optional, 0 < x <= 1, default 0.05
       "telemetry": [0, 1, 2],            // optional, unique indices < neuronCount, default [0, 1, 2]
       "lif": {                           // optional, any subset of LIF parameter names

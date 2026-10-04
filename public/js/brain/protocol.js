@@ -40,6 +40,10 @@ export function validateMessage(msg, direction) {
     case 'init':
       if (!isObject(msg.brain)) return 'init.brain must be an object';
       if (!isTick(msg.seed) || msg.seed > 4294967295) return 'init.seed must be an integer from 0 to 4294967295';
+      // A snapshot is a URL on the way in. The worker shell replaces it with the parsed container.
+      if (msg.brain.snapshot !== undefined && !(typeof msg.brain.snapshot === 'string' ? msg.brain.snapshot !== '' : isObject(msg.brain.snapshot))) {
+        return 'init.brain.snapshot must be a non-empty URL or a parsed snapshot';
+      }
       return null;
     case 'sense':
       if (!isTick(msg.tick)) return 'sense.tick must be an integer of 0 or more';

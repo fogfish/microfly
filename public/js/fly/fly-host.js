@@ -3,6 +3,7 @@
 // this file only wires them to Workers and the clock.
 
 import * as P from '../brain/protocol.js';
+import { parseSnapshot } from '../brain/snapshot.js';
 import { stepBody } from './body.js';
 import { createBaselineMotor } from './baseline.js';
 import { senseAt } from './stimulus.js';
@@ -11,11 +12,53 @@ import { resolveFlies } from './fly-config.js';
 const HISTORY = 200;
 const EMPTY = new Uint8Array(0);
 const WORKER_URL = new URL('../brain/fly.worker.js', import.meta.url);
+const MODE_LABEL = {
+  toy: 'toy (synthetic test fixture)',
+  baseline: 'baseline (random walk, no brain)',
+};
 
-// world: from buildWorld. flies: from spawnFlies. Returns one FlyRecord per fly.
-// FlyRecord: { state, worker, status, error, pending, history, telemetry, motorSource }
-export function startFlies({ config, world, flies, onUpdate }) {
+// Fetches and checks the snapshot named by flies.brain.snapshot, before any fly starts (FR-019, FR-021).
+// root is the web root the path is relative to. Throws an Error that names the file and the problem.
+// Returns { url, release, createdAt, neuronCount } for the workers and the panel.
+export async function loadSnapshot(brain, root) {
+  const path = brain.snapshot;
+  const url = new URL(path, root);
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (e) {
+    throw new Error(`snapshot ${path} could not be loaded (network error: ${e.message})`);
+  }
+  if (!response.ok) throw new Error(`snapshot ${path} could not be loaded (HTTP ${response.status})`);
+
+  let snapshot;
+  try {
+    snapshot = parseSnapshot(await response.arrayBuffer());
+  } catch (e) {
+    throw new Error(`snapshot ${path} is not usable: ${e.message}`);
+  }
+  for (const neuron of brain.telemetry ?? []) {
+    if (neuron >= snapshot.neuronCount) {
+      throw new Error(`flies.brain.telemetry ${neuron} is not below the snapshot's neuronCount ${snapshot.neuronCount}`);
+    }
+  }
+  const { provenance } = snapshot.manifest;
+  return {
+    url: url.href,
+    release: provenance?.datasetRelease ?? 'unknown release',
+    createdAt: provenance?.createdAt ?? 'unknown date',
+    neuronCount: snapshot.neuronCount,
+  };
+}
+
+// world: from buildWorld. flies: from spawnFlies. snapshot: from loadSnapshot, or null for toy brains.
+// Returns one FlyRecord per fly.
+// FlyRecord: { state, worker, status, error, pending, history, telemetry, motorSource, brainLabel }
+export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
   const f = resolveFlies(config);
+  const brainLabel = snapshot
+    ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
+    : null;
   const points = [...world.stimulusCells.keys()].map((idx) => ({
     x: (idx % world.width) + 0.5,
     y: Math.floor(idx / world.width) + 0.5,
@@ -40,6 +83,7 @@ export function startFlies({ config, world, flies, onUpdate }) {
     history: [],
     telemetry: f.brain?.telemetry ?? [],
     motorSource: state.mode === 'baseline' ? createBaselineMotor(state.brainSeed) : null,
+    brainLabel: state.mode === 'toy' && brainLabel ? brainLabel : MODE_LABEL[state.mode],
   }));
 
   const senseOf = (s) => senseAt(points, s.body.x, s.body.y, f.stimulus);
@@ -92,7 +136,9 @@ export function startFlies({ config, world, flies, onUpdate }) {
     r.worker = worker;
     worker.onmessage = (e) => onMessage(r, e.data);
     worker.onerror = (e) => fail(r, e.message || 'worker failed');
-    worker.postMessage(P.init({ flyId: r.state.id, seed: r.state.brainSeed, brain: f.brain }));
+    // A snapshot is fetched by each worker from its absolute URL (R7); toy brains are built in place.
+    const brain = snapshot && r.state.mode === 'toy' ? { ...f.brain, snapshot: snapshot.url } : f.brain;
+    worker.postMessage(P.init({ flyId: r.state.id, seed: r.state.brainSeed, brain }));
   }
 
   // Sends the next sense for a due fly. Baseline flies have no worker, so they step at once.

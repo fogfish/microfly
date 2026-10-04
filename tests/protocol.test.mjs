@@ -81,3 +81,39 @@ test('worker: stop gives no reply', () => {
   core.handle(initMsg());
   assert.equal(core.handle(P.stop()).reply, null);
 });
+
+test('init with brain.snapshot as a URL string validates', () => {
+  const m = P.init({ flyId: 1, seed: 5, brain: { snapshot: 'https://example.test/x.brain', telemetry: [0] } });
+  assert.equal(P.validateMessage(m, 'toWorker'), null);
+});
+
+test('init with brain.snapshot as a parsed object validates', () => {
+  const snapshot = { neuronCount: 5, edgeCount: 4 };
+  const m = P.init({ flyId: 1, seed: 5, brain: { snapshot } });
+  assert.equal(P.validateMessage(m, 'toWorker'), null);
+});
+
+test('init with an empty or non-string snapshot is rejected', () => {
+  assert.match(P.validateMessage(P.init({ flyId: 1, seed: 5, brain: { snapshot: '' } }), 'toWorker'), /init.brain.snapshot/);
+  assert.match(P.validateMessage(P.init({ flyId: 1, seed: 5, brain: { snapshot: 7 } }), 'toWorker'), /init.brain.snapshot/);
+});
+
+test('a wrong protocol version is still rejected for a snapshot init', () => {
+  const m = { ...P.init({ flyId: 1, seed: 5, brain: { snapshot: 'x.brain' } }), v: 2 };
+  assert.match(P.validateMessage(m, 'toWorker'), /unsupported protocol version 2/);
+});
+
+test('worker: init with a resolved snapshot replies ready with its neuron count', () => {
+  const snapshot = {
+    neuronCount: 3,
+    edgeCount: 1,
+    offsets: Uint32Array.from([0, 1, 1, 1]),
+    targets: Uint32Array.from([2]),
+    weights: Float32Array.from([1]),
+    synapses: Uint16Array.from([5]),
+  };
+  const core = createWorkerCore();
+  const { reply } = core.handle(P.init({ flyId: 2, seed: 9, brain: { snapshot } }));
+  assert.equal(reply.type, 'ready');
+  assert.equal(reply.neuronCount, 3);
+});

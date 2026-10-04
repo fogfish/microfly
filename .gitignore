@@ -1,1 +1,4 @@
-
+data/
+extract/.venv/
+__pycache__/
+*.pyc

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "experiment": "node scripts/compare-baseline.mjs"
+    "experiment": "node scripts/compare-baseline.mjs",
+    "experiment:connectome": "node scripts/compare-baseline.mjs --world=world/world-connectome.json"
   }
 }
