@@ -1,0 +1,17 @@
+{
+  "format": "arcade-world",
+  "version": 1,
+  "seed": 42,
+  "world": { "width": 32, "height": 32, "tileSize": 16 },
+  "camera": { "zoom": { "min": 1, "max": 4, "default": 2 } },
+  "sprites": {
+    "ground": { "sheet": "assets/terrain/roguelike-16.png", "x": 0, "y": 255, "w": 16, "h": 16 },
+    "stone": { "sheet": "assets/terrain/roguelike-16.png", "x": 221, "y": 187, "w": 16, "h": 16 }
+  },
+  "terrain": [
+    { "id": "ground", "sprite": "ground", "walkable": true, "base": true }
+  ],
+  "objects": [
+    { "id": "stone", "kind": "scenery", "sprite": "stone", "count": 20, "allowedTerrain": ["ground"], "minSpacing": 2 }
+  ]
+}
