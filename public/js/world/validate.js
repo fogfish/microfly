@@ -1,6 +1,8 @@
 // Validates a parsed world.json. Pure: no DOM, no fetch.
 // Returns an array of { path, message }. An empty array means valid.
 
+import { resolveParams, LIF_DEFAULTS } from '../brain/lif.js';
+
 const FORMAT = 'arcade-world';
 const VERSION = 1;
 const KINDS = ['scenery', 'edible', 'danger'];
@@ -51,6 +53,8 @@ export function validateConfig(config) {
   validateTerrainLayers(config.terrainLayers, terrainIds, err);
   validateGroups(config.groups, terrainIds, hasSprite, err);
   validateObjects(config.objects, hasSprite, terrainIds, err);
+
+  if (config.flies !== undefined) validateFlies(config.flies, config, err);
 
   return errors;
 }
@@ -277,6 +281,152 @@ function validateObjects(rules, hasSprite, terrainIds, err) {
       err(`${path}.minSpacing`, 'must be an integer of 0 or more');
     }
   });
+}
+
+// Optional `flies` section (contracts/fly-config.md). Defaults are applied by fly/fly-config.js.
+const FLY_MODES = ['toy', 'baseline'];
+const SEED_MAX = 4294967295;
+// Edible rules that are not fruit. The spec's stimulus is fruit only, so honey is excluded.
+const NON_FRUIT = new Set(['honey']);
+
+function validateFlies(flies, config, err) {
+  if (!isObject(flies)) {
+    err('flies', 'must be an object');
+    return;
+  }
+
+  const hasSprite = (id) => isObject(config.sprites) && Object.hasOwn(config.sprites, id);
+  const edible = new Set(
+    (config.objects ?? []).filter((r) => r.kind === 'edible' && !NON_FRUIT.has(r.id)).map((r) => r.id),
+  );
+
+  if (flies.seed !== undefined && !isInt(flies.seed, 0, SEED_MAX)) {
+    err('flies.seed', `must be an integer from 0 to ${SEED_MAX}`);
+  }
+  if (flies.count !== undefined && !isInt(flies.count, 0, 64)) err('flies.count', 'must be an integer from 0 to 64');
+  if (!FLY_MODES.includes(flies.mode ?? 'toy')) err('flies.mode', 'must be "toy" or "baseline"');
+  if (flies.tickHz !== undefined && !isInt(flies.tickHz, 1, 60)) err('flies.tickHz', 'must be an integer from 1 to 60');
+
+  if (flies.sprite === undefined) err('flies.sprite', 'is required');
+  else if (!hasSprite(flies.sprite)) err('flies.sprite', `unknown sprite "${flies.sprite}"`);
+  if (flies.baselineSprite !== undefined && !hasSprite(flies.baselineSprite)) {
+    err('flies.baselineSprite', `unknown sprite "${flies.baselineSprite}"`);
+  }
+
+  validateFlyBody(flies.body, err);
+  validateFlyStimulus(flies.stimulus, edible, err);
+
+  // The brain is ignored in baseline mode, so it is only checked for toy flies
+  if ((flies.mode ?? 'toy') === 'toy') validateFlyBrain(flies.brain, err);
+
+  validateFlyExperiment(flies.experiment, err);
+}
+
+function validateFlyBody(body, err) {
+  if (!isObject(body)) {
+    err('flies.body', 'must be an object with maxSpeed and turnRate');
+    return;
+  }
+  if (!(isNum(body.maxSpeed) && body.maxSpeed > 0)) err('flies.body.maxSpeed', 'must be a number greater than 0');
+  if (!(isNum(body.turnRate) && body.turnRate > 0)) err('flies.body.turnRate', 'must be a number greater than 0');
+}
+
+function validateFlyStimulus(stimulus, edible, err) {
+  if (!isObject(stimulus)) {
+    err('flies.stimulus', 'must be an object');
+    return;
+  }
+  if (!Array.isArray(stimulus.objects) || stimulus.objects.length === 0) {
+    err('flies.stimulus.objects', 'must be a non-empty list of edible object ids');
+  } else {
+    stimulus.objects.forEach((id, i) => {
+      if (!edible.has(id)) err(`flies.stimulus.objects[${i}]`, `"${id}" is not an edible object rule`);
+    });
+  }
+  if (!(isNum(stimulus.radius) && stimulus.radius > 0)) err('flies.stimulus.radius', 'must be a number greater than 0');
+  if (!(isNum(stimulus.gain) && stimulus.gain >= 0)) err('flies.stimulus.gain', 'must be a number of 0 or more');
+  if (!(isNum(stimulus.max) && stimulus.max > 0)) err('flies.stimulus.max', 'must be a number greater than 0');
+  const resting = stimulus.resting ?? 0;
+  if (!(isNum(resting) && resting >= 0 && (!isNum(stimulus.max) || resting <= stimulus.max))) {
+    err('flies.stimulus.resting', 'must be a number from 0 to max');
+  }
+}
+
+function validateFlyBrain(brain, err) {
+  if (brain === undefined) {
+    err('flies.brain', 'is required when mode is "toy"');
+    return;
+  }
+  if (!isObject(brain)) {
+    err('flies.brain', 'must be an object');
+    return;
+  }
+
+  const n = brain.neuronCount ?? 40;
+  const neuronsOk = isInt(n, 3, 1000);
+  if (!neuronsOk) err('flies.brain.neuronCount', 'must be an integer from 3 to 1000');
+
+  const outDegree = brain.outDegree ?? 4;
+  if (neuronsOk && !isInt(outDegree, 1, n - 1)) {
+    err('flies.brain.outDegree', `must be an integer from 1 to ${n - 1} (neuronCount - 1)`);
+  }
+
+  const inhibitory = brain.inhibitoryFraction ?? 0.2;
+  if (!(isNum(inhibitory) && inhibitory >= 0 && inhibitory <= 1)) {
+    err('flies.brain.inhibitoryFraction', 'must be a number from 0 to 1');
+  }
+
+  const smoothing = brain.motorSmoothing ?? 0.05;
+  if (!(isNum(smoothing) && smoothing > 0 && smoothing <= 1)) {
+    err('flies.brain.motorSmoothing', 'must be a number greater than 0 and at most 1');
+  }
+
+  const telemetry = brain.telemetry ?? [0, 1, 2];
+  const telemetryOk =
+    Array.isArray(telemetry) &&
+    telemetry.every((t) => isInt(t, 0, neuronsOk ? n - 1 : -1)) &&
+    new Set(telemetry).size === telemetry.length;
+  if (!telemetryOk) {
+    err('flies.brain.telemetry', `must be a list of unique integers from 0 to ${neuronsOk ? n - 1 : 'neuronCount - 1'}`);
+  }
+
+  if (brain.lif !== undefined) {
+    if (!isObject(brain.lif)) {
+      err('flies.brain.lif', 'must be an object of LIF parameters');
+      return;
+    }
+    const entries = Object.entries(brain.lif);
+    const unknown = entries.filter(([key]) => !Object.hasOwn(LIF_DEFAULTS, key));
+    const notNumbers = entries.filter(([key, value]) => Object.hasOwn(LIF_DEFAULTS, key) && !isNum(value));
+    for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
+    for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');
+
+    // Range checks (dt > 0, vThreshold > vReset, ...) live in lif.js, so they match the engine
+    if (unknown.length === 0 && notNumbers.length === 0) {
+      try {
+        resolveParams(brain.lif);
+      } catch (e) {
+        err('flies.brain.lif', e.message);
+      }
+    }
+  }
+}
+
+function validateFlyExperiment(experiment, err) {
+  if (experiment === undefined) return;
+  if (!isObject(experiment)) {
+    err('flies.experiment', 'must be an object');
+    return;
+  }
+  if (experiment.seeds !== undefined) {
+    const seeds = experiment.seeds;
+    if (!Array.isArray(seeds) || seeds.length === 0 || !seeds.every((s) => isInt(s, 0, SEED_MAX))) {
+      err('flies.experiment.seeds', `must be a non-empty list of integers from 0 to ${SEED_MAX}`);
+    }
+  }
+  if (experiment.ticks !== undefined && !isInt(experiment.ticks, 1, 1000000)) {
+    err('flies.experiment.ticks', 'must be an integer from 1 to 1000000');
+  }
 }
 
 function validateTerrainRefs(list, path, terrainIds, err, nonEmpty = false) {

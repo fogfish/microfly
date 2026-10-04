@@ -9,6 +9,9 @@ import { createCamera, resize as resizeCamera } from './render/camera.js';
 import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
+import { buildWorld, spawnFlies } from './fly/fly-world.js';
+import { startFlies } from './fly/fly-host.js';
+import { renderFlyPanel } from './ui/fly-panel.js';
 
 // main.js lives in public/js/, so its parent is the web root that holds world/ and assets/
 const APP_ROOT = new URL('../', import.meta.url);
@@ -52,6 +55,7 @@ function startWorld({ config, sprites }) {
   const groups = config.terrain.map((t) => config.groups?.[t.id]);
   const base = config.terrain.findIndex((t) => t.base === true);
 
+  // world.flies is added below, after the flies are spawned
   const world = { width, height, tileSize, grid, terrain: config.terrain, groups, base, objects };
   const camera = createCamera({
     worldWidthPx: width * tileSize,
@@ -73,7 +77,48 @@ function startWorld({ config, sprites }) {
     });
   };
 
-  attachInput(canvas, camera, requestDraw);
+  // Flies are optional. Without a `flies` section the world is exactly as feature 001.
+  const panel = document.getElementById('fly-panel');
+  let records = [];
+  let selectedId = null;
+
+  const updateFlyPanel = () => renderFlyPanel(panel, records, selectedId, (id) => {
+    selectedId = id;
+    updateFlyPanel();
+  });
+  const onFlyUpdate = () => {
+    requestDraw();
+    updateFlyPanel();
+  };
+
+  if (config.flies !== undefined) {
+    try {
+      const flyWorld = buildWorld(config, grid, objects);
+      const flies = spawnFlies(config, flyWorld);
+      world.flies = flies;
+      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate });
+    } catch (e) {
+      console.error(`flies: ${e.message}`);
+      panel.textContent = `Flies could not start: ${e.message}`;
+    }
+  }
+
+  // Click selects the nearest fly within one tile. Clicking empty ground clears the selection.
+  const onWorldClick = (tileX, tileY) => {
+    let best = null;
+    let bestDistance = 1;
+    for (const r of records) {
+      const d = Math.hypot(r.state.body.x - tileX, r.state.body.y - tileY);
+      if (d < bestDistance) {
+        best = r;
+        bestDistance = d;
+      }
+    }
+    selectedId = best ? best.state.id : null;
+    updateFlyPanel();
+  };
+
+  attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize });
 
   window.addEventListener('resize', () => {
     renderer.resize(innerWidth, innerHeight);
@@ -82,6 +127,7 @@ function startWorld({ config, sprites }) {
   });
 
   requestDraw();
+  updateFlyPanel();
 }
 
 boot().catch((e) => fail([{ path: '', message: e.message }]));

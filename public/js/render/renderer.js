@@ -83,6 +83,15 @@ export function createRenderer(canvas, sprites) {
       const dy1 = dy0 + Math.round(s.sh * scale);
       draw(s, dx0, dy0, dx1, dy1);
     }
+
+    // Flies are drawn after objects, centred on their continuous position in tiles
+    for (const f of world.flies ?? []) {
+      if (f.body.x < x0 - 1 || f.body.x > x1 + 1 || f.body.y < y0 - 1 || f.body.y > y1 + 1) continue;
+      const s = sprites.get(f.sprite);
+      const dx0 = toDeviceX(f.body.x * ts - s.sw / 2);
+      const dy0 = toDeviceY(f.body.y * ts - s.sh / 2);
+      draw(s, dx0, dy0, dx0 + Math.round(s.sw * scale), dy0 + Math.round(s.sh * scale));
+    }
   }
 
   return { resize, render };

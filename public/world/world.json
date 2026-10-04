@@ -100,6 +100,34 @@
         "k..p.p..k."
       ],
       "palette": { "k": "#1b1b1b", "p": "#5a189a", "e": "#ffffff" }
+    },
+
+    "fly": {
+      "pixels": [
+        "ww.ee.ww",
+        "ww.kk.ww",
+        ".wkkkkw.",
+        "..kkkk..",
+        "..kkkk..",
+        ".wkkkkw.",
+        "ww.kk.ww",
+        "k.k..k.k"
+      ],
+      "palette": { "w": "#dfe9f5", "k": "#1b1b1b", "e": "#ff3b3b" }
+    },
+
+    "fly-baseline": {
+      "pixels": [
+        "ww.ee.ww",
+        "ww.kk.ww",
+        ".wkkkkw.",
+        "..kkkk..",
+        "..kkkk..",
+        ".wkkkkw.",
+        "ww.kk.ww",
+        "k.k..k.k"
+      ],
+      "palette": { "w": "#e6e6e6", "k": "#8ecae6", "e": "#ffb703" }
     }
   },
 
@@ -134,5 +162,37 @@
     { "id": "honey", "kind": "edible", "sprite": "honey", "count": 25, "allowedTerrain": ["grass"], "minSpacing": 3 },
     { "id": "fire", "kind": "danger", "sprite": "fire", "count": 12, "allowedTerrain": ["grass"], "minSpacing": 4 },
     { "id": "spider", "kind": "danger", "sprite": "spider", "count": 20, "allowedTerrain": ["grass"], "minSpacing": 3 }
-  ]
+  ],
+
+  "flies": {
+    "count": 6,
+    "mode": "toy",
+    "tickHz": 20,
+    "sprite": "fly",
+    "baselineSprite": "fly-baseline",
+
+    "body": { "maxSpeed": 3, "turnRate": 4 },
+
+    "stimulus": {
+      "objects": ["apple", "cherry"],
+      "radius": 3,
+      "gain": 1.0,
+      "max": 1.0,
+      "resting": 0.2
+    },
+
+    "brain": {
+      "neuronCount": 40,
+      "outDegree": 4,
+      "inhibitoryFraction": 0.2,
+      "motorSmoothing": 0.05,
+      "telemetry": [0, 1, 2],
+      "lif": { "synapticScale": 0.85 }
+    },
+
+    "experiment": {
+      "seeds": [1, 2, 3, 4, 5],
+      "ticks": 3000
+    }
+  }
 }
