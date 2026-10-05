@@ -2,7 +2,24 @@
 
 # 2026-10-05
 
-Fly status side panel (006): the viewport is split into the world and a status panel for the selected fly, showing its action, a point cloud of its brain with fading spike activity, and bars for each declared input and output channel. Snapshot format moves to version 3 with a channel declaration, the worker protocol to version 2 (outputs and spikes replace telemetry), and the reference brain is migrated.
+/speckit-specify Split the view port into the world and right side panel that shows a status of fly. The fly status consits of
+* Action the fly is taken
+* Visualization of the brain neurons and aggregated spike activation over past ticks. The user should be able what part of brain has been active recently
+* Input signals on Left (L) and Right (R) channels (visualized as bars, one row per channel). Visualization per channel (e.g. food odor, danger, etc). The channes as supported by the LIF and Brain.
+* Output signals on Left (L) and Right (R) channels (visualized as bars, one row per channel). Visualization per channel (e.g. leg motor, wing motor etc). The channes as supported by the LIF and Brain. 
+
+The panel and channels visualization has to be extendible to the capabilities enabled in the brain and LIF.
+
+/speckit-plan Make the feature adaptable to brain capabilities. If the declaration of brain capabilities is needed it is a time to adjust the export and brain snapshot again. Use three.js to visualize the brain point cloud and fade-in / fade-out animation to visualize neuron activities. The panel and channels visualization has to be extendible to the capabilities enabled in the brain and LIF so that development of new channel would not break everything out.
+
+/speckit-bugfix-report A single panel shows both list of fly and status for each. Convert it into the tabs based expereince. The "world" tab shows list of fly, the "fly" tab shows the status. The fly status panel consumes alot of space when Left / Right channel indicates takes a row. Make a one row of Left and Right indicator, zero in the middle. The left signals are shown as bar from middle to left side of panel and right channel from middle to right side of panel. Use colors to distinguish values.   
+
+--
+
+/speckit-specify Add the odor layer to the world as  toggable layer (off by default). The layer uses transparent gradients to show odor intensity at the point in the world. 
+
+/speckit-plan Implement the odor lavel toggle in the world tab. Use the arcade style visibility toggle. Draw the odol intesity as heatmap style over the world map. 
+
 
 # 2026-10-04
 
@@ -48,3 +65,4 @@ About your decision:
 /speckit-bugfix-report The world still fails to render the water ponds and lakes. Use the patterns as defined by /Users/kolesnik/devel/go/src/github.com/fogfish/zrpg-art/examples (check WATER-SPEC.md) to render one medium size lake and few small ponds in the world. Do not use a water animation.
 
 /speckit-bugfix-report Spread the flowers and danger objects around the world. Remove `jungle-prop-002` as danger object. 
+

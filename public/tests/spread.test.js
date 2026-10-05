@@ -36,7 +36,7 @@ test('shore decor does not use the edible flower art', () => {
   }
 });
 
-for (const file of ['world.json', 'world-connectome.json']) {
+for (const file of ['world.json', 'world-connectome.json', 'world-antennal-lobe.json']) {
   const config = load(file);
   const flowers = config.edibles.filter((e) => e.kind === 'flower');
 

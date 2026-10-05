@@ -17,3 +17,6 @@ other version and names the version in the error panel.
 `world.v1.json` is the old format-1 map, kept only for comparison. The app does not load it.
 `world-connectome.json` is format version 2. It has the same map as `world.json`, with the
 connectome brain (`?world=world/world-connectome.json`).
+`world-antennal-lobe.json` is the same map with the antennal-lobe brain
+(`brains/antennal-lobe-brain.brain`, from `extract/configs/antennal-lobe-brain.json`) and the LIF
+settings it was tuned with (`?world=world/world-antennal-lobe.json`).
