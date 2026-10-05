@@ -1,67 +1,84 @@
 // Brain activity section: a three.js point cloud of the selected brain. A neuron brightens on a spike and
-// fades over about a second (brain/activity.js). The section redraws on each tick, and runs its own
-// animation frames only while some neuron is still fading (panel-sections.md, Neuron map). Browser only.
+// fades over about a second (brain/activity.js). Browser only.
+//
+// Lifecycle (BUG-002, FR-020, panel-sections.md Neuron map): the point cloud is created once in mount and
+// freed in dispose, so at most one WebGL context is alive. The animation loop is the only path that draws
+// it. It runs while some neuron is fading and the canvas is visible, and stops while the Fly pane is
+// hidden. A resize observer sizes the drawing buffer and redraws when the pane is shown again or the
+// window is resized. update writes the counts and restarts the loop; it builds nothing.
 
-import { createPointCloud } from '../../../viz/point-cloud.js';
+import { createPointCloud, livePointClouds } from '../../../viz/point-cloud.js';
 import { WINDOW_TICKS } from '../counts.js';
+import { setText } from '../dom.js';
 
 const BASE_COLOUR = [0.55, 0.8, 1];
-// Per box element: the current mount (one point cloud for the fly it was built for).
-const mounts = new WeakMap();
 
 export const neuronMapSection = {
   id: 'neuron-map',
   title: 'Brain activity',
   requires: { signal: 'spikes' },
   unmet: 'This brain exposes no spike signal',
-  render(body, model) {
-    const mount = mountFor(body, model);
-    mount.counts.textContent = `${model.neuronCount} neurons, ${model.activeCount} active in the last ${WINDOW_TICKS} ticks`;
-    mount.cloud.resize();
-    const now = performance.now();
-    mount.cloud.update(model.activity.brightness(now, mount.buffer));
-    if (model.activity.isFading(now)) startLoop(body, mount, model.activity);
+  mount(body, model) {
+    if (livePointClouds() > 0) {
+      console.error(`Brain activity: ${livePointClouds()} point cloud(s) still alive before mounting fly ${model.flyId}`);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'neuron-canvas';
+    const counts = document.createElement('p');
+    counts.className = 'neuron-counts';
+    body.replaceChildren(canvas, counts);
+
+    const cloud = createPointCloud(canvas);
+    cloud.setPoints(model.positions, BASE_COLOUR);
+    const buffer = new Float32Array(model.neuronCount);
+    let activity = model.activity;
+    let loop = 0;
+    // True when the canvas shows an old frame (just mounted, resized or shown again).
+    let stale = true;
+
+    const visible = () => canvas.clientWidth > 0 && canvas.clientHeight > 0;
+
+    const frame = () => {
+      loop = 0;
+      if (!visible()) {
+        stale = true;
+        return;
+      }
+      const now = performance.now();
+      cloud.update(activity.brightness(now, buffer));
+      stale = false;
+      if (activity.isFading(now)) loop = requestAnimationFrame(frame);
+    };
+
+    const start = () => {
+      if (loop || !visible()) return;
+      if (stale || activity.isFading(performance.now())) loop = requestAnimationFrame(frame);
+    };
+
+    const observer = new ResizeObserver(() => {
+      if (!visible()) return;
+      cloud.resize();
+      stale = true;
+      start();
+    });
+    observer.observe(canvas);
+
+    const update = (m) => {
+      activity = m.activity;
+      setText(counts, `${m.neuronCount} neurons, ${m.activeCount} active in the last ${WINDOW_TICKS} ticks`);
+      start();
+    };
+    update(model);
+
+    return {
+      update,
+      dispose() {
+        observer.disconnect();
+        cancelAnimationFrame(loop);
+        loop = 0;
+        cloud.dispose();
+      },
+    };
   },
 };
-
-// Builds the point cloud for this fly, or keeps the one already there. A new fly replaces it.
-function mountFor(body, model) {
-  const current = mounts.get(body);
-  if (current && current.flyId === model.flyId && body.contains(current.canvas)) return current;
-  if (current) disposeMount(current);
-
-  const canvas = document.createElement('canvas');
-  canvas.className = 'neuron-canvas';
-  const counts = document.createElement('p');
-  counts.className = 'neuron-counts';
-  body.replaceChildren(canvas, counts);
-
-  const cloud = createPointCloud(canvas);
-  cloud.setPoints(model.positions, BASE_COLOUR);
-  const mount = {
-    flyId: model.flyId, canvas, counts, cloud, buffer: new Float32Array(model.neuronCount), loop: 0,
-  };
-  mounts.set(body, mount);
-  return mount;
-}
-
-// Redraws each frame until no neuron is fading. The next spike restarts it through render.
-function startLoop(body, mount, activity) {
-  if (mount.loop) return;
-  const frame = () => {
-    if (mounts.get(body) !== mount || !body.contains(mount.canvas)) {
-      mount.loop = 0;
-      return;
-    }
-    const now = performance.now();
-    mount.cloud.update(activity.brightness(now, mount.buffer));
-    mount.loop = activity.isFading(now) ? requestAnimationFrame(frame) : 0;
-  };
-  mount.loop = requestAnimationFrame(frame);
-}
-
-function disposeMount(mount) {
-  cancelAnimationFrame(mount.loop);
-  mount.loop = 0;
-  mount.cloud.dispose();
-}

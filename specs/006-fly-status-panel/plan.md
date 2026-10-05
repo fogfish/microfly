@@ -41,13 +41,17 @@ Workers and typed arrays.
 **Project Type**: Static web app with a Python extraction tool (the existing two-part layout).
 
 **Performance Goals**: The panel refreshes 5 times a second (FR-012) and the render loop stays at 60 fps
-for a brain of up to 1,000 neurons. A brain of 143,219 neurons (the full admitted subgraph) must
+for a brain of up to 1,000 neurons. A refresh is a value update only: it changes text, bar widths and
+point colours in place, and it builds no element (FR-019, BUG-002). A brain of 143,219 neurons (the full admitted subgraph) must
 still draw, at a lower frame rate if needed, without blocking the world.
 
 **Constraints**: The main thread does no neural computation (constitution II). The panel is
 read-only with respect to the brain. Only the selected fly's brain is drawn, so the three.js scene
 is one object at a time. Every activity value is derived from received spikes, not sampled from
 the worker's internal state.
+At most one WebGL context for the brain map is alive at any time (FR-020, BUG-002). Safari allows fewer
+live WebGL contexts per page than Chrome and drops the oldest one when the limit is reached, so a
+point cloud that is not disposed leaves the next one blank in Safari.
 
 **Scale/Scope**: Six flies by default, one panel, one selected fly at a time. Reference brain:
 11 neurons, 78 edges. Toy brain: 40 neurons.
@@ -124,14 +128,14 @@ public/
 │   │   └── action.js                        # NEW: action label from motor outputs (pure)
 │   ├── render/                              # renderer and camera use the world container size
 │   ├── viz/
-│   │   └── point-cloud.js                   # NEW: three.js points with per-neuron colour (browser)
+│   │   └── point-cloud.js                   # NEW: three.js points with per-neuron colour (browser); dispose frees the context (BUG-002)
 │   └── ui/
 │       ├── error-panel.js                   # unchanged
 │       ├── fly-panel.js                     # REPLACED by the panel shell below
 │       └── panel/
-│           ├── panel.js                     # NEW: shell, World/Fly tabs, fly list, mounts sections
+│           ├── panel.js                     # NEW: shell, World/Fly tabs, fly list, mounts sections; owns mount/update/dispose (BUG-002)
 │           ├── tabs.js                      # NEW: tab state and transitions (pure, BUG-001)
-│           ├── registry.js                  # NEW: section registry with per-section isolation
+│           ├── registry.js                  # NEW: section registry with per-section isolation; mount/update/dispose (BUG-002)
 │           ├── model.js                     # NEW: FlyStatusModel from a record (pure)
 │           └── sections/
 │               ├── action.js                # NEW: requires motor outputs
@@ -174,6 +178,7 @@ three.js scene and model code, which avoids regressions in spec 004.
 5. **Panel sections behind a registry.** Each section declares what it requires (a signal or a
    channel kind). It renders only when the brain declares that requirement, and its errors stay
    inside it. A new section cannot break the others.
+   _(BUG-002: a section has a lifecycle, not one `render`. See decision 8.)_
 6. **Channel semantics.** Input channels read the world value (in v3, only neuron 0 is an input
    because the world drives only that neuron). Output channels read a moving average of their
    neuron's spike rate. The body is driven by the outputs marked `drive: "left"` and `drive: "right"`.
@@ -185,6 +190,22 @@ three.js scene and model code, which avoids regressions in spec 004.
    and a "both" channel draws on both sides in a neutral colour. The bar scale is the value clamped to
    [0, range maximum] as a fraction of half the row, so the declared minimum does not move the zero
    line. The row renderer changes; the section list and the declaration do not.
+8. **Structural render and value update (BUG-002).** The panel has two paths. A structural render runs on
+   a structural change (fly selected or cleared, tab switched, layer switched, section set changed, fly
+   status changed). It builds the shell, the list and the section boxes, and mounts each section for the
+   selected fly. A value update runs on the FR-012 timer, only when the selected fly has a new tick, and
+   calls `update` on the mounted sections. It changes values in place and builds nothing.
+   - A section is `{ id, title, requires, unmet, mount(container, model), update(model), dispose() }`.
+     `mount` builds the section's elements once per fly. `update` writes only values that changed.
+     `dispose` frees what `mount` created. `contracts/panel-sections.md` defines it.
+   - The shell owns the mounted sections of the selected fly. It calls `dispose` on every path that
+     removes a section's element: another fly selected, the selection cleared, the fly or the section in
+     error, and teardown. An error in `update` stays in the section's box, as an error in `render` did.
+   - The neuron map has one draw path: its own `requestAnimationFrame` loop. The loop runs while the Fly
+     tab is visible and some neuron is fading. `update` records that new spikes exist and restarts the
+     loop. `resize` runs on mount, when the Fly tab is shown and on window resize, not on every update.
+   - The channel rows are built once per fly. `update` sets the fill widths and the value text.
+   - The point cloud is disposed before a new one is created, so at most one WebGL context is alive.
 
 ## Complexity Tracking
 
@@ -193,6 +214,9 @@ three.js scene and model code, which avoids regressions in spec 004.
 | three.js on the main page (constitution I and VII prefer Canvas 2D) | The request asks for a three.js point cloud, and the inspector already vendors three.js 0.160.0. The orbit and depth handling come with it. | A 2D projection of the point cloud would need its own depth sort and rotation code. Reusing the vendored file adds no new dependency. |
 | Snapshot format version 3 | The panel must read the declaration from the file. | Keeping version 2 with an optional field would let an old reader render the channels with wrong labels and no warning. |
 | Worker protocol version 2 | Motor messages must carry all declared outputs and the spike list. | Adding fields to v1 would silently break hosts that expect the fixed `selected` array. |
+| Section lifecycle (`mount`, `update`, `dispose`) (BUG-002) | A tick must not rebuild the panel (flicker), and the brain map's WebGL context must be freed exactly once (Safari context limit). | One `render` per refresh rebuilds rows and loses track of the point cloud it replaced, which caused BUG-002. |
 | Section registry with error isolation | Principle "new channels must not break everything" is a requirement of the spec (User Story 5). | A single panel function that renders everything would break for every new channel. |
 
 **Bugfix**: 2026-10-05 — BUG-001 Updated from bugfix patch (tabs, centred channel rows, Key Design Decision 7).
+
+**Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch (structural render vs value update, section lifecycle, one WebGL context; Key Design Decision 8, Performance Goals, Constraints).

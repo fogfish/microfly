@@ -3,11 +3,20 @@
 // contracts/odour-layer.md §7) above the fly list; "Fly" holds one box per section of the selected fly. Browser only.
 // Text is set with textContent. The tab buttons, the list buttons and the section boxes are kept between
 // renders, so focus survives the periodic refreshes and a point cloud is not rebuilt on every tick.
+//
+// Two entry points (BUG-002, FR-019): renderPanel is the structural render (selection, tab, layer, status
+// change); updatePanelValues is the value update of the periodic refresh, which builds no element. The
+// sections of the selected fly are mounted once and disposed once (lifecycle.js, FR-020).
 
 import { buildStatusModel } from './model.js';
-import { runSection, selectSections, unmetSections } from './registry.js';
+import { selectSections, unmetSections } from './registry.js';
+import { createSectionHost } from './lifecycle.js';
+import { setAttr, setHidden, setText, textEl } from './dom.js';
 import { TABS } from './tabs.js';
 import { LAYERS } from '../../world/layers.js';
+
+// Per Fly pane: the section host and what the last render showed ({ host, status, tick }).
+const flyViews = new WeakMap();
 
 const TAB_LABELS = { world: 'World', fly: 'Fly' };
 
@@ -27,6 +36,29 @@ export function renderPanel(
   renderLayers(worldPane, view);
   renderList(worldPane.querySelector(':scope > [data-list]'), records, selectedId, onSelect);
   renderFly(flyPane, records, selectedId, sections);
+}
+
+// The value update (FR-012, FR-019): refreshes the fly list text and, when the selected fly has a new
+// tick, the values of its mounted sections. It creates and removes no element. Returns false when a
+// structural render is needed instead (the selected fly's status changed), so the caller can run one.
+export function updatePanelValues(container, records, selectedId) {
+  const worldPane = container.querySelector(':scope > [data-pane="world"]');
+  const flyPane = container.querySelector(':scope > [data-pane="fly"]');
+  if (!worldPane || !flyPane) return false;
+  refreshList(worldPane.querySelector(':scope > [data-list]'), records, selectedId);
+
+  const view = flyViews.get(flyPane);
+  const selected = records.find((r) => r.state.id === selectedId);
+  if (!view || !selected) return true;
+  if (selected.status !== view.status) return false;
+  if (selected.status === 'error') return true;
+  if (view.host.flyId !== selected.state.id) return false;
+
+  const tick = lastTick(selected);
+  if (tick === view.tick) return true;
+  view.tick = tick;
+  view.host.update(buildStatusModel(selected, performance.now()));
+  return true;
 }
 
 // The tab bar and the two panes are built once. The active tab is marked with aria-selected and the
@@ -96,8 +128,7 @@ function renderLayers(worldPane, view) {
     box.append(legendEl());
   }
 
-  // Writes happen only when a value changes. Every fly tick re-renders the panel, and rewriting unchanged
-  // text or attributes repaints the switch and the legend on every refresh.
+  // Writes happen only when a value changes, so a render does not repaint the switch and the legend.
   for (const row of box.querySelectorAll(':scope > .layer-row')) {
     const id = row.dataset.layer;
     const on = Boolean(view.layers[id]);
@@ -117,18 +148,6 @@ function renderLayers(worldPane, view) {
     setText(legend.querySelector('.legend-min'), '0');
     setText(legend.querySelector('.legend-max'), view.legend.max.toFixed(1));
   }
-}
-
-function setText(el, text) {
-  if (el.textContent !== text) el.textContent = text;
-}
-
-function setAttr(el, name, value) {
-  if (el.getAttribute(name) !== value) el.setAttribute(name, value);
-}
-
-function setHidden(el, hidden) {
-  if (el.hidden !== hidden) el.hidden = hidden;
 }
 
 function legendEl() {
@@ -174,43 +193,90 @@ function renderList(container, records, selectedId, onSelect) {
   if (list.parentNode !== container) container.replaceChildren(list);
 }
 
+// The list text of a value update: status and contacts change, the buttons stay.
+function refreshList(container, records, selectedId) {
+  const list = container.querySelector(':scope > ul');
+  if (!list || list.children.length !== records.length) return;
+  records.forEach((r, i) => {
+    const btn = list.children[i].firstChild;
+    setText(btn, `Fly ${r.state.id} · ${r.brainLabel} · ${r.status} · contacts ${r.state.body.contacts}`);
+    setAttr(btn, 'aria-pressed', String(r.state.id === selectedId));
+  });
+}
+
 function renderFly(container, records, selectedId, sections) {
+  const view = viewFor(container);
   const selected = records.find((r) => r.state.id === selectedId);
   if (!selected) {
+    view.host.clear();
+    view.status = null;
     showMessage(container, 'Select a fly in the world or in the list');
     return;
   }
 
+  // Another fly: its sections are disposed before the readout that holds them is replaced.
   let readout = container.querySelector(':scope > .readout');
   if (!readout || readout.dataset.flyId !== String(selected.state.id)) {
+    view.host.clear();
     readout = readoutFor(selected);
     container.replaceChildren(readout);
   }
+  view.status = selected.status;
+  view.tick = lastTick(selected);
 
   if (selected.status === 'error') {
+    view.host.clear();
     readout.querySelectorAll(':scope > [data-section]').forEach((box) => box.remove());
-    readout.append(textEl('p', `Error: ${selected.error}`));
+    let error = readout.querySelector(':scope > .fly-error');
+    if (!error) {
+      error = textEl('p', '');
+      error.className = 'fly-error';
+      readout.append(error);
+    }
+    setText(error, `Error: ${selected.error}`);
     return;
   }
 
   const model = buildStatusModel(selected, performance.now());
   const drawn = selectSections(sections, selected.capabilities);
   const absent = unmetSections(sections, selected.capabilities);
-  const shown = sections.filter((s) => drawn.includes(s) || absent.includes(s));
+  const shown = sections
+    .filter((s) => drawn.includes(s) || absent.includes(s))
+    .map((section) => ({ section, met: drawn.includes(section) }));
+  view.host.sync(selected.state.id, shown, model);
+}
 
-  for (const box of readout.querySelectorAll(':scope > [data-section]')) {
-    if (!shown.some((s) => s.id === box.dataset.section)) box.remove();
-  }
-  for (const section of shown) {
-    const body = bodyFor(readout, section);
-    if (!drawn.includes(section)) {
-      body.textContent = section.unmet;
-      continue;
-    }
-    const result = runSection(section, body, model);
-    body.classList.toggle('error', !result.ok);
-    if (!result.ok) body.textContent = result.error;
-  }
+// The section host of a Fly pane. Its boxes go into the pane's current readout.
+function viewFor(container) {
+  let view = flyViews.get(container);
+  if (view) return view;
+  const host = createSectionHost({
+    createBox(section) {
+      const box = document.createElement('section');
+      box.className = 'panel-box';
+      box.dataset.section = section.id;
+      const body = document.createElement('div');
+      body.className = 'panel-body';
+      box.append(textEl('h4', section.title), body);
+      container.querySelector(':scope > .readout').append(box);
+      return body;
+    },
+    removeBox(body) {
+      body.parentElement?.remove();
+    },
+    showText(body, text, isError) {
+      body.classList.toggle('error', isError);
+      body.replaceChildren();
+      body.textContent = text;
+    },
+  });
+  view = { host, status: null, tick: undefined };
+  flyViews.set(container, view);
+  return view;
+}
+
+function lastTick(record) {
+  return record.history.at(-1)?.tick;
 }
 
 function readoutFor(record) {
@@ -221,28 +287,8 @@ function readoutFor(record) {
   return div;
 }
 
-// The box of one section: heading and body. Reused between renders.
-function bodyFor(readout, section) {
-  let box = readout.querySelector(`:scope > [data-section="${section.id}"]`);
-  if (!box) {
-    box = document.createElement('section');
-    box.className = 'panel-box';
-    box.dataset.section = section.id;
-    box.append(textEl('h4', section.title), document.createElement('div'));
-    readout.append(box);
-  }
-  box.lastElementChild.className = 'panel-body';
-  return box.lastElementChild;
-}
-
 // Replaces the container's content with one paragraph, only when that paragraph is not already shown.
 function showMessage(container, text) {
   const shown = container.children.length === 1 && container.firstElementChild.tagName === 'P';
   if (!shown || container.firstElementChild.textContent !== text) container.replaceChildren(textEl('p', text));
-}
-
-function textEl(tag, text) {
-  const el = document.createElement(tag);
-  el.textContent = text;
-  return el;
 }

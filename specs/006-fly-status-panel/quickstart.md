@@ -84,6 +84,18 @@ Run the app with the world config set to `world/world-connectome.json` (the conn
 snapshot brain) and confirm the same panel content, with the reference brain's 11 neurons and its
 three declared channels.
 
+## 8. Check refreshes and the brain map lifetime in Safari and Chrome (BUG-002)
+
+Run this step in Safari and in Chrome, with the default world (six flies).
+
+- Let the flies run for one minute. Select a fly, then switch between the World and Fly tabs 10 times,
+  and select other flies from the list 10 times. Clear the selection with a click on empty ground.
+- The brain map draws each time the Fly tab shows a fly, and the panel does not flicker (SC-008).
+- In the console, `(await import('/js/viz/point-cloud.js')).livePointClouds()` is at most 1, and no
+  "too many active WebGL contexts" or "Context Lost" message is logged (FR-020).
+- In the Elements panel (or with a `MutationObserver` on `#fly-panel`), no element is added or removed
+  while flies run and the user does nothing. Only text, bar widths and attributes change (SC-009, FR-019).
+
 ## Recorded results (2026-10-05)
 
 - `npm test`: 218 passing. `extract/.venv/bin/python -m unittest discover -s extract/tests -p "test_*.py"`: 95 passing.
@@ -93,3 +105,10 @@ three declared channels.
   baseline world: the split layout is 920 px beside a 360 px panel; the narrow layout stacks the panel under the world with no
   horizontal scroll. Each section renders with live values, and the baseline fly shows "This brain exposes no spike signal".
   The only console message is the browser's automatic `favicon.ico` 404, which the app has never served.
+- BUG-002 (step 8), Playwright 1.61.1 WebKit and Chromium, 1280 × 800, toy and connectome worlds. While idle on
+  the Fly tab for 3 s, no element of `#fly-panel` was added or removed (before the fix: 45 added and 45 removed,
+  from rebuilding the channel rows). After 10 selection changes and 10 tab switches, `livePointClouds()` is 1,
+  there is one canvas, and the brain map draws. Stress test with 30 selection changes: no WebGL context message
+  (before the fix, both engines logged "too many active WebGL contexts … oldest context will be lost" and
+  "THREE.WebGLRenderer: Context Lost"). `npm test`: 257 passing. Clearing the selection is covered by `tests/panel-lifecycle.test.mjs`, not by the automation. Desktop Safari was not run by the automation;
+  WebKit stands in for it.

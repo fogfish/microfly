@@ -65,6 +65,10 @@ that the brightness decays as the window moves on.
    number of active neurons in the window.
 4. **Given** a fly that uses no brain (baseline mode), **When** it is selected, **Then** the brain
    map is replaced by a message that no brain is in use.
+5. **Given** a selected fly with a running brain, in Safari or Chrome, **When** the flies tick, the
+   user switches between the World and Fly tabs, and selects other flies and clears the selection,
+   **Then** the brain map draws each time the Fly tab shows a fly, the panel does not flicker, and the
+   console shows no WebGL context warnings (BUG-002, FR-019, FR-020, SC-008).
 
 ---
 
@@ -148,6 +152,11 @@ Confirm both appear in the panel with labels and bars and that no panel source f
 - The brain has zero spikes in the window: the map is fully dim and the active count reads 0.
 - Selection changes while a fly's history is still short: the readouts show "Waiting for the first
   tick" until enough history exists.
+- The World tab is shown while flies run: the hidden Fly pane is not redrawn. The brain map is kept,
+  not disposed, and it draws the current activity as soon as the Fly tab is shown again (BUG-002, FR-020).
+- The selected fly changes, the selection is cleared, or the fly or a section reports an error: the
+  old brain map is disposed before any new one is created, so at most one brain map exists (BUG-002,
+  FR-020).
 
 ## Requirements *(mandatory)*
 
@@ -179,10 +188,15 @@ Confirm both appear in the panel with labels and bars and that no panel source f
   description, so a brain with a different neuron count or channel set needs no panel change.
 - **FR-011**: For a baseline fly (no brain), the panel MUST show the action and the output bars,
   and MUST state that no brain is in use in place of the neuron map.
-- **FR-012**: The panel MUST refresh at least 5 times a second while flies run, and user actions
+- **FR-012**: ~~The panel MUST refresh at least 5 times a second while flies run, and user actions
   (selecting a fly, switching tabs, the odour switch) MUST show at once. The panel MUST NOT follow
   every tick, because re-rendering it at the tick rate flickers in Safari, and it MUST NOT block the
-  world from drawing.
+  world from drawing.~~ (BUG-002: the first wording, "update on each tick of the selected fly", made the
+  panel re-render on every tick. Feature 007 changed it to the 5-per-second refresh above, without a bug
+  record. Both wordings treat a refresh as a full render.) The panel MUST show new values of the
+  selected fly at least 5 times a second while flies run, and MUST NOT follow every tick. User actions
+  (selecting a fly, switching tabs, the odour switch) MUST show at once. A refresh MUST NOT block the
+  world from drawing. How a refresh changes the page is set by FR-019.
 - **FR-013**: Clicking a fly in the world MUST select it, and selecting a fly from the fly list
   MUST show the same panel content.
 - **FR-014**: All text and labels MUST be written as plain text, so values from configuration or
@@ -200,6 +214,22 @@ Confirm both appear in the panel with labels and bars and that no panel source f
   on each side of the zero line (BUG-001).
 - **FR-018**: L bars, R bars and "both" bars MUST use three distinct colours, defined as colour tokens
   for both light and dark themes. The numeric value MUST still show the true value (BUG-001).
+- **FR-019**: The panel MUST separate a structural render from a value update (BUG-002).
+  - A structural render builds or removes panel elements (tab bar, fly list, section boxes, channel
+    rows, the brain map). It runs only on a structural change: a fly selected or the selection cleared,
+    a tab switched, a layer switched, the set of sections changed, or the selected fly's status changed
+    (for example to error).
+  - A value update (a tick, or the periodic refresh of FR-012) MUST change only values in the existing
+    elements: text that changed, bar widths, the brain map's point colours and counts. It MUST NOT
+    create, replace or remove elements, and MUST NOT rewrite text or attributes whose value did not
+    change.
+  - A value update MUST do nothing when the selected fly has no new tick since the last update.
+- **FR-020**: Expensive panel objects MUST have a defined lifetime (BUG-002). The brain map (its WebGL
+  context, scene, geometry and orbit controls) MUST be created once per selected fly. It MUST be kept
+  across ticks, refreshes and tab switches. It MUST be disposed exactly once, before its element is
+  removed: when another fly is selected, the selection is cleared, the fly or the section reports an
+  error, or the panel is torn down. At most one brain map MUST exist at any time. While the Fly tab is
+  hidden, the brain map MUST NOT draw.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -228,6 +258,12 @@ Confirm both appear in the panel with labels and bars and that no panel source f
   its normal frame rate while the panel updates.
 - **SC-007**: At phone width, the panel and the world can both be reached without horizontal
   scrolling.
+- **SC-008**: In both Safari and Chrome, with six flies running for one minute, the brain map draws for
+  the selected fly, the panel shows no visible flicker, and after 10 changes of selection and 10 tab
+  switches the page holds at most one brain map WebGL context and logs no WebGL context warnings
+  (BUG-002).
+- **SC-009**: While flies run and the user does nothing, the panel creates, replaces and removes no
+  element; only text, bar widths and point colours change (BUG-002).
 
 ## Assumptions
 
@@ -263,4 +299,10 @@ Confirm both appear in the panel with labels and bars and that no panel source f
   is the value clamped to [0, range maximum] as a fraction of half the row. The declared minimum does
   not move the zero line (FR-017).
 
+- **Panel refresh model (decided 2026-10-05, BUG-002)**: Ticks and the periodic refresh only update
+  values in place. Elements are built only on a structural change. The brain map lives as long as the
+  fly stays selected, and the Fly tab being hidden pauses its drawing but does not dispose it. This was
+  chosen by the bugfix patch and can be changed here (FR-019, FR-020).
+
 **Bugfix**: 2026-10-05 — BUG-001 Tabs for the World and Fly views, and one centred bar row per channel with L and R colours (FR-016 to FR-018; User Story 1 scenario 5; FR-006, FR-007; User Stories 3 and 4).
+**Bugfix**: 2026-10-05 — BUG-002 Structural render separated from in-place value updates, brain map lifetime, Safari/Chrome no-flicker criteria (FR-012 struck and restated; FR-019, FR-020; SC-008, SC-009; User Story 2 scenario 5; two edge cases; panel refresh decision).

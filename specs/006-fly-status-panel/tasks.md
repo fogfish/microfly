@@ -87,7 +87,7 @@ overlap. Select a fly and confirm the action matches its motion (quickstart step
 
 - [X] T024 [P] [US1] Create `public/js/fly/action.js` exporting `actionLabel(left, right)`. Labels per `specs/006-fly-status-panel/data-model.md` Action table: `left + right < 0.1` → "Idle"; `|left − right| < 0.1` → "Forward"; `left > right` → "Turn right"; `right > left` → "Turn left". Thresholds are named constants in this file.
 - [X] T025 [P] [US1] Create `tests/action.test.mjs`. Idle at (0, 0); Forward at (0.6, 0.6); Turn right at (0.9, 0.2); Turn left at (0.2, 0.9); a threshold edge at each boundary.
-- [X] T026 [P] [US1] Create `public/js/ui/panel/registry.js` (pure part): `selectSections(sections, capabilities)` returns the sections whose `requires` is met (`channels` by kind, `signal` by id, `{}` always), in declaration order. `runSection(section, model)` calls `section.render`, catches errors and returns `{ ok: true }` or `{ ok: false, error: "<title>: <message>" }`. Rules: `specs/006-fly-status-panel/contracts/panel-sections.md`.
+- [X] T026 [P] [US1] Create `public/js/ui/panel/registry.js` (pure part): `selectSections(sections, capabilities)` returns the sections whose `requires` is met (`channels` by kind, `signal` by id, `{}` always), in declaration order. `runSection(section, model)` calls `section.render`, catches errors and returns `{ ok: true }` or `{ ok: false, error: "<title>: <message>" }`. Rules: `specs/006-fly-status-panel/contracts/panel-sections.md`. _(BUG-002: `runSection` gains `mount`, `update` and `dispose` handling, see T083.)_
 - [X] T027 [P] [US1] Create `tests/panel-registry.test.mjs`: a section with a missing signal is not selected; a section with a present signal is selected; a thrown error gives `ok: false` with the title and message, and the next section still runs.
 - [X] T028 [P] [US1] Create `public/js/ui/panel/model.js` (pure part): `buildStatusModel(record)` returns `{ flyId, brainLabel, action, neuronCount, capabilities }` from a fly record, with `action` from T024 (or `null` before the first tick). Fields per `specs/006-fly-status-panel/data-model.md` FlyStatusModel.
 - [X] T029 [P] [US1] Create `tests/panel-model.test.mjs`: `action` is `null` before the first tick, and matches `actionLabel` after one. `flyId` and `brainLabel` come from the record.
@@ -97,7 +97,7 @@ overlap. Select a fly and confirm the action matches its motion (quickstart step
 - [X] T030 [US1] Update `public/index.html`: replace `section#fly-panel` with `main#stage` containing `canvas#world` and `aside#fly-panel`. Add an `importmap` mapping `"three"` to `./brains/vendor/three/three.module.min.js`, for the point cloud (US2). Keep the `error-panel` element.
 - [X] T031 [US1] Update `public/css/style.css`: `#stage` is a CSS grid with two columns (`1fr` and `360px`) at 900 px and wider, with the panel on the right. Below 900 px the panel stacks under the world, with a 16 px gutter and no horizontal page scroll. Remove the bottom-overlay rules for `#fly-panel`. Keep the colour tokens and `prefers-color-scheme` rules unchanged.
 - [X] T032 [US1] Update `public/js/render/renderer.js` callers and `public/js/main.js` so the world canvas and camera use the size of `#stage`'s world column (`canvas.parentElement` or a `#world` wrapper), not `innerWidth` and `innerHeight`. The `resize` handler reads the same size.
-- [X] T033 [US1] Create `public/js/ui/panel/sections/action.js`: `{ id: 'action', title: 'Action', requires: {}, render(container, model) }` writes the action label with `textContent`, or "Waiting for the first tick" when `model.action` is null.
+- [X] T033 [US1] Create `public/js/ui/panel/sections/action.js`: `{ id: 'action', title: 'Action', requires: {}, render(container, model) }` writes the action label with `textContent`, or "Waiting for the first tick" when `model.action` is null. _(BUG-002: writes the label only when it changes, see T089.)_
 - [X] T034 [US1] Create `public/js/ui/panel/panel.js`: `renderPanel(container, records, selectedId, onSelect, sections)`. It draws the fly list (buttons with `aria-pressed`, as the existing `fly-panel.js` does), then for the selected fly calls `selectSections` and `runSection` for each section. A failing section shows its `error` string in its own box. _(Superseded by T073, BUG-001: the list and the status are now two tabs.)_
 - [X] T035 [US1] Update `public/js/main.js`: import `renderPanel` from `ui/panel/panel.js` and the section list from `ui/panel/sections/` (action only for now). Keep click-to-select and the fly list (FR-013): the click handler and the list call the same selection function.
 - [X] T036 [US1] Delete `public/js/ui/fly-panel.js` once nothing imports it (`grep -rn "fly-panel.js" public/`). Remove the T022 readout with it.
@@ -125,8 +125,8 @@ neurons brighten and fade back to dim; the counts update.
 
 ### Browser rendering
 
-- [X] T043 [US2] Create `public/js/viz/point-cloud.js` using three.js from the vendored file (`three` via the importmap in T030). Export `createPointCloud(canvas)` with `setPoints(positions, baseColour)`, `update(brightness)` (writes the colour attribute as `baseColour × brightness`), `resize()`, and `dispose()`. Orbit controls from `public/brains/vendor/three/OrbitControls.js`. Use the same background colour as the inspector (`#0e1016`), so the two views match.
-- [X] T044 [US2] Create `public/js/ui/panel/sections/neuron-map.js`: `{ id: 'neuron-map', title: 'Brain activity', requires: { signal: 'spikes' }, render }`. It mounts the point cloud from T043 once per selected fly, shows the counts "N neurons, K active in the last 20 ticks", and shows "This brain exposes no spike signal" when a brain has no spikes. The section runs its own `requestAnimationFrame` loop while `activity.isFading(now)` is true, and stops when it is false; the next spike restarts it.
+- [X] T043 [US2] Create `public/js/viz/point-cloud.js` using three.js from the vendored file (`three` via the importmap in T030). Export `createPointCloud(canvas)` with `setPoints(positions, baseColour)`, `update(brightness)` (writes the colour attribute as `baseColour × brightness`), `resize()`, and `dispose()`. Orbit controls from `public/brains/vendor/three/OrbitControls.js`. Use the same background colour as the inspector (`#0e1016`), so the two views match. _(BUG-002: `dispose` must be called on every removal path, see T087.)_
+- [X] T044 [US2] ⚠️ Reopened Create `public/js/ui/panel/sections/neuron-map.js`: `{ id: 'neuron-map', title: 'Brain activity', requires: { signal: 'spikes' }, render }`. It mounts the point cloud from T043 once per selected fly, shows the counts "N neurons, K active in the last 20 ticks", and shows "This brain exposes no spike signal" when a brain has no spikes. The section runs its own `requestAnimationFrame` loop while `activity.isFading(now)` is true, and stops when it is false; the next spike restarts it. (reopened — BUG-002: the point cloud is rebuilt and the old one leaked when the readout is replaced, the selection is cleared or a section errors; the map is also drawn by every refresh. Closed by T086–T088.) _(Done: closed by T086 and T087; the map is mounted once per fly and disposed on every removal path.)_
 - [X] T045 [US2] Update `public/js/fly/fly-host.js`: each record gets `activity = createActivity(neuronCount)`. On each accepted `motor`, call `activity.recordTick(msg.spikes, performance.now())`. `loadSnapshot` (T020) already returns `neurons`, so the neuron map gets the soma positions.
 - [X] T046 [US2] Update `public/js/main.js` and the panel so that each fly's point cloud positions come from `neuronPositions(neurons, seed)` (T039), computed once per brain and not per tick. Toy brains use the seeded sphere.
 - [X] T047 [US2] Add the performance check for the point cloud in `tests/` as a Node script `scripts/bench-activity.mjs` (not run by `npm test`): 1,000 neurons, one `brightness` plus a colour-attribute write per frame; report the mean in ms. Target: under 2 ms at 1,000 neurons (SC-006 budget).
@@ -199,17 +199,42 @@ BUG-001 decisions in `spec.md`.
 
 - [X] T071 [P] [US1] Create `public/js/ui/panel/tabs.js` (pure part): `TABS = ["world", "fly"]`, `initialTab = "world"`, and `nextTab(current, event)`. A `{ type: "select" }` event (a fly chosen by click or from the list) returns `"fly"`. A `{ type: "tab", tab }` event returns `tab` when it is in `TABS`, otherwise `current`.
 - [X] T072 [P] [US1] Create `tests/tabs.test.mjs`: the initial tab is `world`; a select event gives `fly`; a tab event with an unknown name leaves the tab unchanged.
-- [X] T073 [US1] Update `public/js/ui/panel/panel.js`: replace the single column of T034 with a tab bar (two buttons, `role="tab"`, `aria-selected`) and two panes. The World pane holds the fly list (the T034 buttons, unchanged). The Fly pane shows the sections for the selected fly, or the prompt "Select a fly in the world or in the list" when none is selected. Switching tabs does not change the selection. Signature: `renderPanel(container, records, selectedId, onSelect, sections, tab, onTab)`.
-- [X] T074 [US1] Update `public/js/main.js`: keep the current tab in one variable. The selection function (T035) sets the tab with `nextTab(tab, { type: "select" })`, so a world click and a list pick both switch to Fly. The tab buttons call `nextTab(tab, { type: "tab", tab: name })` and re-render. The world click and the list still call the same selection function (FR-013).
+- [X] T073 [US1] Update `public/js/ui/panel/panel.js`: replace the single column of T034 with a tab bar (two buttons, `role="tab"`, `aria-selected`) and two panes. The World pane holds the fly list (the T034 buttons, unchanged). The Fly pane shows the sections for the selected fly, or the prompt "Select a fly in the world or in the list" when none is selected. Switching tabs does not change the selection. Signature: `renderPanel(container, records, selectedId, onSelect, sections, tab, onTab)`. _(BUG-002: the shell owns the section lifecycle, see T085.)_
+- [X] T074 [US1] Update `public/js/main.js`: keep the current tab in one variable. The selection function (T035) sets the tab with `nextTab(tab, { type: "select" })`, so a world click and a list pick both switch to Fly. The tab buttons call `nextTab(tab, { type: "tab", tab: name })` and re-render. The world click and the list still call the same selection function (FR-013). _(BUG-002: the refresh is split into a structural render and a value update, see T084.)_
 - [X] T075 [US1] Update `public/index.html` and `public/css/style.css`: add the tab bar markup and styles, show one pane at a time at every width, keep the stage grid from T031, and keep the 16 px gutter with no horizontal scroll below 900 px (FR-015, FR-016). _(Done: `index.html` needed no change, because `panel.js` builds the tab bar at runtime, as it already builds the fly list.)_
 - [X] T076 [P] [US3] Update `public/js/ui/panel/channel-rows.js`: add `centredFraction(value, range)`, which returns the value clamped to `[0, range[1]]` as a fraction of `range[1]`, between 0 and 1. Negative values give 0. The declared minimum is not used, so it does not move the zero line. Keep `barFraction` and `groupBySide` (see T048 note).
 - [X] T077 [P] [US3] Update `tests/channel-rows.test.mjs`: `centredFraction` gives 0 at 0 and below, 1 at `range[1]` and above, 0.5 at half of `range[1]`, and ignores `range[0]` (range `[0.2, 2]`, value 1 gives 0.5).
-- [X] T078 [US3] Update `public/js/ui/panel/channels.js` (supersedes T051): `renderChannelRows(container, rows)` writes one row per channel, with no L/R headings. Each row has the label, a track with a zero line at its centre, and a bar. A `side: "L"` bar is anchored at the centre and grows left, with width `centredFraction` × 50% of the track. A `side: "R"` bar grows right. A `side: "both"` channel draws one bar on each side in the neutral colour. The value shows the true number with two decimals. All text via `textContent`.
+- [X] T078 [US3] Update `public/js/ui/panel/channels.js` (supersedes T051): `renderChannelRows(container, rows)` writes one row per channel, with no L/R headings. Each row has the label, a track with a zero line at its centre, and a bar. A `side: "L"` bar is anchored at the centre and grows left, with width `centredFraction` × 50% of the track. A `side: "R"` bar grows right. A `side: "both"` channel draws one bar on each side in the neutral colour. The value shows the true number with two decimals. All text via `textContent`. _(BUG-002: rows are built once per fly and updated in place, see T088.)_
 - [X] T079 [US3] Update `public/css/style.css`: row layout for the centred track. Add the tokens `--bar-left`, `--bar-right` and `--bar-both` on `:root`, with dark-mode values under both existing dark-mode selectors. Keep the other colour tokens unchanged. The three colours must be distinguishable in both themes.
 - [X] T080 [US4] Check that `public/js/ui/panel/sections/inputs.js` and `outputs.js` need no change: they keep their titles and call `renderChannelRows`. Change them only if a title or a side heading is still rendered.
 - [X] T081 [US1] Update `specs/006-fly-status-panel/quickstart.md` steps 3–5 for the World and Fly tabs and the centred bars, and `specs/006-fly-status-panel/checklists/requirements.md` for FR-016 to FR-018. Run `npm test`, then walk through quickstart steps 3–5 at `python3 -m http.server 8000` with no console errors. _(Done: quickstart updated. `checklists/requirements.md` was not changed, because the implement rules keep checklist files read-only; its items still hold.)_
 
 **Bugfix**: 2026-10-05 — BUG-001 Updated from bugfix patch
+
+---
+
+## Phase 9: Bugfix BUG-002 - Value Updates in Place and Brain Map Lifetime
+
+**Goal**: A tick or a refresh changes only values in the existing panel elements, so nothing flickers.
+The brain map is built once per selected fly, is kept across ticks and tab switches, and is disposed
+exactly once, so at most one WebGL context is alive and the map draws in Safari and Chrome.
+
+**Source**: `specs/006-fly-status-panel/bugs/BUG-002.md`. Behaviour is defined by FR-012, FR-019, FR-020,
+SC-008, SC-009 and the BUG-002 decision in `spec.md`, and by Key Design Decision 8 in `plan.md`.
+
+- [X] T082 [US5] Update `specs/006-fly-status-panel/contracts/panel-sections.md`: _(Done: `mount` returns a handle `{ update, dispose }`, so per-mount state stays out of the shared section object.)_ a section is `{ id, title, requires, unmet, mount(container, model), update(model), dispose() }`. `mount` builds the section's elements once per selected fly; `update` writes only values that changed and builds no element; `dispose` frees what `mount` created and is called exactly once, before the section's element is removed. Record the structural-change list from FR-019 and the rule that an error in `mount` or `update` stays in the section's box.
+- [X] T083 [P] [US5] Update `public/js/ui/panel/registry.js` (pure part): replace `runSection(section, body, model)` with `mountSection(section, body, model)`, `updateSection(mounted, model)` and `disposeSection(mounted)`. Each catches errors and returns `{ ok: true }` or `{ ok: false, error: "<title>: <message>" }`. `disposeSection` is idempotent (a second call does nothing). Add tests to `tests/panel-registry.test.mjs`: an error in `update` gives `ok: false` and the next section still updates; `dispose` runs once per mount even when called twice; a section without `dispose` is accepted.
+- [X] T084 [US1] Update `public/js/main.js`: keep `updatePanel` (structural render, one per frame) for select, tab, layer toggle and a change of the selected fly's status. Replace the `PANEL_INTERVAL_MS` timer body with a value update: it calls a new `updatePanelValues(panel, records, selectedId)` from `panel.js` only when the selected fly's last tick is newer than at the previous update. Ticks of other flies only refresh the fly list text. Keep `PANEL_INTERVAL_MS = 200` (FR-012).
+- [X] T085 [US1] Update `public/js/ui/panel/panel.js`: keep the mounted sections of the selected fly in a shell-owned record `{ flyId, sections: [{ section, body, ok }] }`. The structural render mounts sections for a new fly and calls `disposeSection` for every mounted section on each path that removes them: another fly selected (before the readout is replaced), the selection cleared (before `showMessage`), the fly status `error`, a section error that writes text into its box, and a section dropped from the shown set. Export `updatePanelValues(container, records, selectedId)`, which builds the model once and calls `updateSection` on each mounted section; it creates and removes no element (FR-019, SC-009).
+- [X] T086 [US2] Update `public/js/ui/panel/sections/neuron-map.js` (closes T044): split into `mount` (canvas, counts element, `createPointCloud`, `setPoints`, `resize`), `update` (counts text when it changes, `activity` reference, restart the loop) and `dispose` (cancel the loop, `cloud.dispose()`). Remove the `WeakMap` lookup and the `body.contains` checks. The rAF loop is the only path that calls `cloud.update`. It stops while the Fly pane is hidden and restarts when the Fly tab is shown, calling `resize` then.
+- [X] T087 [US2] Update `public/js/viz/point-cloud.js`: keep a module-level count of live point clouds, increased in `createPointCloud` and decreased in `dispose` (which becomes idempotent). Export `livePointClouds()` for a development check. `neuron-map.js` logs `console.error` when a mount finds a live count above 0 after the previous mount was disposed (FR-020: at most one brain map).
+- [X] T088 [US3] Update `public/js/ui/panel/channels.js` (closes the BUG-002 part of T078): split `renderChannelRows` into `mountChannelRows(container, rows)`, which builds one row per channel once, and `updateChannelRows(container, rows)`, which sets each fill's `style.width` and the value text only when they change. Update `public/js/ui/panel/sections/inputs.js` and `outputs.js` to the `mount` / `update` shape. Row layout, colours and `centredFraction` are unchanged (FR-017, FR-018).
+- [X] T089 [US1] Update `public/js/ui/panel/sections/action.js` to the `mount` / `update` shape. `update` writes the label only when it differs from the shown text.
+- [X] T090 [US1] Update `public/js/ui/panel/sections/index.js` and any other section so every entry in `SECTIONS` has `mount` and `update`. Grep for leftovers: `grep -rn "runSection\|render(body\|renderChannelRows" public/js tests`.
+- [X] T091 [P] [US1] Add a test `tests/panel-lifecycle.test.mjs` with fake sections and a minimal DOM stub (or the pure part of T085 if it is extracted) _(Done: the pure part is `public/js/ui/panel/lifecycle.js`, used by `panel.js`.)_: select fly A, update 10 times, select fly B, clear the selection. `mount` runs once per fly, `dispose` once per mount, and `update` never calls `mount`.
+- [X] T092 [US2] Update `specs/006-fly-status-panel/quickstart.md`: add a Safari and Chrome step for SC-008. Six flies run for one minute; select a fly, switch tabs 10 times, select other flies 10 times, clear the selection. The brain map draws each time the Fly tab shows a fly, nothing flickers, `livePointClouds()` is at most 1, and the console has no WebGL context warnings. Add the SC-009 check: in the Elements panel, no node is added or removed while flies run and the user does nothing. Run `npm test`, then this step in both browsers (closes T069 with it).
+
+**Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch
 
 ---
 
@@ -223,7 +248,7 @@ BUG-001 decisions in `spec.md`.
 - [X] T066 Grep the repository for leftovers: `grep -rn "telemetry\|selected\|fly-panel.js\|innerWidth" public/js public/index.html scripts tests extract/malecns_brain`. Remove what is no longer used.
 - [X] T067 Run `npm test` and `extract/.venv/bin/python -m unittest discover -s extract/tests -p "test_*.py"`. All pass.
 - [X] T068 Run the performance script from T047 and record the result in `specs/006-fly-status-panel/quickstart.md`.
-- [X] T069 Run `python3 -m http.server 8000` and walk through `specs/006-fly-status-panel/quickstart.md` steps 3–7. Confirm no console errors (constitution run check).
+- [X] T069 ⚠️ Reopened Run `python3 -m http.server 8000` and walk through `specs/006-fly-status-panel/quickstart.md` steps 3–7. Confirm no console errors (constitution run check). (reopened — BUG-002: the brain map does not draw in Safari, a target platform. Re-run in Safari and Chrome after T092.) _(Done: re-run in Playwright WebKit and Chromium with quickstart step 8; desktop Safari is still to be checked by hand.)_
 - [X] T070 [P] Update the feature `specs/006-fly-status-panel/checklists/requirements.md` if any spec requirement changed during implementation. Otherwise leave it.
 
 ---
@@ -241,7 +266,11 @@ BUG-001 decisions in `spec.md`.
   - US5 is verification plus tests, and needs US1 to US4.
 - **Bugfix (Phase 8, BUG-001)**: Depends on US1, US3 and US4. It supersedes T034 and T051, which stay checked
   as history. Polish runs after it.
-- **Polish (final phase)**: Depends on all user stories and the bugfix phase.
+- **Bugfix (Phase 9, BUG-002)**: Depends on Phase 8. T082 first, then T083. T084 and T085 depend on T083.
+  T086 and T087 depend on T085; T088 and T089 depend on T083 and can run in parallel with T086. T090 after
+  T086–T089. T091 after T085. T092 last, then re-run T069.
+- **Polish (final phase)**: Depends on all user stories and the bugfix phases. T069 is reopened until T092
+  passes in Safari and Chrome.
 
 ### User Story Dependencies
 
@@ -308,10 +337,12 @@ Task: "T041 Create public/js/ui/panel/counts.js"
 
 ## Summary
 
-- **Total tasks**: 81
-- **Per phase**: Setup 1 · Foundational 22 · US1 13 · US2 11 · US3 6 · US4 4 · US5 5 · Bugfix 11 (BUG-001) · Polish 8
-- **Parallel tasks** (marked [P]): 37
+- **Total tasks**: 92
+- **Per phase**: Setup 1 · Foundational 22 · US1 13 · US2 11 · US3 6 · US4 4 · US5 5 · Bugfix 11 (BUG-001) · Bugfix 11 (BUG-002) · Polish 8
+- **Parallel tasks** (marked [P]): 39
 - **Suggested MVP**: Phases 1–3 (T001–T036), the split layout and the action readout.
 
 Format check: every task line starts with `- [ ] T` followed by the three-digit ID, uses `[P]` only for
-parallelizable tasks, carries a `[US#]` label only in Phases 3–8, and names a file path.
+parallelizable tasks, carries a `[US#]` label only in Phases 3–9, and names a file path.
+
+**Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch (Phase 9, T082–T092; T044 and T069 reopened).

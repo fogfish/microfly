@@ -8,8 +8,18 @@ const BACKGROUND = 0x0e1016;
 const POINT_SIZE = 0.07;
 const DISTANCE = 4.5;
 
+// Point clouds whose WebGL context is alive (BUG-002, FR-020: at most one brain map). Safari allows few
+// live contexts per page and drops the oldest, so a cloud that is never disposed blanks the next one.
+let live = 0;
+
+export function livePointClouds() {
+  return live;
+}
+
 export function createPointCloud(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  live += 1;
+  let disposed = false;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(BACKGROUND, 1);
 
@@ -79,7 +89,11 @@ export function createPointCloud(canvas) {
     colours = null;
   }
 
+  // Frees the WebGL context. A second call does nothing.
   function dispose() {
+    if (disposed) return;
+    disposed = true;
+    live -= 1;
     clearPoints();
     controls.dispose();
     renderer.dispose();

@@ -21,7 +21,7 @@ import { resolveFlies } from './fly/fly-config.js';
 import { initialLayers, toggleLayer } from './world/layers.js';
 import { odourField } from './world/odour-field.js';
 import { parseRamp, paintField } from './render/heatmap.js';
-import { renderPanel } from './ui/panel/panel.js';
+import { renderPanel, updatePanelValues } from './ui/panel/panel.js';
 import { SECTIONS } from './ui/panel/sections/index.js';
 import { initialTab, nextTab } from './ui/panel/tabs.js';
 
@@ -158,7 +158,8 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     requestDraw();
     updatePanel();
   };
-  // User actions (selection, tab, layer switch) render the panel at once, at most once per frame.
+  // User actions (selection, tab, layer switch) render the panel at once, at most once per frame. This is
+  // the structural render: it may build or remove elements (BUG-002, FR-019).
   let panelFrame = 0;
   const updatePanel = () => {
     if (panelFrame) return;
@@ -168,16 +169,18 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     });
   };
   // Flies report every tick, but the panel does not follow each tick. Ticks only mark it stale, and a
-  // timer refreshes it PANEL_INTERVAL_MS. Re-rendering the whole panel 120 times a second flickers in Safari.
+  // timer updates its values every PANEL_INTERVAL_MS. The value update changes text, bar widths and point
+  // colours in place and builds nothing (BUG-002, FR-019); a status change of the selected fly falls back
+  // to the structural render.
   let panelStale = false;
   const onFlyUpdate = () => {
     requestDraw();
     panelStale = true;
   };
   setInterval(() => {
-    if (!panelStale) return;
+    if (!panelStale || panelFrame) return;
     panelStale = false;
-    updatePanel();
+    if (!updatePanelValues(panel, records, selectedId)) updatePanel();
   }, PANEL_INTERVAL_MS);
 
   if (config.flies !== undefined) {
