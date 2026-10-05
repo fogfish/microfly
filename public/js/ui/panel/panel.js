@@ -1,18 +1,31 @@
 // The fly status panel shell (specs/006-fly-status-panel/contracts/panel-sections.md). Two tabs (BUG-001,
-// FR-016): "World" holds the fly list, "Fly" holds one box per section of the selected fly. Browser only.
+// FR-016): "World" holds the Layers box (arcade ON/OFF switches and the odour legend, specs/007-odor-layer
+// contracts/odour-layer.md §7) above the fly list; "Fly" holds one box per section of the selected fly. Browser only.
 // Text is set with textContent. The tab buttons, the list buttons and the section boxes are kept between
-// renders, so focus survives the 20 Hz updates and a point cloud is not rebuilt on every tick.
+// renders, so focus survives the periodic refreshes and a point cloud is not rebuilt on every tick.
 
 import { buildStatusModel } from './model.js';
 import { runSection, selectSections, unmetSections } from './registry.js';
 import { TABS } from './tabs.js';
+import { LAYERS } from '../../world/layers.js';
 
 const TAB_LABELS = { world: 'World', fly: 'Fly' };
 
 // tab is the active tab name; onTab(name) is called when a tab button is pressed.
-export function renderPanel(container, records, selectedId, onSelect, sections, tab, onTab) {
+// view: { layers, onLayer(id), legend: { max } | null } drives the Layers box of the World tab.
+export function renderPanel(
+  container,
+  records,
+  selectedId,
+  onSelect,
+  sections,
+  tab,
+  onTab,
+  view = { layers: {}, onLayer: () => {}, legend: null },
+) {
   const { worldPane, flyPane } = ensureShell(container, tab, onTab);
-  renderList(worldPane, records, selectedId, onSelect);
+  renderLayers(worldPane, view);
+  renderList(worldPane.querySelector(':scope > [data-list]'), records, selectedId, onSelect);
   renderFly(flyPane, records, selectedId, sections);
 }
 
@@ -32,15 +45,21 @@ function ensureShell(container, tab, onTab) {
       btn.textContent = TAB_LABELS[name];
       bar.append(btn);
     }
-    container.replaceChildren(bar, pane('world'), pane('fly'));
+    const world = pane('world');
+    const layers = document.createElement('section');
+    layers.className = 'panel-box layers';
+    const list = document.createElement('div');
+    list.dataset.list = '';
+    world.append(layers, list);
+    container.replaceChildren(bar, world, pane('fly'));
   }
   for (const btn of bar.children) {
-    btn.setAttribute('aria-selected', String(btn.dataset.tab === tab));
+    setAttr(btn, 'aria-selected', String(btn.dataset.tab === tab));
     btn.onclick = () => onTab(btn.dataset.tab);
   }
   for (const name of TABS) {
     const el = container.querySelector(`:scope > [data-pane="${name}"]`);
-    el.hidden = name !== tab;
+    setHidden(el, name !== tab);
   }
   return {
     worldPane: container.querySelector(':scope > [data-pane="world"]'),
@@ -55,9 +74,83 @@ function pane(name) {
   return el;
 }
 
+// The Layers box: one arcade switch per layer, then the odour legend. Built once, updated in place.
+function renderLayers(worldPane, view) {
+  const box = worldPane.querySelector(':scope > .layers');
+  if (!box.firstChild) {
+    box.append(textEl('h4', 'Layers'));
+    for (const { id, label } of LAYERS) {
+      const row = document.createElement('div');
+      row.className = 'layer-row';
+      row.dataset.layer = id;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'arcade-switch';
+      btn.setAttribute('role', 'switch');
+      btn.setAttribute('aria-label', `${label} layer`);
+      const name = textEl('span', label.toUpperCase());
+      name.className = 'layer-label';
+      row.append(name, btn);
+      box.append(row);
+    }
+    box.append(legendEl());
+  }
+
+  // Writes happen only when a value changes. Every fly tick re-renders the panel, and rewriting unchanged
+  // text or attributes repaints the switch and the legend on every refresh.
+  for (const row of box.querySelectorAll(':scope > .layer-row')) {
+    const id = row.dataset.layer;
+    const on = Boolean(view.layers[id]);
+    const btn = row.querySelector('.arcade-switch');
+    setAttr(btn, 'aria-checked', String(on));
+    setText(btn, on ? 'ON' : 'OFF');
+    btn.onclick = () => view.onLayer(id);
+  }
+
+  // The legend shows the ramp from 0 to the sensed maximum, only while the odour layer is on (FR-012).
+  const legend = box.querySelector(':scope > .odour-legend');
+  setHidden(legend, !view.layers.odour);
+  const empty = view.legend === null;
+  for (const el of legend.querySelectorAll('.legend-min, .legend-ramp, .legend-max')) setHidden(el, empty);
+  setHidden(legend.querySelector('.legend-empty'), !empty);
+  if (!empty) {
+    setText(legend.querySelector('.legend-min'), '0');
+    setText(legend.querySelector('.legend-max'), view.legend.max.toFixed(1));
+  }
+}
+
+function setText(el, text) {
+  if (el.textContent !== text) el.textContent = text;
+}
+
+function setAttr(el, name, value) {
+  if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+}
+
+function setHidden(el, hidden) {
+  if (el.hidden !== hidden) el.hidden = hidden;
+}
+
+function legendEl() {
+  const legend = document.createElement('div');
+  legend.className = 'odour-legend';
+  legend.hidden = true;
+  const min = textEl('span', '0');
+  min.className = 'legend-min';
+  const ramp = document.createElement('span');
+  ramp.className = 'legend-ramp';
+  const max = textEl('span', '');
+  max.className = 'legend-max';
+  const empty = textEl('p', 'No odour sources in this world');
+  empty.className = 'legend-empty';
+  legend.append(min, ramp, max, empty);
+  return legend;
+}
+
+// container is the [data-list] element of the World pane.
 function renderList(container, records, selectedId, onSelect) {
   if (records.length === 0) {
-    container.replaceChildren(textEl('p', 'No flies configured'));
+    showMessage(container, 'No flies configured');
     return;
   }
 
@@ -66,24 +159,25 @@ function renderList(container, records, selectedId, onSelect) {
     list = document.createElement('ul');
     for (let i = 0; i < records.length; i++) {
       const li = document.createElement('li');
-      li.append(document.createElement('button'));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      li.append(btn);
       list.append(li);
     }
   }
   records.forEach((r, i) => {
     const btn = list.children[i].firstChild;
-    btn.type = 'button';
-    btn.textContent = `Fly ${r.state.id} · ${r.brainLabel} · ${r.status} · contacts ${r.state.body.contacts}`;
-    btn.setAttribute('aria-pressed', String(r.state.id === selectedId));
+    setText(btn, `Fly ${r.state.id} · ${r.brainLabel} · ${r.status} · contacts ${r.state.body.contacts}`);
+    setAttr(btn, 'aria-pressed', String(r.state.id === selectedId));
     btn.onclick = () => onSelect(r.state.id);
   });
-  if (list.parentNode !== container) container.prepend(list);
+  if (list.parentNode !== container) container.replaceChildren(list);
 }
 
 function renderFly(container, records, selectedId, sections) {
   const selected = records.find((r) => r.state.id === selectedId);
   if (!selected) {
-    container.replaceChildren(textEl('p', 'Select a fly in the world or in the list'));
+    showMessage(container, 'Select a fly in the world or in the list');
     return;
   }
 
@@ -139,6 +233,12 @@ function bodyFor(readout, section) {
   }
   box.lastElementChild.className = 'panel-body';
   return box.lastElementChild;
+}
+
+// Replaces the container's content with one paragraph, only when that paragraph is not already shown.
+function showMessage(container, text) {
+  const shown = container.children.length === 1 && container.firstElementChild.tagName === 'P';
+  if (!shown || container.firstElementChild.textContent !== text) container.replaceChildren(textEl('p', text));
 }
 
 function textEl(tag, text) {

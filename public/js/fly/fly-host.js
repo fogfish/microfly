@@ -11,6 +11,7 @@ import { stepBody } from './body.js';
 import { createBaselineMotor } from './baseline.js';
 import { senseAt } from './stimulus.js';
 import { resolveFlies } from './fly-config.js';
+import { stimulusPoints } from './fly-world.js';
 
 const HISTORY = 200;
 const NO_SPIKES = new Uint32Array(0);
@@ -69,10 +70,7 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   const brainLabel = snapshot
     ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
     : null;
-  const points = [...world.stimulusCells.keys()].map((idx) => ({
-    x: (idx % world.width) + 0.5,
-    y: Math.floor(idx / world.width) + 0.5,
-  }));
+  const points = stimulusPoints(world);
   const env = {
     dt: 1 / f.tickHz,
     maxSpeed: f.body.maxSpeed,

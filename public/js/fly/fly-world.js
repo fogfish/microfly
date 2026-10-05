@@ -29,6 +29,14 @@ export function buildWorld(config, logic) {
   return { width, height, blocked, stimulusCells, walkable, isStimulusCell };
 }
 
+// The odour sources: [{x, y}] cell centres of the stimulus cells, in tiles.
+export function stimulusPoints(world) {
+  return [...world.stimulusCells.keys()].map((idx) => ({
+    x: (idx % world.width) + 0.5,
+    y: Math.floor(idx / world.width) + 0.5,
+  }));
+}
+
 // Returns one FlyState per fly. Throws when a fly has no free cell after SPAWN_ATTEMPTS tries.
 // mode defaults to flies.mode; the experiment script passes it to spawn both kinds in one world.
 export function spawnFlies(config, world, mode = resolveFlies(config).mode) {

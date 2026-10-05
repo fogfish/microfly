@@ -1,11 +1,15 @@
 // Fruit stimulus (contracts/fly-config.md, research R4). Pure: no DOM.
 
-// points: [{x, y}] cell centres in tiles. Sums a linear falloff that reaches 0 at radius.
+// One source's contribution at distance d: linear, 0 at radius. Shared with the odour layer (specs/007-odor-layer R1).
+export function falloff(d, radius) {
+  return radius > 0 ? Math.max(0, 1 - d / radius) : 0;
+}
+
+// points: [{x, y}] cell centres in tiles. Sums the falloff of every point.
 export function fruitIntensity(points, x, y, radius) {
   let sum = 0;
   for (const p of points) {
-    const d = Math.hypot(p.x - x, p.y - y);
-    sum += Math.max(0, 1 - d / radius);
+    sum += falloff(Math.hypot(p.x - x, p.y - y), radius);
   }
   return sum;
 }

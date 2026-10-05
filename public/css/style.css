@@ -8,6 +8,11 @@
   --bar-left: #2563eb;
   --bar-right: #d97706;
   --bar-both: #7c3aed;
+  /* Odour heatmap ramp (007): "r, g, b" stops from low to high, and the alpha at full intensity */
+  --odour-low: 255, 214, 10;
+  --odour-mid: 255, 128, 0;
+  --odour-high: 220, 38, 38;
+  --odour-alpha: 0.55;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +25,10 @@
     --bar-left: #60a5fa;
     --bar-right: #fbbf24;
     --bar-both: #c4b5fd;
+    --odour-low: 255, 224, 64;
+    --odour-mid: 255, 140, 26;
+    --odour-high: 239, 68, 68;
+    --odour-alpha: 0.55;
   }
 }
 
@@ -32,6 +41,10 @@
   --bar-left: #60a5fa;
   --bar-right: #fbbf24;
   --bar-both: #c4b5fd;
+  --odour-low: 255, 224, 64;
+  --odour-mid: 255, 140, 26;
+  --odour-high: 239, 68, 68;
+  --odour-alpha: 0.55;
 }
 
 html,
@@ -241,6 +254,84 @@ body {
 .channel-value {
   font-family: ui-monospace, monospace;
   text-align: right;
+}
+
+/* Layers box (007): an arcade ON/OFF switch per layer and the odour legend */
+.layers .layer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.layer-label {
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#fly-panel button.arcade-switch {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 64px;
+  min-height: 28px;
+  padding: 2px;
+  border: 2px solid currentColor;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 currentColor;
+  font: 700 12px/1 ui-monospace, monospace;
+  text-align: center;
+  transition: none;
+}
+
+#fly-panel button.arcade-switch[aria-checked="true"] {
+  background: rgb(var(--odour-high));
+  color: #fff;
+}
+
+#fly-panel button.arcade-switch:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+#fly-panel button.arcade-switch:focus-visible {
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
+}
+
+.odour-legend {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  font: 12px/1.2 ui-monospace, monospace;
+}
+
+.odour-legend[hidden],
+.odour-legend [hidden] {
+  display: none;
+}
+
+.legend-ramp {
+  height: 10px;
+  border: 2px solid currentColor;
+  background: linear-gradient(
+    to right,
+    rgba(var(--odour-low), 0),
+    rgba(var(--odour-mid), calc(var(--odour-alpha) * 0.5 + 0.25)),
+    rgba(var(--odour-high), 1)
+  );
+}
+
+#fly-panel [data-list] {
+  margin-top: 14px;
+}
+
+#fly-panel .legend-empty {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 @media (max-width: 899.98px) {

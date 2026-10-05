@@ -179,8 +179,10 @@ Confirm both appear in the panel with labels and bars and that no panel source f
   description, so a brain with a different neuron count or channel set needs no panel change.
 - **FR-011**: For a baseline fly (no brain), the panel MUST show the action and the output bars,
   and MUST state that no brain is in use in place of the neuron map.
-- **FR-012**: The panel MUST update on each tick of the selected fly, and MUST NOT block the world
-  from drawing.
+- **FR-012**: The panel MUST refresh at least 5 times a second while flies run, and user actions
+  (selecting a fly, switching tabs, the odour switch) MUST show at once. The panel MUST NOT follow
+  every tick, because re-rendering it at the tick rate flickers in Safari, and it MUST NOT block the
+  world from drawing.
 - **FR-013**: Clicking a fly in the world MUST select it, and selecting a fly from the fly list
   MUST show the same panel content.
 - **FR-014**: All text and labels MUST be written as plain text, so values from configuration or

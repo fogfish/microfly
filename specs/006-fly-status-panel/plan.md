@@ -40,7 +40,7 @@ Workers and typed arrays.
 
 **Project Type**: Static web app with a Python extraction tool (the existing two-part layout).
 
-**Performance Goals**: The panel updates at the 20 Hz tick rate and the render loop stays at 60 fps
+**Performance Goals**: The panel refreshes 5 times a second (FR-012) and the render loop stays at 60 fps
 for a brain of up to 1,000 neurons. A brain of 143,219 neurons (the full admitted subgraph) must
 still draw, at a lower frame rate if needed, without blocking the world.
 

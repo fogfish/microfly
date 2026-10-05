@@ -1,5 +1,7 @@
 // Bootstrap: load config → validate → load catalogue and sprites → compose → start the renderer.
 // On any error, show the error panel and draw nothing (FR-021).
+// main.js also owns the visual layers (specs/007-odor-layer): the odour heatmap is drawn over the scene
+// when its switch in the World tab is on. The simulation never sees the layer state.
 
 import { loadWorldConfig } from './config/load-world.js';
 import { validateConfig, validateArt } from './world/validate.js';
@@ -13,11 +15,18 @@ import { createCamera, resize as resizeCamera } from './render/camera.js';
 import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
-import { buildWorld, spawnFlies } from './fly/fly-world.js';
+import { buildWorld, spawnFlies, stimulusPoints } from './fly/fly-world.js';
 import { loadSnapshot, startFlies } from './fly/fly-host.js';
+import { resolveFlies } from './fly/fly-config.js';
+import { initialLayers, toggleLayer } from './world/layers.js';
+import { odourField } from './world/odour-field.js';
+import { parseRamp, paintField } from './render/heatmap.js';
 import { renderPanel } from './ui/panel/panel.js';
 import { SECTIONS } from './ui/panel/sections/index.js';
 import { initialTab, nextTab } from './ui/panel/tabs.js';
+
+// The status panel refreshes this often while flies run (specs/006 FR-012, amended in specs/007).
+const PANEL_INTERVAL_MS = 200;
 
 // main.js lives in public/js/, so its parent is the web root that holds world/ and assets/
 const APP_ROOT = new URL('../', import.meta.url);
@@ -95,12 +104,39 @@ function startWorld({ config, catalog, sprites, snapshot }) {
   let records = [];
   let selectedId = null;
 
+  // Odour layer: off on load. The field and its canvas are built the first time the layer is turned on;
+  // flowers never move, so they are not rebuilt (only repainted when the theme changes).
+  const stimulus = config.flies !== undefined ? resolveFlies(config).stimulus : { radius: 0, gain: 0, max: 0 };
+  const odourPoints = odourSources(config, logic);
+  const legend = odourPoints.length > 0 ? { max: stimulus.max } : null;
+  let layers = initialLayers();
+  let odourFieldCache = null;
+  let odourCanvas = null;
+  const paintOdour = () => paintField(odourFieldCache, parseRamp(getComputedStyle(document.documentElement)));
+  const ensureOdour = () => {
+    if (odourFieldCache) return;
+    try {
+      odourFieldCache = odourField({
+        points: odourPoints,
+        stimulus,
+        cols: config.grid.cols,
+        rows: config.grid.rows,
+        samplesPerCell: CELL_PX,
+      });
+      odourCanvas = paintOdour();
+    } catch (e) {
+      console.error(`odour layer: ${e.message}`);
+      odourCanvas = null;
+    }
+  };
+
   let frame = 0;
   const requestDraw = () => {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      renderer.render({ camera, scene, flies });
+      const overlays = layers.odour && odourCanvas ? [odourCanvas] : [];
+      renderer.render({ camera, scene, flies, overlays });
     });
   };
 
@@ -116,11 +152,33 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     tab = nextTab(tab, { type: 'tab', tab: name });
     updatePanel();
   };
-  const updatePanel = () => renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab);
-  const onFlyUpdate = () => {
+  const toggle = (id) => {
+    layers = toggleLayer(layers, id);
+    if (layers.odour) ensureOdour();
     requestDraw();
     updatePanel();
   };
+  // User actions (selection, tab, layer switch) render the panel at once, at most once per frame.
+  let panelFrame = 0;
+  const updatePanel = () => {
+    if (panelFrame) return;
+    panelFrame = requestAnimationFrame(() => {
+      panelFrame = 0;
+      renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab, { layers, onLayer: toggle, legend });
+    });
+  };
+  // Flies report every tick, but the panel does not follow each tick. Ticks only mark it stale, and a
+  // timer refreshes it PANEL_INTERVAL_MS. Re-rendering the whole panel 120 times a second flickers in Safari.
+  let panelStale = false;
+  const onFlyUpdate = () => {
+    requestDraw();
+    panelStale = true;
+  };
+  setInterval(() => {
+    if (!panelStale) return;
+    panelStale = false;
+    updatePanel();
+  }, PANEL_INTERVAL_MS);
 
   if (config.flies !== undefined) {
     try {
@@ -149,6 +207,17 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize: CELL_PX });
 
+  // The heatmap colours come from CSS tokens, so a theme change repaints the cached field.
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (!odourFieldCache) return;
+    try {
+      odourCanvas = paintOdour();
+    } catch (e) {
+      console.error(`odour layer: ${e.message}`);
+    }
+    requestDraw();
+  });
+
   window.addEventListener('resize', () => {
     const size = worldBox();
     renderer.resize(size.width, size.height);
@@ -158,6 +227,17 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   requestDraw();
   updatePanel();
+}
+
+// The odour sources of the world: [{x, y}] cell centres, or [] without flies (no stimulus is declared).
+function odourSources(config, logic) {
+  if (config.flies === undefined) return [];
+  try {
+    return stimulusPoints(buildWorld(config, logic));
+  } catch (e) {
+    console.error(`odour layer: ${e.message}`);
+    return [];
+  }
 }
 
 boot().catch((e) => fail([{ path: '', message: e.message }]));

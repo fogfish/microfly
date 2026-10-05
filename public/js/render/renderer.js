@@ -1,6 +1,7 @@
 // Draws the composed scene and the flies on a 2D canvas.
 //
-// The scene is one bitmap (world/compose.js), so each frame copies a window of it. Flies are drawn
+// The scene is one bitmap (world/compose.js), so each frame copies a window of it. Overlays (canvases
+// the size of the scene, such as the odour heatmap) are copied with the same window. Flies are drawn
 // on top, centred on their continuous position in cells. Zoom is an integer, so every art pixel is
 // a whole number of device pixels, and the window is copied with smoothing off (research R5).
 
@@ -21,8 +22,9 @@ export function createRenderer(canvas, sprites) {
     canvas.height = Math.round(height * dpr);
   }
 
-  // state: { camera, scene, flies }. scene is the composed canvas. camera.x, y are in scene px.
-  function render({ camera, scene, flies = [] }) {
+  // state: { camera, scene, flies, overlays }. scene is the composed canvas. camera.x, y are in scene px.
+  // overlays: canvases of the scene's size, drawn between the scene and the flies.
+  function render({ camera, scene, flies = [], overlays = [] }) {
     const z = camera.zoom;
     const scale = z * dpr;
 
@@ -39,6 +41,9 @@ export function createRenderer(canvas, sprites) {
     const dy = Math.round((sy - camera.y) * scale);
     if (sw > 0 && sh > 0) {
       ctx.drawImage(scene, sx, sy, sw, sh, dx, dy, Math.round(sw * scale), Math.round(sh * scale));
+      for (const overlay of overlays) {
+        ctx.drawImage(overlay, sx, sy, sw, sh, dx, dy, Math.round(sw * scale), Math.round(sh * scale));
+      }
     }
 
     const toDeviceX = (wx) => Math.round((wx * CELL_PX - camera.x) * scale);
