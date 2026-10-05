@@ -1,6 +1,6 @@
-// Turns sprite config into drawable sources.
-// Sheet form: a rectangle of an image, loaded once per URL.
-// Pixel form: a grid rendered once into an offscreen canvas at 1 px per cell.
+// Turns sprite sources into drawable entries: { source, sx, sy, sw, sh, w, h, anchor }.
+// Atlas form: a rectangle of an atlas image, from the catalogue (world/catalog.js).
+// Pixel form: a small grid (the fly sprites) rendered once into an offscreen canvas at 1 px per cell.
 
 const imageCache = new Map();
 
@@ -35,39 +35,37 @@ function renderPixels(sprite) {
     }
   });
 
-  return { source: canvas, sx: 0, sy: 0, sw: canvas.width, sh: canvas.height };
+  return { source: canvas, sx: 0, sy: 0, sw: canvas.width, sh: canvas.height, w: canvas.width, h: canvas.height, anchor: { x: 0, y: 0 } };
 }
 
-// Returns { sprites: Map<id, { source, sx, sy, sw, sh }>, errors }
-export async function loadSprites(spriteConfig, baseUrl) {
+// catalog: from indexCatalog. assetsRoot: the folder that holds the atlas files (assets/).
+// pixelSprites: the `sprites` section of world.json (pixel form only).
+// Returns { sprites: Map<id, entry>, errors }. Every catalogue sprite is in the map, keyed by id.
+export async function loadSprites(catalog, assetsRoot, pixelSprites = {}) {
   const sprites = new Map();
   const errors = [];
 
-  await Promise.all(
-    Object.entries(spriteConfig).map(async ([id, sprite]) => {
-      if (sprite.sheet === undefined) {
-        sprites.set(id, renderPixels(sprite));
-        return;
-      }
-
-      const path = `sprites.${id}.sheet`;
+  const images = await Promise.all(
+    catalog.atlases.map(async (atlas, index) => {
       try {
-        const img = await loadImage(new URL(sprite.sheet, baseUrl).href);
-        const inside =
-          sprite.x + sprite.w <= img.naturalWidth && sprite.y + sprite.h <= img.naturalHeight;
-        if (!inside) {
-          errors.push({
-            path,
-            message: `rectangle ${sprite.x},${sprite.y} ${sprite.w}×${sprite.h} is outside the ${img.naturalWidth}×${img.naturalHeight} image`,
-          });
-          return;
-        }
-        sprites.set(id, { source: img, sx: sprite.x, sy: sprite.y, sw: sprite.w, sh: sprite.h });
+        return await loadImage(new URL(atlas.file, assetsRoot).href);
       } catch (e) {
-        errors.push({ path, message: e.message });
+        errors.push({ path: `atlas.atlases[${index}]`, message: e.message });
+        return null;
       }
     }),
   );
+
+  for (const [id, s] of catalog.sprites) {
+    const img = images[s.atlas.index];
+    if (img === null || img === undefined) continue;
+    const a = s.atlas;
+    sprites.set(id, { source: img, sx: a.x, sy: a.y, sw: a.w, sh: a.h, w: s.w, h: s.h, anchor: s.anchor });
+  }
+
+  for (const [id, sprite] of Object.entries(pixelSprites)) {
+    if (sprite.pixels !== undefined) sprites.set(id, renderPixels(sprite));
+  }
 
   return { sprites, errors };
 }

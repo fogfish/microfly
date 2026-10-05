@@ -10,8 +10,9 @@
 // when world.json or the snapshot is invalid, or world.json has no flies section.
 
 import { readFileSync } from 'node:fs';
-import { validateConfig } from '../public/js/world/validate.js';
-import { generateTerrain, placeObjects } from '../public/js/world/generate.js';
+import { validateConfig, validateArt } from '../public/js/world/validate.js';
+import { indexCatalog } from '../public/js/world/catalog.js';
+import { buildLogic } from '../public/js/world/layout.js';
 import { buildWorld, spawnFlies } from '../public/js/fly/fly-world.js';
 import { resolveFlies } from '../public/js/fly/fly-config.js';
 import { createFlyBrain, BRAIN_DEFAULTS } from '../public/js/brain/fly-brain.js';
@@ -41,9 +42,14 @@ if (errors.length > 0) {
 }
 
 const f = resolveFlies(expConfig);
-const grid = generateTerrain(config);
-const { objects } = placeObjects(config, grid);
-const world = buildWorld(config, grid, objects);
+const artErrors = validateArt(expConfig, indexCatalog(JSON.parse(readFileSync(new URL(config.atlas, webRoot), 'utf8'))).catalog);
+if (artErrors.length > 0) {
+  for (const { path, message } of artErrors) console.error(`${path || 'world.json'}: ${message}`);
+  process.exit(1);
+}
+const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL(config.atlas, webRoot), 'utf8')));
+const logic = buildLogic(config, catalog);
+const world = buildWorld(config, logic);
 
 // The snapshot is read the same way as the browser reads it: parsed once, checked against telemetry
 let snapshot = null;

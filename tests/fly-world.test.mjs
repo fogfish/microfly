@@ -1,41 +1,36 @@
-// Fly world from the shipped config: blocked map, reproducible and walkable spawns, count, no-cell error.
+// Fly world from the shipped config: blocked cells from the logic grid, stimulus cells, reproducible and walkable spawns.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { generateTerrain, placeObjects } from '../public/js/world/generate.js';
+import { indexCatalog } from '../public/js/world/catalog.js';
+import { buildLogic, cellIndex } from '../public/js/world/layout.js';
 import { buildWorld, spawnFlies } from '../public/js/fly/fly-world.js';
 
 const config = JSON.parse(readFileSync(new URL('../public/world/world.json', import.meta.url), 'utf8'));
-const grid = generateTerrain(config);
-const { objects } = placeObjects(config, grid);
-const world = buildWorld(config, grid, objects);
-const terrainIndex = (id) => config.terrain.findIndex((t) => t.id === id);
-const cellOf = (o) => o.y * world.width + o.x;
+const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL('../public/assets/atlas/catalog.json', import.meta.url), 'utf8')));
+const logic = buildLogic(config, catalog);
+const world = buildWorld(config, logic);
 
-test('buildWorld marks water, rock and scenery as blocked, and grass without scenery as free', () => {
-  const water = terrainIndex('water');
-  const grass = terrainIndex('grass');
-  const scenery = new Set(objects.filter((o) => o.kind === 'scenery').map(cellOf));
-  let waterCells = 0;
-  let grassCells = 0;
-  for (let i = 0; i < grid.length; i++) {
-    if (grid[i] === water) {
-      waterCells++;
+test('water and solid objects are blocked, and open grass is free', () => {
+  let water = 0;
+  let free = 0;
+  for (let i = 0; i < logic.water.length; i++) {
+    if (logic.water[i]) {
+      water++;
       assert.equal(world.blocked[i], 1, `water cell ${i} should be blocked`);
-    }
-    if (grid[i] === grass && !scenery.has(i)) {
-      grassCells++;
-      assert.equal(world.blocked[i], 0, `grass cell ${i} should be free`);
+    } else if (logic.objects.every((o) => !o.solid || cellIndex(o.x, o.y, logic.cols) !== i)) {
+      free++;
+      assert.equal(world.blocked[i], 0, `open cell ${i} should be free`);
     }
   }
-  assert.ok(waterCells > 0 && grassCells > 0, 'the shipped world should contain water and grass');
+  assert.ok(water > 0 && free > 0, 'the shipped world should contain water and open grass');
 });
 
-test('stimulus cells are the apples and cherries, not honey', () => {
-  const fruit = objects.filter((o) => ['apple', 'cherry'].includes(o.ruleId));
-  assert.equal(world.stimulusCells.size, fruit.length);
-  for (const o of objects.filter((o) => o.ruleId === 'honey')) {
-    assert.equal(world.stimulusCells.has(cellOf(o)), false, 'honey must not be a stimulus cell');
+test('stimulus cells are the honey and flower cells, not dangers', () => {
+  const expected = config.edibles.filter((e) => ['honey', 'flower'].includes(e.kind));
+  assert.equal(world.stimulusCells.size, expected.length);
+  for (const d of config.dangers) {
+    assert.equal(world.isStimulusCell(Math.floor(d.x), Math.floor(d.y)), false, `danger ${d.kind} must not be a stimulus`);
   }
 });
 
@@ -55,7 +50,6 @@ test('brain seeds are distinct per fly', () => {
 });
 
 test('a world with no walkable cell throws the spawn error', () => {
-  const allWater = new Uint16Array(world.width * world.height).fill(terrainIndex('water'));
-  const blockedWorld = buildWorld(config, allWater, []);
+  const blockedWorld = { ...world, walkable: () => false };
   assert.throws(() => spawnFlies(config, blockedWorld), { message: 'no walkable cell for fly 0' });
 });

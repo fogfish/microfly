@@ -1,17 +1,23 @@
-// Validates a parsed world.json. Pure: no DOM, no fetch.
-// Returns an array of { path, message }. An empty array means valid.
+// Validates a parsed world.json (format version 2). Pure: no DOM, no fetch.
+// validateConfig(config) checks structure and geometry. validateArt(config, catalog) checks sprite
+// references against the atlas catalogue. Both return an array of { path, message }; empty means valid.
+// Paths name the section and the entry, e.g. objects[3].
 
 import { resolveParams, LIF_DEFAULTS } from '../brain/lif.js';
-
+import { cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX } from './layout.js';
+import { buildWaterField, waterField, cellWater, bodyKind, BODY_RANGES } from './water.js';
 const FORMAT = 'arcade-world';
-const VERSION = 1;
-const KINDS = ['scenery', 'edible', 'danger'];
-const SHAPES = ['blobs', 'noise'];
+const VERSION = 2;
+const SURFACE_KINDS = ['meadow', 'darkGrass', 'cobble', 'gravel'];
+const GROVE_MIN = 4;
+const GROVE_MAX = 12;
 const MAX_SPRITE_SIDE = 32;
+const SEED_MAX = 4294967295;
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const isText = (v) => typeof v === 'string' && v !== '';
 
 export function validateConfig(config) {
   const errors = [];
@@ -32,262 +38,256 @@ export function validateConfig(config) {
     return errors;
   }
 
-  if (!isInt(config.seed, 0, 4294967295)) {
-    err('seed', 'must be an integer from 0 to 4294967295');
-  }
+  if (!isText(config.name)) err('name', 'must be a non-empty string');
+  if (!isInt(config.seed, 0, SEED_MAX)) err('seed', `must be an integer from 0 to ${SEED_MAX}`);
+  const grid = validateGrid(config.grid, err);
+  validateZoom(config.zoom, err);
+  if (!isText(config.atlas)) err('atlas', 'must be the path to the art catalogue, e.g. "assets/atlas/catalog.json"');
 
-  validateWorld(config.world, err);
-  validateCamera(config.camera, err);
-
-  const sprites = isObject(config.sprites) ? config.sprites : null;
-  if (!sprites) {
-    err('sprites', 'must be an object');
+  const pixelSprites = config.sprites ?? {};
+  if (!isObject(pixelSprites)) {
+    err('sprites', 'must be an object of pixel sprites');
   } else {
-    for (const [id, sprite] of Object.entries(sprites)) {
-      validateSprite(id, sprite, err);
-    }
+    for (const [id, sprite] of Object.entries(pixelSprites)) validatePixelSprite(id, sprite, err);
   }
 
-  const hasSprite = (id) => sprites !== null && Object.hasOwn(sprites, id);
-  const terrainIds = validateTerrain(config.terrain, hasSprite, err);
-  validateTerrainLayers(config.terrainLayers, terrainIds, err);
-  validateGroups(config.groups, terrainIds, hasSprite, err);
-  validateObjects(config.objects, hasSprite, terrainIds, err);
+  if (grid === null) return errors;
+  const { cols, rows } = grid;
+  const inGrid = (x, y) => isNum(x) && isNum(y) && x >= 0 && x < cols && y >= 0 && y < rows;
+
+  validateList(config.ground, 'ground', err).forEach((area, i) => {
+    const path = `ground[${i}]`;
+    checkId(area, path, err);
+    if (!SURFACE_KINDS.includes(area?.kind)) err(`${path}.kind`, `must be one of ${SURFACE_KINDS.join(', ')}`);
+    validateOutline(area?.outline, `${path}.outline`, err);
+  });
+
+  const bodies = validateList(config.waterBodies, 'waterBodies', err);
+  const validBodies = [];
+  bodies.forEach((body, i) => {
+    const path = `waterBodies[${i}]`;
+    checkId(body, path, err);
+    if (!validateBlob(body?.outline, `${path}.outline`, err)) return;
+    // Every shore is the grass shore style (BUG-002), so a per-body choice is refused.
+    if (body.shore !== undefined) err(`${path}.shore`, 'is not used; every shore is the grass shore style (remove this field)');
+    if (bodyKind(body.outline.blob) === null) {
+      err(`${path}.outline`, `is neither a pond nor a lake; ${rangeText()}`);
+      return;
+    }
+    validBodies.push(body);
+  });
+  // When every body is valid, this is the same field layout.js uses, so it is built once (cached)
+  const field = validBodies.length === bodies.length && isInt(config.seed, 0, SEED_MAX)
+    ? waterField(config)
+    : buildWaterField({ cols, rows, seed: isInt(config.seed, 0, SEED_MAX) ? config.seed : 0, bodies: validBodies });
+  const water = cellWater(field, cols, rows);
+
+  validateList(config.objects, 'objects', err).forEach((o, i) => {
+    const path = `objects[${i}]`;
+    if (!isText(o?.sprite)) err(`${path}.sprite`, 'must be a sprite id or name');
+    if (!inGrid(o?.x, o?.y)) err(path, `x and y must be numbers inside the grid (0 to ${cols} × 0 to ${rows})`);
+    if (o?.solid !== undefined && typeof o.solid !== 'boolean') err(`${path}.solid`, 'must be true or false');
+    if (inGrid(o?.x, o?.y) && o.solid === true && water[cellIndex(o.x, o.y, cols)]) {
+      err(path, 'is a solid object on water; solid objects must sit on land');
+    }
+  });
+
+  validateList(config.groves, 'groves', err).forEach((g, i) => {
+    const path = `groves[${i}]`;
+    checkId(g, path, err);
+    if (!Array.isArray(g?.centre) || g.centre.length !== 2 || !isNum(g.centre[0]) || !isNum(g.centre[1])) {
+      err(`${path}.centre`, 'must be [x, y] in cells');
+    }
+    if (!Array.isArray(g?.trees) || g.trees.length < GROVE_MIN || g.trees.length > GROVE_MAX) {
+      err(`${path}.trees`, `a group needs ${GROVE_MIN} to ${GROVE_MAX} trees; found ${Array.isArray(g?.trees) ? g.trees.length : 0}`);
+      return;
+    }
+    g.trees.forEach((t, j) => {
+      if (!isText(t?.sprite)) err(`${path}.trees[${j}].sprite`, 'must be a sprite id or name');
+      if (!isNum(t?.dx) || !isNum(t?.dy)) err(`${path}.trees[${j}]`, 'dx and dy must be numbers');
+    });
+  });
+
+  validateList(config.scatter, 'scatter', err).forEach((s, i) => {
+    const path = `scatter[${i}]`;
+    checkId(s, path, err);
+    validateOutline(s?.area, `${path}.area`, err);
+    if (!Array.isArray(s?.sprites) || s.sprites.length === 0 || !s.sprites.every(isText)) {
+      err(`${path}.sprites`, 'must be a non-empty list of sprite ids or names');
+    }
+    if (!(isNum(s?.density) && s.density >= 0 && s.density <= 4)) err(`${path}.density`, 'must be a number from 0 to 4');
+    if (!(isNum(s?.clearings) && s.clearings >= 0 && s.clearings <= 1)) err(`${path}.clearings`, 'must be a number from 0 to 1');
+    if (!isInt(s?.seed, 0, SEED_MAX)) err(`${path}.seed`, `must be an integer from 0 to ${SEED_MAX}`);
+  });
+
+  validateList(config.edibles, 'edibles', err).forEach((e, i) => {
+    validateSpot(e, `edibles[${i}]`, EDIBLE_KINDS, 'edible', inGrid, water, cols, err);
+  });
+  validateList(config.dangers, 'dangers', err).forEach((d, i) => {
+    validateSpot(d, `dangers[${i}]`, DANGER_KINDS, 'danger', inGrid, water, cols, err);
+  });
 
   if (config.flies !== undefined) validateFlies(config.flies, config, err);
 
   return errors;
 }
 
-function validateWorld(world, err) {
-  if (!isObject(world)) {
-    err('world', 'must be an object');
-    return;
-  }
-  if (!isInt(world.width, 1, 512)) err('world.width', 'must be an integer from 1 to 512');
-  if (!isInt(world.height, 1, 512)) err('world.height', 'must be an integer from 1 to 512');
-  if (world.tileSize !== undefined && !isInt(world.tileSize, 8, 64)) {
-    err('world.tileSize', 'must be an integer from 8 to 64');
-  }
+// Art references against the catalogue. catalog is from indexCatalog.
+export function validateArt(config, catalog) {
+  const errors = [];
+  const check = (ref, path) => {
+    if (!isText(ref)) return;
+    const { error } = catalog.lookup(ref);
+    if (error) errors.push({ path, message: error });
+  };
+
+  (config.objects ?? []).forEach((o, i) => check(o?.sprite, `objects[${i}]`));
+  (config.groves ?? []).forEach((g, i) => (g?.trees ?? []).forEach((t, j) => check(t?.sprite, `groves[${i}].trees[${j}]`)));
+  (config.scatter ?? []).forEach((s, i) => (s?.sprites ?? []).forEach((ref, j) => check(ref, `scatter[${i}].sprites[${j}]`)));
+  return errors;
 }
 
-function validateCamera(camera, err) {
-  const zoom = isObject(camera) ? camera.zoom : undefined;
+function validateGrid(grid, err) {
+  if (!isObject(grid)) {
+    err('grid', 'must be an object with cols, rows and cellPx');
+    return null;
+  }
+  let ok = true;
+  if (!isInt(grid.cols, 1, 512)) { err('grid.cols', 'must be an integer from 1 to 512'); ok = false; }
+  if (!isInt(grid.rows, 1, 512)) { err('grid.rows', 'must be an integer from 1 to 512'); ok = false; }
+  if (grid.cellPx !== CELL_PX) { err('grid.cellPx', `must be ${CELL_PX}`); ok = false; }
+  return ok ? grid : null;
+}
+
+// Zoom steps are whole numbers, so every step is pixel-exact (research R5).
+function validateZoom(zoom, err) {
   if (!isObject(zoom)) {
-    err('camera.zoom', 'must be an object with min, max and default');
+    err('zoom', 'must be an object with min, max and default');
     return;
   }
-  const minOk = isNum(zoom.min) && zoom.min > 0;
-  const maxOk = isNum(zoom.max) && minOk && zoom.max >= zoom.min;
-  if (!minOk) err('camera.zoom.min', 'must be a number greater than 0');
-  if (!maxOk) err('camera.zoom.max', 'must be a number not less than min');
-  if (!isNum(zoom.default) || !minOk || !maxOk || zoom.default < zoom.min || zoom.default > zoom.max) {
-    err('camera.zoom.default', 'must be a number between min and max');
+  const minOk = isInt(zoom.min, 1, 16);
+  const maxOk = isInt(zoom.max, 1, 16) && minOk && zoom.max >= zoom.min;
+  if (!minOk) err('zoom.min', 'must be an integer from 1 to 16');
+  if (!maxOk) err('zoom.max', 'must be an integer not less than min');
+  if (!isInt(zoom.default, 1, 16) || !minOk || !maxOk || zoom.default < zoom.min || zoom.default > zoom.max) {
+    err('zoom.default', 'must be an integer between min and max');
   }
 }
 
-function validateSprite(id, sprite, err) {
+// Pixel-form sprites. They hold the fly art, which the atlas does not have.
+function validatePixelSprite(id, sprite, err) {
   const path = `sprites.${id}`;
-  if (!isObject(sprite)) {
-    err(path, 'must be an object');
+  if (!isObject(sprite) || !('pixels' in sprite)) {
+    err(path, 'must be an object with "pixels" and "palette"');
     return;
   }
-
-  if ('sheet' in sprite) {
-    if (typeof sprite.sheet !== 'string' || sprite.sheet === '') {
-      err(`${path}.sheet`, 'must be a non-empty path');
-    }
-    for (const key of ['x', 'y']) {
-      if (!isInt(sprite[key], 0, Number.MAX_SAFE_INTEGER)) err(`${path}.${key}`, 'must be an integer of 0 or more');
-    }
-    for (const key of ['w', 'h']) {
-      if (!isInt(sprite[key], 1, Number.MAX_SAFE_INTEGER)) err(`${path}.${key}`, 'must be an integer of 1 or more');
-    }
+  const rows = sprite.pixels;
+  if (!Array.isArray(rows) || rows.length === 0 || rows.length > MAX_SPRITE_SIDE) {
+    err(`${path}.pixels`, `must be a list of 1 to ${MAX_SPRITE_SIDE} rows`);
     return;
   }
-
-  if ('pixels' in sprite) {
-    const rows = sprite.pixels;
-    if (!Array.isArray(rows) || rows.length === 0 || rows.length > MAX_SPRITE_SIDE) {
-      err(`${path}.pixels`, `must be a list of 1 to ${MAX_SPRITE_SIDE} rows`);
-      return;
-    }
-    if (!isObject(sprite.palette)) {
-      err(`${path}.palette`, 'must be an object mapping characters to colours');
-      return;
-    }
-    if (Object.hasOwn(sprite.palette, '.')) {
-      err(`${path}.palette`, 'must not contain "." (that character is always transparent)');
-    }
-    for (const [ch, colour] of Object.entries(sprite.palette)) {
-      if (typeof colour !== 'string') err(`${path}.palette.${ch}`, 'must be a colour string');
-    }
-
-    const cols = typeof rows[0] === 'string' ? rows[0].length : 0;
-    if (cols === 0 || cols > MAX_SPRITE_SIDE) {
-      err(`${path}.pixels[0]`, `must be a non-empty row of at most ${MAX_SPRITE_SIDE} characters`);
-      return;
-    }
-    rows.forEach((row, y) => {
-      const rowPath = `${path}.pixels[${y}]`;
-      if (typeof row !== 'string') {
-        err(rowPath, 'must be a string');
-        return;
-      }
-      if (row.length !== cols) {
-        err(rowPath, `row length ${row.length}, expected ${cols}`);
-      }
-      for (const ch of row) {
-        if (ch !== '.' && !Object.hasOwn(sprite.palette, ch)) {
-          err(rowPath, `character "${ch}" is not in the palette`);
-          break;
-        }
-      }
-    });
+  if (!isObject(sprite.palette)) {
+    err(`${path}.palette`, 'must be an object mapping characters to colours');
     return;
   }
-
-  err(path, 'must have either "sheet" or "pixels"');
-}
-
-// Returns the Set of valid terrain ids
-function validateTerrain(terrain, hasSprite, err) {
-  const ids = new Set();
-  if (!Array.isArray(terrain) || terrain.length === 0) {
-    err('terrain', 'must be a non-empty list');
-    return ids;
+  if (Object.hasOwn(sprite.palette, '.')) {
+    err(`${path}.palette`, 'must not contain "." (that character is always transparent)');
+  }
+  for (const [ch, colour] of Object.entries(sprite.palette)) {
+    if (typeof colour !== 'string') err(`${path}.palette.${ch}`, 'must be a colour string');
   }
 
-  let bases = 0;
-  terrain.forEach((t, i) => {
-    const path = `terrain[${i}]`;
-    if (!isObject(t)) {
-      err(path, 'must be an object');
-      return;
-    }
-    if (typeof t.id !== 'string' || t.id === '') {
-      err(`${path}.id`, 'must be a non-empty string');
-    } else if (ids.has(t.id)) {
-      err(`${path}.id`, `duplicate terrain id "${t.id}"`);
-    } else {
-      ids.add(t.id);
-    }
-    if (!hasSprite(t.sprite)) err(`${path}.sprite`, `unknown sprite "${t.sprite}"`);
-    if (t.base === true) {
-      bases++;
-    } else if (t.base !== undefined && t.base !== false) {
-      err(`${path}.base`, 'must be true or false');
-    }
-  });
-
-  if (bases !== 1) {
-    err('terrain', `exactly one terrain must have "base": true; found ${bases}`);
-  }
-  return ids;
-}
-
-function validateTerrainLayers(layers, terrainIds, err) {
-  if (layers === undefined) return;
-  if (!Array.isArray(layers)) {
-    err('terrainLayers', 'must be a list');
+  const cols = typeof rows[0] === 'string' ? rows[0].length : 0;
+  if (cols === 0 || cols > MAX_SPRITE_SIDE) {
+    err(`${path}.pixels[0]`, `must be a non-empty row of at most ${MAX_SPRITE_SIDE} characters`);
     return;
   }
-
-  layers.forEach((layer, i) => {
-    const path = `terrainLayers[${i}]`;
-    if (!isObject(layer)) {
-      err(path, 'must be an object');
+  rows.forEach((row, y) => {
+    const rowPath = `${path}.pixels[${y}]`;
+    if (typeof row !== 'string') {
+      err(rowPath, 'must be a string');
       return;
     }
-    if (!terrainIds.has(layer.terrain)) err(`${path}.terrain`, `unknown terrain "${layer.terrain}"`);
-    validateTerrainRefs(layer.on, `${path}.on`, terrainIds, err);
-
-    if (!SHAPES.includes(layer.shape)) {
-      err(`${path}.shape`, 'must be "blobs" or "noise"');
-    } else if (layer.shape === 'blobs') {
-      if (!isInt(layer.count, 0, Number.MAX_SAFE_INTEGER)) err(`${path}.count`, 'must be an integer of 0 or more');
-      const [min, max] = Array.isArray(layer.radius) ? layer.radius : [];
-      if (!isInt(min, 1, Number.MAX_SAFE_INTEGER) || !isInt(max, 1, Number.MAX_SAFE_INTEGER) || min > max) {
-        err(`${path}.radius`, 'must be [min, max] with 1 <= min <= max');
+    if (row.length !== cols) err(rowPath, `row length ${row.length}, expected ${cols}`);
+    for (const ch of row) {
+      if (ch !== '.' && !Object.hasOwn(sprite.palette, ch)) {
+        err(rowPath, `character "${ch}" is not in the palette`);
+        break;
       }
-    } else {
-      if (!isNum(layer.threshold) || layer.threshold < 0 || layer.threshold > 1) {
-        err(`${path}.threshold`, 'must be a number from 0 to 1');
-      }
-      if (!isNum(layer.scale) || layer.scale < 2) err(`${path}.scale`, 'must be a number of 2 or more');
     }
   });
 }
 
-// Tile groups (BUG-001). Optional. Keys are terrain ids. Each group has a fill
-// sprite and optional edge sprites keyed by open-side names (see autotile.js).
-const EDGE_KEYS = ['N', 'E', 'S', 'W', 'NE', 'NW', 'SE', 'SW', 'NS', 'EW', 'NESW'];
-
-function validateGroups(groups, terrainIds, hasSprite, err) {
-  if (groups === undefined) return;
-  if (!isObject(groups)) {
-    err('groups', 'must be an object keyed by terrain id');
-    return;
+// The entries of a list section. A missing section is an empty list; a non-list is reported once.
+function validateList(list, path, err) {
+  if (list === undefined) return [];
+  if (!Array.isArray(list)) {
+    err(path, 'must be a list');
+    return [];
   }
-  for (const [terrainId, group] of Object.entries(groups)) {
-    const path = `groups.${terrainId}`;
-    if (!terrainIds.has(terrainId)) {
-      err(path, `unknown terrain "${terrainId}"`);
-      continue;
-    }
-    if (!isObject(group)) {
-      err(path, 'must be an object with a fill sprite');
-      continue;
-    }
-    if (!hasSprite(group.fill)) err(`${path}.fill`, `unknown sprite "${group.fill}"`);
-    if (group.edges === undefined) continue;
-    if (!isObject(group.edges)) {
-      err(`${path}.edges`, 'must be an object keyed by edge name');
-      continue;
-    }
-    for (const [key, spriteId] of Object.entries(group.edges)) {
-      if (!EDGE_KEYS.includes(key)) err(`${path}.edges.${key}`, `unknown edge "${key}"`);
-      if (!hasSprite(spriteId)) err(`${path}.edges.${key}`, `unknown sprite "${spriteId}"`);
-    }
-  }
+  return list;
 }
 
-function validateObjects(rules, hasSprite, terrainIds, err) {
-  if (rules === undefined) return;
-  if (!Array.isArray(rules)) {
-    err('objects', 'must be a list');
+function checkId(entry, path, err) {
+  if (!isObject(entry) || !isText(entry.id)) err(`${path}.id`, 'must be a non-empty string');
+}
+
+// Returns true when the outline is valid. An outline is an ellipse or a polygon, in cells.
+function validateOutline(outline, path, err) {
+  if (isObject(outline) && isObject(outline.ellipse)) {
+    const e = outline.ellipse;
+    const ok = isNum(e.cx) && isNum(e.cy) && isNum(e.rx) && e.rx > 0 && isNum(e.ry) && e.ry > 0;
+    if (!ok) err(path, 'ellipse needs numeric cx and cy and positive rx and ry');
+    return ok;
+  }
+  if (isObject(outline) && Array.isArray(outline.polygon)) {
+    const pts = outline.polygon;
+    const ok = pts.length >= 3 && pts.every((p) => Array.isArray(p) && p.length === 2 && isNum(p[0]) && isNum(p[1]));
+    if (!ok) err(path, 'polygon needs at least 3 points, each [x, y] in cells');
+    return ok;
+  }
+  err(path, 'must be {"ellipse": {"cx", "cy", "rx", "ry"}} or {"polygon": [[x, y], ...]}');
+  return false;
+}
+
+// A water body outline is a wobbly ellipse in cells (FR-028, BUG-002). Returns true when valid.
+function validateBlob(outline, path, err) {
+  const b = isObject(outline) ? outline.blob : undefined;
+  if (!isObject(b)) {
+    err(path, 'must be {"blob": {"cx", "cy", "rx", "ry", "wobble", "harmonics"}}; ellipse and polygon water is no longer drawn');
+    return false;
+  }
+  const ok = isNum(b.cx) && isNum(b.cy) && isNum(b.rx) && b.rx > 0 && isNum(b.ry) && b.ry > 0
+    && isNum(b.wobble) && b.wobble >= 0 && isInt(b.harmonics, 1, 12);
+  if (!ok) err(path, 'blob needs numeric cx and cy, positive rx and ry, a wobble of 0 or more and 1 to 12 harmonics');
+  return ok;
+}
+
+// The pond and lake ranges, in cells, for the error message (FR-011).
+function rangeText() {
+  return Object.entries(BODY_RANGES).map(([kind, r]) => {
+    const rx = r.rx.map((v) => +(v / CELL_PX).toFixed(2)).join(' to ');
+    return `a ${kind} has rx ${rx} cells, ry/rx ${r.ratio.join(' to ')}, wobble ${r.wobble.join(' to ')} and ${r.harmonics.join(' to ')} harmonics`;
+  }).join('; ');
+}
+
+function validateSpot(spot, path, kinds, role, inGrid, water, cols, err) {
+  if (!isObject(spot)) {
+    err(path, 'must be an object with kind, x and y');
     return;
   }
-
-  const ids = new Set();
-  rules.forEach((rule, i) => {
-    const path = `objects[${i}]`;
-    if (!isObject(rule)) {
-      err(path, 'must be an object');
-      return;
-    }
-    if (typeof rule.id !== 'string' || rule.id === '') {
-      err(`${path}.id`, 'must be a non-empty string');
-    } else if (ids.has(rule.id)) {
-      err(`${path}.id`, `duplicate object id "${rule.id}"`);
-    } else {
-      ids.add(rule.id);
-    }
-    if (!KINDS.includes(rule.kind)) err(`${path}.kind`, 'must be "scenery", "edible" or "danger"');
-    if (!hasSprite(rule.sprite)) err(`${path}.sprite`, `unknown sprite "${rule.sprite}"`);
-    if (!isInt(rule.count, 0, Number.MAX_SAFE_INTEGER)) err(`${path}.count`, 'must be an integer of 0 or more');
-    validateTerrainRefs(rule.allowedTerrain, `${path}.allowedTerrain`, terrainIds, err, true);
-    if (rule.minSpacing !== undefined && !isInt(rule.minSpacing, 0, Number.MAX_SAFE_INTEGER)) {
-      err(`${path}.minSpacing`, 'must be an integer of 0 or more');
-    }
-  });
+  if (!kinds.includes(spot.kind)) err(`${path}.kind`, `must be ${kinds.map((k) => `"${k}"`).join(', ')}`);
+  if (!inGrid(spot.x, spot.y)) {
+    err(path, 'x and y must be numbers inside the grid');
+    return;
+  }
+  if (water[cellIndex(spot.x, spot.y, cols)]) {
+    err(path, `is on water; ${role}s must sit on land`);
+  }
 }
 
 // Optional `flies` section (contracts/fly-config.md). Defaults are applied by fly/fly-config.js.
 const FLY_MODES = ['toy', 'baseline'];
-const SEED_MAX = 4294967295;
-// Edible rules that are not fruit. The spec's stimulus is fruit only, so honey is excluded.
-const NON_FRUIT = new Set(['honey']);
 
 function validateFlies(flies, config, err) {
   if (!isObject(flies)) {
@@ -296,9 +296,7 @@ function validateFlies(flies, config, err) {
   }
 
   const hasSprite = (id) => isObject(config.sprites) && Object.hasOwn(config.sprites, id);
-  const edible = new Set(
-    (config.objects ?? []).filter((r) => r.kind === 'edible' && !NON_FRUIT.has(r.id)).map((r) => r.id),
-  );
+  const edible = new Set(EDIBLE_KINDS);
 
   if (flies.seed !== undefined && !isInt(flies.seed, 0, SEED_MAX)) {
     err('flies.seed', `must be an integer from 0 to ${SEED_MAX}`);
@@ -340,7 +338,7 @@ function validateFlyStimulus(stimulus, edible, err) {
     err('flies.stimulus.objects', 'must be a non-empty list of edible object ids');
   } else {
     stimulus.objects.forEach((id, i) => {
-      if (!edible.has(id)) err(`flies.stimulus.objects[${i}]`, `"${id}" is not an edible object rule`);
+      if (!edible.has(id)) err(`flies.stimulus.objects[${i}]`, `"${id}" is not an edible kind`);
     });
   }
   if (!(isNum(stimulus.radius) && stimulus.radius > 0)) err('flies.stimulus.radius', 'must be a number greater than 0');
@@ -445,15 +443,5 @@ function validateFlyExperiment(experiment, err) {
   }
   if (experiment.ticks !== undefined && !isInt(experiment.ticks, 1, 1000000)) {
     err('flies.experiment.ticks', 'must be an integer from 1 to 1000000');
-  }
-}
-
-function validateTerrainRefs(list, path, terrainIds, err, nonEmpty = false) {
-  if (!Array.isArray(list) || (nonEmpty && list.length === 0)) {
-    err(path, nonEmpty ? 'must be a list with at least one terrain id' : 'must be a list of terrain ids');
-    return;
-  }
-  for (const id of list) {
-    if (!terrainIds.has(id)) err(path, `unknown terrain "${id}"`);
   }
 }

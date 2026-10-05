@@ -1,4 +1,4 @@
-// Fly world: blocked map, fruit cells, and spawn (research R9, R10). Pure: no DOM.
+// Fly world: blocked cells, stimulus cells, and spawn, read from the logic grid (world/layout.js). Pure: no DOM.
 
 import { createPrng } from '../world/prng.js';
 import { createBody } from './body.js';
@@ -10,21 +10,17 @@ const GOLDEN = 0x9e3779b1;
 // first draws land on the cells that were just placed as scenery. See research R9.
 const SPAWN_SALT = 0x51ed270b;
 
-// grid and objects come from generateTerrain and placeObjects. config must be validated.
-export function buildWorld(config, grid, objects) {
-  const { width, height } = config.world;
-  const fruit = new Set(resolveFlies(config).stimulus.objects);
+// logic comes from buildLogic (world/layout.js). config must be validated.
+// Stimulus cells are the edible cells whose kind is named in flies.stimulus.objects.
+export function buildWorld(config, logic) {
+  const { cols: width, rows: height } = logic;
+  const wanted = new Set(resolveFlies(config).stimulus.objects);
 
-  const blocked = new Uint8Array(width * height);
-  for (let i = 0; i < grid.length; i++) {
-    if (config.terrain[grid[i]].walkable !== true) blocked[i] = 1;
-  }
-
+  const blocked = logic.blocked;
   const stimulusCells = new Map();
-  for (const o of objects) {
-    const idx = o.y * width + o.x;
-    if (o.kind === 'scenery') blocked[idx] = 1;
-    if (fruit.has(o.ruleId)) stimulusCells.set(idx, o);
+  for (let idx = 0; idx < logic.edible.length; idx++) {
+    const kind = logic.edible[idx];
+    if (kind !== null && wanted.has(kind)) stimulusCells.set(idx, kind);
   }
 
   const walkable = (cx, cy) => blocked[cy * width + cx] === 0;

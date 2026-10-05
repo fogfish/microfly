@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCamera, panBy, zoomAt, resize } from '../public/js/render/camera.js';
 
-const zoom = { min: 0.5, max: 4, default: 2 };
+const zoom = { min: 1, max: 4, default: 2 };
 
 // 100 cells × 16 px = 1600 world px
 const make = (overrides = {}) =>
@@ -21,19 +21,22 @@ test('zoom at the cursor keeps the world point under it fixed', () => {
   const sy = 200;
   const before = { x: cam.x + sx / cam.zoom, y: cam.y + sy / cam.zoom };
 
-  zoomAt(cam, 1.1, sx, sy);
+  zoomAt(cam, 1, sx, sy);
 
   const after = { x: cam.x + sx / cam.zoom, y: cam.y + sy / cam.zoom };
   assert.ok(Math.abs(before.x - after.x) < 1e-9);
   assert.ok(Math.abs(before.y - after.y) < 1e-9);
 });
 
-test('zoom clamps to min and max', () => {
+test('zoom moves in whole steps and clamps to min and max', () => {
+  const step = make();
+  zoomAt(step, 1, 0, 0);
+  assert.equal(step.zoom, 3);
   const cam = make();
-  for (let i = 0; i < 100; i++) zoomAt(cam, 1 / 1.1, 400, 300);
+  for (let i = 0; i < 100; i++) zoomAt(cam, -1, 400, 300);
   assert.equal(cam.zoom, zoom.min);
 
-  for (let i = 0; i < 100; i++) zoomAt(cam, 1.1, 400, 300);
+  for (let i = 0; i < 100; i++) zoomAt(cam, 1, 400, 300);
   assert.equal(cam.zoom, zoom.max);
 });
 

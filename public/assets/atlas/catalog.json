@@ -1,0 +1,10712 @@
+{
+ "version": 2,
+ "generated": "2026-10-04",
+ "notes": "Pixel-exact sprites segmented from the ZRPG sheets. Each sprite PNG is masked: only its own pixels, transparent elsewhere. src = bounding box in the source sheet; atlas = rectangle in atlas[index]. anchor = foot point in sprite pixels (place sprite so anchor sits on the map position; y-sort by it). terrain/water anchor at top-left.",
+ "classes": [
+  {
+   "name": "tree",
+   "description": "Standing trees and palms (incl. dead trees, palm trunk/crown segments). Usually with cast shadow."
+  },
+  {
+   "name": "bush",
+   "description": "Shrubs, cacti, ferns, leafy vines and overhangs: mid-size ground vegetation that blocks or decorates."
+  },
+  {
+   "name": "plant",
+   "description": "Small vegetation: flowers, sprouts, tufts, reeds, mushrooms, grass-blade scatter decals."
+  },
+  {
+   "name": "rock",
+   "description": "Rocks: mesas, cliffs, pillars, boulders, crystal/ore nodes, pebbles."
+  },
+  {
+   "name": "terrain",
+   "description": "Ground art drawn under everything: grass/sand/gravel tiles, patches, autotile masks, pits, decals."
+  },
+  {
+   "name": "prop",
+   "description": "Objects: logs, signposts, planters, tent, lantern, hive, bones, skulls, shells, starfish, coral."
+  },
+  {
+   "name": "water",
+   "description": "Water animation frames."
+  }
+ ],
+ "sheets": {
+  "trees": {
+   "file": "ZRPGtrees.png",
+   "w": 1024,
+   "h": 1024
+  },
+  "rocks2": {
+   "file": "ZRPGRocks2.png",
+   "w": 1024,
+   "h": 1024
+  },
+  "beach": {
+   "file": "ZRPGBeach.png",
+   "w": 1024,
+   "h": 1024
+  },
+  "jungle": {
+   "file": "ZRPGJunglePlants.png",
+   "w": 512,
+   "h": 416
+  },
+  "water": {
+   "file": "ZRPGWater.png",
+   "w": 320,
+   "h": 3328
+  }
+ },
+ "atlases": [
+  {
+   "file": "atlas/atlas-0.png",
+   "w": 2048,
+   "h": 1822
+  }
+ ],
+ "animations": {
+  "water": {
+   "frames": [
+    "water-water-001",
+    "water-water-002",
+    "water-water-003",
+    "water-water-004",
+    "water-water-005",
+    "water-water-006",
+    "water-water-007",
+    "water-water-008",
+    "water-water-009",
+    "water-water-010",
+    "water-water-011",
+    "water-water-012",
+    "water-water-013",
+    "water-water-014",
+    "water-water-015",
+    "water-water-016",
+    "water-water-017",
+    "water-water-018",
+    "water-water-019",
+    "water-water-020",
+    "water-water-021"
+   ],
+   "fps": 6,
+   "loop": true
+  }
+ },
+ "sprites": [
+  {
+   "id": "trees-tree-001",
+   "name": "oak_large_a",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Large oak tree with wide cast shadow",
+   "file": "sprites/trees/trees-tree-001.png",
+   "w": 347,
+   "h": 305,
+   "src": {
+    "x": 23,
+    "y": 18,
+    "w": 347,
+    "h": 305
+   },
+   "atlas": {
+    "index": 0,
+    "x": 351,
+    "y": 2,
+    "w": 347,
+    "h": 305
+   },
+   "anchor": {
+    "x": 158,
+    "y": 288
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-002",
+   "name": "oak_medium_a",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-002.png",
+   "w": 207,
+   "h": 183,
+   "src": {
+    "x": 397,
+    "y": 0,
+    "w": 207,
+    "h": 183
+   },
+   "atlas": {
+    "index": 0,
+    "x": 619,
+    "y": 310,
+    "w": 207,
+    "h": 183
+   },
+   "anchor": {
+    "x": 111,
+    "y": 179
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-003",
+   "name": "oak_medium_b",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-003.png",
+   "w": 197,
+   "h": 168,
+   "src": {
+    "x": 626,
+    "y": 15,
+    "w": 197,
+    "h": 168
+   },
+   "atlas": {
+    "index": 0,
+    "x": 828,
+    "y": 310,
+    "w": 197,
+    "h": 168
+   },
+   "anchor": {
+    "x": 106,
+    "y": 164
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-004",
+   "name": "oak_small_a",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-004.png",
+   "w": 145,
+   "h": 128,
+   "src": {
+    "x": 840,
+    "y": 0,
+    "w": 145,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 968,
+    "y": 1055,
+    "w": 145,
+    "h": 128
+   },
+   "anchor": {
+    "x": 48,
+    "y": 124
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-005",
+   "name": "round_tree_small",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small round-canopy tree with shadow",
+   "file": "sprites/trees/trees-tree-005.png",
+   "w": 80,
+   "h": 96,
+   "src": {
+    "x": 832,
+    "y": 129,
+    "w": 80,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 176,
+    "y": 1421,
+    "w": 80,
+    "h": 96
+   },
+   "anchor": {
+    "x": 31,
+    "y": 95
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-006",
+   "name": "round_tree_tiny",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Tiny round-canopy tree with shadow",
+   "file": "sprites/trees/trees-tree-006.png",
+   "w": 62,
+   "h": 67,
+   "src": {
+    "x": 928,
+    "y": 157,
+    "w": 62,
+    "h": 67
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1784,
+    "y": 1519,
+    "w": 62,
+    "h": 67
+   },
+   "anchor": {
+    "x": 25,
+    "y": 65
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-007",
+   "name": "oak_twisted",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak with twisted trunk and shadow",
+   "file": "sprites/trees/trees-tree-007.png",
+   "w": 177,
+   "h": 160,
+   "src": {
+    "x": 392,
+    "y": 192,
+    "w": 177,
+    "h": 160
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1228,
+    "y": 310,
+    "w": 177,
+    "h": 160
+   },
+   "anchor": {
+    "x": 51,
+    "y": 160
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-008",
+   "name": "oak_large_b",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Large oak tree with wide cast shadow",
+   "file": "sprites/trees/trees-tree-008.png",
+   "w": 347,
+   "h": 306,
+   "src": {
+    "x": 599,
+    "y": 210,
+    "w": 347,
+    "h": 306
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 2,
+    "w": 347,
+    "h": 306
+   },
+   "anchor": {
+    "x": 188,
+    "y": 306
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-009",
+   "name": "oak_medium_c",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-009.png",
+   "w": 208,
+   "h": 194,
+   "src": {
+    "x": 15,
+    "y": 376,
+    "w": 208,
+    "h": 194
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 310,
+    "w": 208,
+    "h": 194
+   },
+   "anchor": {
+    "x": 110,
+    "y": 187
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-010",
+   "name": "oak_medium_d",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-010.png",
+   "w": 205,
+   "h": 194,
+   "src": {
+    "x": 239,
+    "y": 376,
+    "w": 205,
+    "h": 194
+   },
+   "atlas": {
+    "index": 0,
+    "x": 212,
+    "y": 310,
+    "w": 205,
+    "h": 194
+   },
+   "anchor": {
+    "x": 110,
+    "y": 187
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-terrain-001",
+   "name": "grass_tile_a",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile",
+   "file": "sprites/trees/trees-terrain-001.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 512,
+    "y": 512,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1100,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-001",
+   "name": "yellow_flower_single",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Single tiny yellow flower decal (32px cell)",
+   "file": "sprites/trees/trees-plant-001.png",
+   "w": 9,
+   "h": 9,
+   "src": {
+    "x": 558,
+    "y": 515,
+    "w": 9,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 578,
+    "y": 1805,
+    "w": 9,
+    "h": 9
+   },
+   "anchor": {
+    "x": 3,
+    "y": 9
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-002",
+   "name": "yellow_flowers_trio",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Three tiny yellow flowers decal (32px cell)",
+   "file": "sprites/trees/trees-plant-002.png",
+   "w": 18,
+   "h": 19,
+   "src": {
+    "x": 587,
+    "y": 517,
+    "w": 18,
+    "h": 19
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1608,
+    "y": 1772,
+    "w": 18,
+    "h": 19
+   },
+   "anchor": {
+    "x": 15,
+    "y": 19
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-002",
+   "name": "dark_grass_patch_a",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Dark green grass patch with ragged edge",
+   "file": "sprites/trees/trees-terrain-002.png",
+   "w": 212,
+   "h": 118,
+   "src": {
+    "x": 634,
+    "y": 512,
+    "w": 212,
+    "h": 118
+   },
+   "atlas": {
+    "index": 0,
+    "x": 634,
+    "y": 1185,
+    "w": 212,
+    "h": 118
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-003",
+   "name": "dark_grass_patch_b",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Dark green grass patch with ragged edge",
+   "file": "sprites/trees/trees-terrain-003.png",
+   "w": 143,
+   "h": 79,
+   "src": {
+    "x": 874,
+    "y": 512,
+    "w": 143,
+    "h": 79
+   },
+   "atlas": {
+    "index": 0,
+    "x": 220,
+    "y": 1519,
+    "w": 143,
+    "h": 79
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-004",
+   "name": "grass_tile_b",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile",
+   "file": "sprites/trees/trees-terrain-004.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 512,
+    "y": 544,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1134,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-003",
+   "name": "yellow_flowers_cluster",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Cluster of tiny yellow flowers decal (32px cell)",
+   "file": "sprites/trees/trees-plant-003.png",
+   "w": 30,
+   "h": 29,
+   "src": {
+    "x": 545,
+    "y": 545,
+    "w": 30,
+    "h": 29
+   },
+   "atlas": {
+    "index": 0,
+    "x": 227,
+    "y": 1772,
+    "w": 30,
+    "h": 29
+   },
+   "anchor": {
+    "x": 14,
+    "y": 29
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-005",
+   "name": "grass_tile_c",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile",
+   "file": "sprites/trees/trees-terrain-005.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 512,
+    "y": 576,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1168,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-006",
+   "name": "grass_tile_d",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile with dark blade marks",
+   "file": "sprites/trees/trees-terrain-006.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 544,
+    "y": 576,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1202,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-tree-011",
+   "name": "oak_medium_e",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Medium oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-011.png",
+   "w": 198,
+   "h": 192,
+   "src": {
+    "x": 14,
+    "y": 602,
+    "w": 198,
+    "h": 192
+   },
+   "atlas": {
+    "index": 0,
+    "x": 419,
+    "y": 310,
+    "w": 198,
+    "h": 192
+   },
+   "anchor": {
+    "x": 110,
+    "y": 185
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-terrain-007",
+   "name": "grass_tile_e",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile",
+   "file": "sprites/trees/trees-terrain-007.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 512,
+    "y": 608,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1236,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-008",
+   "name": "grass_tile_f",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "32x32 grass tile with dark blade marks",
+   "file": "sprites/trees/trees-terrain-008.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 544,
+    "y": 608,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1270,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-009",
+   "name": "dark_grass_patch_c",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Dark green grass patch with ragged edge",
+   "file": "sprites/trees/trees-terrain-009.png",
+   "w": 137,
+   "h": 80,
+   "src": {
+    "x": 851,
+    "y": 623,
+    "w": 137,
+    "h": 80
+   },
+   "atlas": {
+    "index": 0,
+    "x": 81,
+    "y": 1519,
+    "w": 137,
+    "h": 80
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-004",
+   "name": "leafy_sprout",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small leafy green sprout",
+   "file": "sprites/trees/trees-plant-004.png",
+   "w": 23,
+   "h": 17,
+   "src": {
+    "x": 260,
+    "y": 679,
+    "w": 23,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1712,
+    "y": 1772,
+    "w": 23,
+    "h": 17
+   },
+   "anchor": {
+    "x": 9,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-005",
+   "name": "red_flower_plant",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Low plant with red flowers",
+   "file": "sprites/trees/trees-plant-005.png",
+   "w": 32,
+   "h": 23,
+   "src": {
+    "x": 288,
+    "y": 676,
+    "w": 32,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1189,
+    "y": 1772,
+    "w": 32,
+    "h": 23
+   },
+   "anchor": {
+    "x": 13,
+    "y": 23
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-prop-001",
+   "name": "stone_pedestal_planter",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "White stone pedestal planter with leafy plant",
+   "file": "sprites/trees/trees-prop-001.png",
+   "w": 31,
+   "h": 57,
+   "src": {
+    "x": 352,
+    "y": 679,
+    "w": 31,
+    "h": 57
+   },
+   "atlas": {
+    "index": 0,
+    "x": 407,
+    "y": 1668,
+    "w": 31,
+    "h": 57
+   },
+   "anchor": {
+    "x": 17,
+    "y": 57
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-006",
+   "name": "grass_tuft_a",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Green grass tuft",
+   "file": "sprites/trees/trees-plant-006.png",
+   "w": 24,
+   "h": 26,
+   "src": {
+    "x": 360,
+    "y": 641,
+    "w": 24,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 709,
+    "y": 1772,
+    "w": 24,
+    "h": 26
+   },
+   "anchor": {
+    "x": 10,
+    "y": 25
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-plant-007",
+   "name": "grass_tuft_b",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small green grass tuft",
+   "file": "sprites/trees/trees-plant-007.png",
+   "w": 19,
+   "h": 19,
+   "src": {
+    "x": 385,
+    "y": 652,
+    "w": 19,
+    "h": 19
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1587,
+    "y": 1772,
+    "w": 19,
+    "h": 19
+   },
+   "anchor": {
+    "x": 9,
+    "y": 17
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-prop-002",
+   "name": "barrel_planter_dry",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Wooden barrel planter with bare branches and shadow",
+   "file": "sprites/trees/trees-prop-002.png",
+   "w": 56,
+   "h": 61,
+   "src": {
+    "x": 391,
+    "y": 675,
+    "w": 56,
+    "h": 61
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1399,
+    "y": 1602,
+    "w": 56,
+    "h": 61
+   },
+   "anchor": {
+    "x": 23,
+    "y": 59
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-bush-001",
+   "name": "broadleaf_bush",
+   "class": "bush",
+   "sheet": "trees",
+   "description": "Broad-leaf green bush with shadow",
+   "file": "sprites/trees/trees-bush-001.png",
+   "w": 31,
+   "h": 27,
+   "src": {
+    "x": 417,
+    "y": 643,
+    "w": 31,
+    "h": 27
+   },
+   "atlas": {
+    "index": 0,
+    "x": 504,
+    "y": 1772,
+    "w": 31,
+    "h": 27
+   },
+   "anchor": {
+    "x": 15,
+    "y": 27
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-prop-003",
+   "name": "barrel_planter_sapling",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Wooden barrel planter with young leafy tree",
+   "file": "sprites/trees/trees-prop-003.png",
+   "w": 32,
+   "h": 59,
+   "src": {
+    "x": 448,
+    "y": 673,
+    "w": 32,
+    "h": 59
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1861,
+    "y": 1602,
+    "w": 32,
+    "h": 59
+   },
+   "anchor": {
+    "x": 15,
+    "y": 59
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-prop-004",
+   "name": "wooden_bowls_pair",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Two wooden bowls: one with seeds, one with a fern",
+   "file": "sprites/trees/trees-prop-004.png",
+   "w": 29,
+   "h": 32,
+   "src": {
+    "x": 449,
+    "y": 640,
+    "w": 29,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1575,
+    "y": 1728,
+    "w": 29,
+    "h": 32
+   },
+   "anchor": {
+    "x": 19,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-plant-008",
+   "name": "fern_small",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small green fern",
+   "file": "sprites/trees/trees-plant-008.png",
+   "w": 28,
+   "h": 23,
+   "src": {
+    "x": 483,
+    "y": 645,
+    "w": 28,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1223,
+    "y": 1772,
+    "w": 28,
+    "h": 23
+   },
+   "anchor": {
+    "x": 14,
+    "y": 23
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-terrain-010",
+   "name": "light_meadow_patch_a",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Large light-green meadow patch with dark centre",
+   "file": "sprites/trees/trees-terrain-010.png",
+   "w": 256,
+   "h": 144,
+   "src": {
+    "x": 544,
+    "y": 655,
+    "w": 256,
+    "h": 144
+   },
+   "atlas": {
+    "index": 0,
+    "x": 436,
+    "y": 506,
+    "w": 256,
+    "h": 144
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-009",
+   "name": "sapling_twig",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Young sapling with a few leaves",
+   "file": "sprites/trees/trees-plant-009.png",
+   "w": 19,
+   "h": 36,
+   "src": {
+    "x": 230,
+    "y": 686,
+    "w": 19,
+    "h": 36
+   },
+   "atlas": {
+    "index": 0,
+    "x": 357,
+    "y": 1728,
+    "w": 19,
+    "h": 36
+   },
+   "anchor": {
+    "x": 11,
+    "y": 36
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-010",
+   "name": "spiky_plant_a",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Spiky green plant",
+   "file": "sprites/trees/trees-plant-010.png",
+   "w": 31,
+   "h": 24,
+   "src": {
+    "x": 256,
+    "y": 708,
+    "w": 31,
+    "h": 24
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1128,
+    "y": 1772,
+    "w": 31,
+    "h": 24
+   },
+   "anchor": {
+    "x": 16,
+    "y": 24
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-011",
+   "name": "spiky_plant_b",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Spiky green plant",
+   "file": "sprites/trees/trees-plant-011.png",
+   "w": 31,
+   "h": 26,
+   "src": {
+    "x": 288,
+    "y": 708,
+    "w": 31,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 676,
+    "y": 1772,
+    "w": 31,
+    "h": 26
+   },
+   "anchor": {
+    "x": 16,
+    "y": 24
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-plant-012",
+   "name": "sapling_bent",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Bent young sapling with leaves",
+   "file": "sprites/trees/trees-plant-012.png",
+   "w": 26,
+   "h": 31,
+   "src": {
+    "x": 227,
+    "y": 737,
+    "w": 26,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 32,
+    "y": 1772,
+    "w": 26,
+    "h": 31
+   },
+   "anchor": {
+    "x": 13,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-013",
+   "name": "leaf_clump_a",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small leaf clump",
+   "file": "sprites/trees/trees-plant-013.png",
+   "w": 12,
+   "h": 13,
+   "src": {
+    "x": 323,
+    "y": 736,
+    "w": 12,
+    "h": 13
+   },
+   "atlas": {
+    "index": 0,
+    "x": 227,
+    "y": 1805,
+    "w": 12,
+    "h": 13
+   },
+   "anchor": {
+    "x": 6,
+    "y": 13
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-014",
+   "name": "leaf_clump_b",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small leaf clump",
+   "file": "sprites/trees/trees-plant-014.png",
+   "w": 18,
+   "h": 17,
+   "src": {
+    "x": 327,
+    "y": 751,
+    "w": 18,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1779,
+    "y": 1772,
+    "w": 18,
+    "h": 17
+   },
+   "anchor": {
+    "x": 10,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-015",
+   "name": "leaf_clump_c",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small leaf clump",
+   "file": "sprites/trees/trees-plant-015.png",
+   "w": 18,
+   "h": 15,
+   "src": {
+    "x": 345,
+    "y": 739,
+    "w": 18,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2020,
+    "y": 1772,
+    "w": 18,
+    "h": 15
+   },
+   "anchor": {
+    "x": 10,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-016",
+   "name": "leaf_clump_d",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Small leaf clump",
+   "file": "sprites/trees/trees-plant-016.png",
+   "w": 15,
+   "h": 16,
+   "src": {
+    "x": 363,
+    "y": 736,
+    "w": 15,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1929,
+    "y": 1772,
+    "w": 15,
+    "h": 16
+   },
+   "anchor": {
+    "x": 8,
+    "y": 16
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-tree-012",
+   "name": "oak_small_b",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-012.png",
+   "w": 111,
+   "h": 112,
+   "src": {
+    "x": 400,
+    "y": 743,
+    "w": 111,
+    "h": 112
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1013,
+    "y": 1185,
+    "w": 111,
+    "h": 112
+   },
+   "anchor": {
+    "x": 61,
+    "y": 112
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-terrain-011",
+   "name": "dark_grass_patch_d",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Dark green grass patch with ragged edge",
+   "file": "sprites/trees/trees-terrain-011.png",
+   "w": 181,
+   "h": 98,
+   "src": {
+    "x": 832,
+    "y": 741,
+    "w": 181,
+    "h": 98
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1476,
+    "y": 1312,
+    "w": 181,
+    "h": 98
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-017",
+   "name": "leafy_stalk",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tall leafy green stalk",
+   "file": "sprites/trees/trees-plant-017.png",
+   "w": 16,
+   "h": 28,
+   "src": {
+    "x": 361,
+    "y": 770,
+    "w": 16,
+    "h": 28
+   },
+   "atlas": {
+    "index": 0,
+    "x": 392,
+    "y": 1772,
+    "w": 16,
+    "h": 28
+   },
+   "anchor": {
+    "x": 4,
+    "y": 28
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-prop-005",
+   "name": "wooden_signpost",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Wooden signpost on grass",
+   "file": "sprites/trees/trees-prop-005.png",
+   "w": 32,
+   "h": 43,
+   "src": {
+    "x": 160,
+    "y": 811,
+    "w": 32,
+    "h": 43
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1963,
+    "y": 1668,
+    "w": 32,
+    "h": 43
+   },
+   "anchor": {
+    "x": 14,
+    "y": 43
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-bush-002",
+   "name": "yellow_green_bush",
+   "class": "bush",
+   "sheet": "trees",
+   "description": "Yellow-green leafy bush",
+   "file": "sprites/trees/trees-bush-002.png",
+   "w": 30,
+   "h": 31,
+   "src": {
+    "x": 193,
+    "y": 833,
+    "w": 30,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1891,
+    "y": 1728,
+    "w": 30,
+    "h": 31
+   },
+   "anchor": {
+    "x": 15,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-018",
+   "name": "broadleaf_plant",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Broad-leaf yellow-green plant",
+   "file": "sprites/trees/trees-plant-018.png",
+   "w": 47,
+   "h": 32,
+   "src": {
+    "x": 200,
+    "y": 801,
+    "w": 47,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1009,
+    "y": 1728,
+    "w": 47,
+    "h": 32
+   },
+   "anchor": {
+    "x": 27,
+    "y": 32
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-019",
+   "name": "leafy_clump_tall",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tall yellow-green leafy clump",
+   "file": "sprites/trees/trees-plant-019.png",
+   "w": 28,
+   "h": 35,
+   "src": {
+    "x": 258,
+    "y": 815,
+    "w": 28,
+    "h": 35
+   },
+   "atlas": {
+    "index": 0,
+    "x": 476,
+    "y": 1728,
+    "w": 28,
+    "h": 35
+   },
+   "anchor": {
+    "x": 17,
+    "y": 35
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-020",
+   "name": "leaf_tiny_a",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-020.png",
+   "w": 11,
+   "h": 11,
+   "src": {
+    "x": 288,
+    "y": 808,
+    "w": 11,
+    "h": 11
+   },
+   "atlas": {
+    "index": 0,
+    "x": 393,
+    "y": 1805,
+    "w": 11,
+    "h": 11
+   },
+   "anchor": {
+    "x": 6,
+    "y": 11
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-021",
+   "name": "leaf_tiny_b",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-021.png",
+   "w": 19,
+   "h": 15,
+   "src": {
+    "x": 299,
+    "y": 809,
+    "w": 19,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1978,
+    "y": 1772,
+    "w": 19,
+    "h": 15
+   },
+   "anchor": {
+    "x": 10,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-bush-003",
+   "name": "thorny_shrub",
+   "class": "bush",
+   "sheet": "trees",
+   "description": "Woody shrub with sparse leaves",
+   "file": "sprites/trees/trees-bush-003.png",
+   "w": 36,
+   "h": 31,
+   "src": {
+    "x": 333,
+    "y": 800,
+    "w": 36,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1786,
+    "y": 1728,
+    "w": 36,
+    "h": 31
+   },
+   "anchor": {
+    "x": 18,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-tree-013",
+   "name": "pine_tall",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Tall pine tree with cast shadow",
+   "file": "sprites/trees/trees-tree-013.png",
+   "w": 122,
+   "h": 158,
+   "src": {
+    "x": 0,
+    "y": 866,
+    "w": 122,
+    "h": 158
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1407,
+    "y": 310,
+    "w": 122,
+    "h": 158
+   },
+   "anchor": {
+    "x": 34,
+    "y": 157
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-prop-006",
+   "name": "hollow_log",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Hollow wooden log",
+   "file": "sprites/trees/trees-prop-006.png",
+   "w": 42,
+   "h": 39,
+   "src": {
+    "x": 171,
+    "y": 876,
+    "w": 42,
+    "h": 39
+   },
+   "atlas": {
+    "index": 0,
+    "x": 151,
+    "y": 1728,
+    "w": 42,
+    "h": 39
+   },
+   "anchor": {
+    "x": 32,
+    "y": 39
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-022",
+   "name": "leaf_tiny_c",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-022.png",
+   "w": 8,
+   "h": 10,
+   "src": {
+    "x": 229,
+    "y": 840,
+    "w": 8,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 528,
+    "y": 1805,
+    "w": 8,
+    "h": 10
+   },
+   "anchor": {
+    "x": 4,
+    "y": 10
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-prop-007",
+   "name": "potted_palm",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Potted palm plant",
+   "file": "sprites/trees/trees-prop-007.png",
+   "w": 21,
+   "h": 40,
+   "src": {
+    "x": 229,
+    "y": 878,
+    "w": 21,
+    "h": 40
+   },
+   "atlas": {
+    "index": 0,
+    "x": 128,
+    "y": 1728,
+    "w": 21,
+    "h": 40
+   },
+   "anchor": {
+    "x": 12,
+    "y": 40
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-023",
+   "name": "leaf_tiny_d",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-023.png",
+   "w": 14,
+   "h": 13,
+   "src": {
+    "x": 237,
+    "y": 844,
+    "w": 14,
+    "h": 13
+   },
+   "atlas": {
+    "index": 0,
+    "x": 211,
+    "y": 1805,
+    "w": 14,
+    "h": 13
+   },
+   "anchor": {
+    "x": 5,
+    "y": 13
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-024",
+   "name": "leaf_tiny_e",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-024.png",
+   "w": 12,
+   "h": 12,
+   "src": {
+    "x": 288,
+    "y": 840,
+    "w": 12,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 317,
+    "y": 1805,
+    "w": 12,
+    "h": 12
+   },
+   "anchor": {
+    "x": 6,
+    "y": 12
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-plant-025",
+   "name": "leaf_tiny_f",
+   "class": "plant",
+   "sheet": "trees",
+   "description": "Tiny leaf sprite",
+   "file": "sprites/trees/trees-plant-025.png",
+   "w": 19,
+   "h": 15,
+   "src": {
+    "x": 299,
+    "y": 841,
+    "w": 19,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1999,
+    "y": 1772,
+    "w": 19,
+    "h": 15
+   },
+   "anchor": {
+    "x": 10,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-tree-014",
+   "name": "oak_small_c",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small oak tree with cast shadow",
+   "file": "sprites/trees/trees-tree-014.png",
+   "w": 49,
+   "h": 50,
+   "src": {
+    "x": 427,
+    "y": 875,
+    "w": 49,
+    "h": 50
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1215,
+    "y": 1668,
+    "w": 49,
+    "h": 50
+   },
+   "anchor": {
+    "x": 19,
+    "y": 50
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-prop-008",
+   "name": "potted_teal_plant",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Potted teal plant",
+   "file": "sprites/trees/trees-prop-008.png",
+   "w": 23,
+   "h": 29,
+   "src": {
+    "x": 260,
+    "y": 889,
+    "w": 23,
+    "h": 29
+   },
+   "atlas": {
+    "index": 0,
+    "x": 289,
+    "y": 1772,
+    "w": 23,
+    "h": 29
+   },
+   "anchor": {
+    "x": 12,
+    "y": 29
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-prop-009",
+   "name": "potted_tall_plant",
+   "class": "prop",
+   "sheet": "trees",
+   "description": "Potted tall teal plant",
+   "file": "sprites/trees/trees-prop-009.png",
+   "w": 20,
+   "h": 37,
+   "src": {
+    "x": 294,
+    "y": 881,
+    "w": 20,
+    "h": 37
+   },
+   "atlas": {
+    "index": 0,
+    "x": 284,
+    "y": 1728,
+    "w": 20,
+    "h": 37
+   },
+   "anchor": {
+    "x": 11,
+    "y": 37
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-bush-004",
+   "name": "dense_shrub",
+   "class": "bush",
+   "sheet": "trees",
+   "description": "Dense dark shrub with shadow",
+   "file": "sprites/trees/trees-bush-004.png",
+   "w": 37,
+   "h": 31,
+   "src": {
+    "x": 368,
+    "y": 880,
+    "w": 37,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1747,
+    "y": 1728,
+    "w": 37,
+    "h": 31
+   },
+   "anchor": {
+    "x": 11,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-terrain-012",
+   "name": "light_meadow_patch_b",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Light-green meadow patch with dark centre",
+   "file": "sprites/trees/trees-terrain-012.png",
+   "w": 226,
+   "h": 111,
+   "src": {
+    "x": 517,
+    "y": 892,
+    "w": 226,
+    "h": 111
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1174,
+    "y": 1185,
+    "w": 226,
+    "h": 111
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-terrain-013",
+   "name": "light_meadow_patch_c",
+   "class": "terrain",
+   "sheet": "trees",
+   "description": "Light-green meadow patch with dark centre",
+   "file": "sprites/trees/trees-terrain-013.png",
+   "w": 184,
+   "h": 104,
+   "src": {
+    "x": 793,
+    "y": 897,
+    "w": 184,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 638,
+    "y": 1312,
+    "w": 184,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "trees-tree-015",
+   "name": "pine_small_wide",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small wide pine tree with shadow",
+   "file": "sprites/trees/trees-tree-015.png",
+   "w": 72,
+   "h": 76,
+   "src": {
+    "x": 131,
+    "y": 948,
+    "w": 72,
+    "h": 76
+   },
+   "atlas": {
+    "index": 0,
+    "x": 622,
+    "y": 1519,
+    "w": 72,
+    "h": 76
+   },
+   "anchor": {
+    "x": 29,
+    "y": 75
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-016",
+   "name": "pine_small",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small pine tree with shadow",
+   "file": "sprites/trees/trees-tree-016.png",
+   "w": 59,
+   "h": 77,
+   "src": {
+    "x": 224,
+    "y": 947,
+    "w": 59,
+    "h": 77
+   },
+   "atlas": {
+    "index": 0,
+    "x": 561,
+    "y": 1519,
+    "w": 59,
+    "h": 77
+   },
+   "anchor": {
+    "x": 18,
+    "y": 76
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-017",
+   "name": "round_tree_dense",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small dense round tree with shadow",
+   "file": "sprites/trees/trees-tree-017.png",
+   "w": 81,
+   "h": 96,
+   "src": {
+    "x": 320,
+    "y": 928,
+    "w": 81,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 93,
+    "y": 1421,
+    "w": 81,
+    "h": 96
+   },
+   "anchor": {
+    "x": 36,
+    "y": 96
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-018",
+   "name": "oak_small_d",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Small oak tree with shadow",
+   "file": "sprites/trees/trees-tree-018.png",
+   "w": 73,
+   "h": 72,
+   "src": {
+    "x": 416,
+    "y": 949,
+    "w": 73,
+    "h": 72
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1203,
+    "y": 1519,
+    "w": 73,
+    "h": 72
+   },
+   "anchor": {
+    "x": 29,
+    "y": 72
+   },
+   "shadow": true
+  },
+  {
+   "id": "trees-tree-019",
+   "name": "pine_sapling",
+   "class": "tree",
+   "sheet": "trees",
+   "description": "Pine sapling with shadow",
+   "file": "sprites/trees/trees-tree-019.png",
+   "w": 28,
+   "h": 31,
+   "src": {
+    "x": 292,
+    "y": 992,
+    "w": 28,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1772,
+    "w": 28,
+    "h": 31
+   },
+   "anchor": {
+    "x": 9,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-001",
+   "name": "mesa_hollow_open",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Circular mesa with transparent hollow centre and grass rim, with shadow",
+   "file": "sprites/rocks2/rocks2-rock-001.png",
+   "w": 224,
+   "h": 224,
+   "src": {
+    "x": 224,
+    "y": 0,
+    "w": 224,
+    "h": 224
+   },
+   "atlas": {
+    "index": 0,
+    "x": 700,
+    "y": 2,
+    "w": 224,
+    "h": 224
+   },
+   "anchor": {
+    "x": 98,
+    "y": 219
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-002",
+   "name": "mesa_solid",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Circular mesa with solid gravel top, with shadow",
+   "file": "sprites/rocks2/rocks2-rock-002.png",
+   "w": 224,
+   "h": 224,
+   "src": {
+    "x": 448,
+    "y": 0,
+    "w": 224,
+    "h": 224
+   },
+   "atlas": {
+    "index": 0,
+    "x": 926,
+    "y": 2,
+    "w": 224,
+    "h": 224
+   },
+   "anchor": {
+    "x": 98,
+    "y": 219
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-003",
+   "name": "mesa_solid_fog",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Circular mesa with gravel top and fog-faded base",
+   "file": "sprites/rocks2/rocks2-rock-003.png",
+   "w": 192,
+   "h": 219,
+   "src": {
+    "x": 672,
+    "y": 0,
+    "w": 192,
+    "h": 219
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1348,
+    "y": 2,
+    "w": 192,
+    "h": 219
+   },
+   "anchor": {
+    "x": 98,
+    "y": 219
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-004",
+   "name": "rock_cluster_grass_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock cluster on grass",
+   "file": "sprites/rocks2/rocks2-rock-004.png",
+   "w": 32,
+   "h": 28,
+   "src": {
+    "x": 928,
+    "y": 4,
+    "w": 32,
+    "h": 28
+   },
+   "atlas": {
+    "index": 0,
+    "x": 314,
+    "y": 1772,
+    "w": 32,
+    "h": 28
+   },
+   "anchor": {
+    "x": 17,
+    "y": 28
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-005",
+   "name": "rock_cluster_grass_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock cluster on grass",
+   "file": "sprites/rocks2/rocks2-rock-005.png",
+   "w": 32,
+   "h": 27,
+   "src": {
+    "x": 960,
+    "y": 5,
+    "w": 32,
+    "h": 27
+   },
+   "atlas": {
+    "index": 0,
+    "x": 470,
+    "y": 1772,
+    "w": 32,
+    "h": 27
+   },
+   "anchor": {
+    "x": 7,
+    "y": 27
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-006",
+   "name": "rock_cluster_grass_c",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock cluster on grass",
+   "file": "sprites/rocks2/rocks2-rock-006.png",
+   "w": 26,
+   "h": 25,
+   "src": {
+    "x": 995,
+    "y": 7,
+    "w": 26,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 909,
+    "y": 1772,
+    "w": 26,
+    "h": 25
+   },
+   "anchor": {
+    "x": 14,
+    "y": 25
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-007",
+   "name": "low_rock_grass_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Low rock on grass",
+   "file": "sprites/rocks2/rocks2-rock-007.png",
+   "w": 23,
+   "h": 18,
+   "src": {
+    "x": 932,
+    "y": 46,
+    "w": 23,
+    "h": 18
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1687,
+    "y": 1772,
+    "w": 23,
+    "h": 18
+   },
+   "anchor": {
+    "x": 12,
+    "y": 18
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-008",
+   "name": "small_rock_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock",
+   "file": "sprites/rocks2/rocks2-rock-008.png",
+   "w": 19,
+   "h": 21,
+   "src": {
+    "x": 966,
+    "y": 42,
+    "w": 19,
+    "h": 21
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1493,
+    "y": 1772,
+    "w": 19,
+    "h": 21
+   },
+   "anchor": {
+    "x": 10,
+    "y": 21
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-009",
+   "name": "small_rock_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock",
+   "file": "sprites/rocks2/rocks2-rock-009.png",
+   "w": 19,
+   "h": 17,
+   "src": {
+    "x": 966,
+    "y": 79,
+    "w": 19,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1737,
+    "y": 1772,
+    "w": 19,
+    "h": 17
+   },
+   "anchor": {
+    "x": 8,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-010",
+   "name": "low_rock_grass_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Low rock pair on grass",
+   "file": "sprites/rocks2/rocks2-rock-010.png",
+   "w": 25,
+   "h": 18,
+   "src": {
+    "x": 995,
+    "y": 78,
+    "w": 25,
+    "h": 18
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1660,
+    "y": 1772,
+    "w": 25,
+    "h": 18
+   },
+   "anchor": {
+    "x": 13,
+    "y": 18
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-011",
+   "name": "low_rock_c",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Low small rock",
+   "file": "sprites/rocks2/rocks2-rock-011.png",
+   "w": 19,
+   "h": 14,
+   "src": {
+    "x": 997,
+    "y": 50,
+    "w": 19,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 110,
+    "y": 1805,
+    "w": 19,
+    "h": 14
+   },
+   "anchor": {
+    "x": 9,
+    "y": 14
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-012",
+   "name": "pebble_pair_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Pair of pebbles",
+   "file": "sprites/rocks2/rocks2-rock-012.png",
+   "w": 14,
+   "h": 11,
+   "src": {
+    "x": 935,
+    "y": 83,
+    "w": 14,
+    "h": 11
+   },
+   "atlas": {
+    "index": 0,
+    "x": 377,
+    "y": 1805,
+    "w": 14,
+    "h": 11
+   },
+   "anchor": {
+    "x": 11,
+    "y": 11
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-013",
+   "name": "pebble_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Single pebble",
+   "file": "sprites/rocks2/rocks2-rock-013.png",
+   "w": 12,
+   "h": 10,
+   "src": {
+    "x": 938,
+    "y": 114,
+    "w": 12,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 500,
+    "y": 1805,
+    "w": 12,
+    "h": 10
+   },
+   "anchor": {
+    "x": 6,
+    "y": 10
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-014",
+   "name": "low_rock_grass_d",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Low rock on grass",
+   "file": "sprites/rocks2/rocks2-rock-014.png",
+   "w": 21,
+   "h": 12,
+   "src": {
+    "x": 965,
+    "y": 116,
+    "w": 21,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 241,
+    "y": 1805,
+    "w": 21,
+    "h": 12
+   },
+   "anchor": {
+    "x": 12,
+    "y": 12
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-015",
+   "name": "pebble_pair_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Pair of pebbles",
+   "file": "sprites/rocks2/rocks2-rock-015.png",
+   "w": 15,
+   "h": 10,
+   "src": {
+    "x": 999,
+    "y": 116,
+    "w": 15,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 452,
+    "y": 1805,
+    "w": 15,
+    "h": 10
+   },
+   "anchor": {
+    "x": 8,
+    "y": 10
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-016",
+   "name": "small_boulder_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small boulder",
+   "file": "sprites/rocks2/rocks2-rock-016.png",
+   "w": 26,
+   "h": 24,
+   "src": {
+    "x": 931,
+    "y": 132,
+    "w": 26,
+    "h": 24
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1161,
+    "y": 1772,
+    "w": 26,
+    "h": 24
+   },
+   "anchor": {
+    "x": 12,
+    "y": 24
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-017",
+   "name": "small_boulder_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small boulder",
+   "file": "sprites/rocks2/rocks2-rock-017.png",
+   "w": 40,
+   "h": 32,
+   "src": {
+    "x": 972,
+    "y": 128,
+    "w": 40,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1058,
+    "y": 1728,
+    "w": 40,
+    "h": 32
+   },
+   "anchor": {
+    "x": 14,
+    "y": 32
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-018",
+   "name": "small_boulder_c",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Low small boulder",
+   "file": "sprites/rocks2/rocks2-rock-018.png",
+   "w": 30,
+   "h": 18,
+   "src": {
+    "x": 929,
+    "y": 174,
+    "w": 30,
+    "h": 18
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1628,
+    "y": 1772,
+    "w": 30,
+    "h": 18
+   },
+   "anchor": {
+    "x": 13,
+    "y": 18
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-019",
+   "name": "cliff_column",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Vertical cliff column, no shadow",
+   "file": "sprites/rocks2/rocks2-rock-019.png",
+   "w": 108,
+   "h": 139,
+   "src": {
+    "x": 2,
+    "y": 224,
+    "w": 108,
+    "h": 139
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1416,
+    "y": 506,
+    "w": 108,
+    "h": 139
+   },
+   "anchor": {
+    "x": 65,
+    "y": 139
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-020",
+   "name": "cliff_column_shadow",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Vertical cliff column with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-020.png",
+   "w": 149,
+   "h": 139,
+   "src": {
+    "x": 130,
+    "y": 224,
+    "w": 149,
+    "h": 139
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1136,
+    "y": 506,
+    "w": 149,
+    "h": 139
+   },
+   "anchor": {
+    "x": 62,
+    "y": 138
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-021",
+   "name": "cliff_column_grass",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Vertical cliff column with grass at the base",
+   "file": "sprites/rocks2/rocks2-rock-021.png",
+   "w": 133,
+   "h": 146,
+   "src": {
+    "x": 322,
+    "y": 224,
+    "w": 133,
+    "h": 146
+   },
+   "atlas": {
+    "index": 0,
+    "x": 301,
+    "y": 506,
+    "w": 133,
+    "h": 146
+   },
+   "anchor": {
+    "x": 94,
+    "y": 146
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-022",
+   "name": "cliff_column_fog",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Vertical cliff column with fog-faded base",
+   "file": "sprites/rocks2/rocks2-rock-022.png",
+   "w": 107,
+   "h": 139,
+   "src": {
+    "x": 483,
+    "y": 224,
+    "w": 107,
+    "h": 139
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1526,
+    "y": 506,
+    "w": 107,
+    "h": 139
+   },
+   "anchor": {
+    "x": 64,
+    "y": 139
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-023",
+   "name": "cliff_ledge_fog",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Horizontal cliff ledge fading into fog",
+   "file": "sprites/rocks2/rocks2-rock-023.png",
+   "w": 128,
+   "h": 91,
+   "src": {
+    "x": 640,
+    "y": 224,
+    "w": 128,
+    "h": 91
+   },
+   "atlas": {
+    "index": 0,
+    "x": 995,
+    "y": 1421,
+    "w": 128,
+    "h": 91
+   },
+   "anchor": {
+    "x": 64,
+    "y": 91
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-024",
+   "name": "pillar_1",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar",
+   "file": "sprites/rocks2/rocks2-rock-024.png",
+   "w": 40,
+   "h": 55,
+   "src": {
+    "x": 780,
+    "y": 232,
+    "w": 40,
+    "h": 55
+   },
+   "atlas": {
+    "index": 0,
+    "x": 625,
+    "y": 1668,
+    "w": 40,
+    "h": 55
+   },
+   "anchor": {
+    "x": 18,
+    "y": 55
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-025",
+   "name": "pillar_2",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar",
+   "file": "sprites/rocks2/rocks2-rock-025.png",
+   "w": 42,
+   "h": 57,
+   "src": {
+    "x": 843,
+    "y": 230,
+    "w": 42,
+    "h": 57
+   },
+   "atlas": {
+    "index": 0,
+    "x": 363,
+    "y": 1668,
+    "w": 42,
+    "h": 57
+   },
+   "anchor": {
+    "x": 17,
+    "y": 57
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-026",
+   "name": "pillar_3",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with small shadow",
+   "file": "sprites/rocks2/rocks2-rock-026.png",
+   "w": 43,
+   "h": 48,
+   "src": {
+    "x": 906,
+    "y": 239,
+    "w": 43,
+    "h": 48
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1359,
+    "y": 1668,
+    "w": 43,
+    "h": 48
+   },
+   "anchor": {
+    "x": 15,
+    "y": 48
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-027",
+   "name": "pillar_4",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with small shadow",
+   "file": "sprites/rocks2/rocks2-rock-027.png",
+   "w": 46,
+   "h": 62,
+   "src": {
+    "x": 969,
+    "y": 225,
+    "w": 46,
+    "h": 62
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1286,
+    "y": 1602,
+    "w": 46,
+    "h": 62
+   },
+   "anchor": {
+    "x": 19,
+    "y": 62
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-028",
+   "name": "pillar_5",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-028.png",
+   "w": 59,
+   "h": 55,
+   "src": {
+    "x": 765,
+    "y": 296,
+    "w": 59,
+    "h": 55
+   },
+   "atlas": {
+    "index": 0,
+    "x": 564,
+    "y": 1668,
+    "w": 59,
+    "h": 55
+   },
+   "anchor": {
+    "x": 21,
+    "y": 55
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-029",
+   "name": "pillar_6",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-029.png",
+   "w": 58,
+   "h": 58,
+   "src": {
+    "x": 831,
+    "y": 294,
+    "w": 58,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 129,
+    "y": 1668,
+    "w": 58,
+    "h": 58
+   },
+   "anchor": {
+    "x": 17,
+    "y": 57
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-030",
+   "name": "pillar_7",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-030.png",
+   "w": 55,
+   "h": 51,
+   "src": {
+    "x": 894,
+    "y": 303,
+    "w": 55,
+    "h": 51
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1108,
+    "y": 1668,
+    "w": 55,
+    "h": 51
+   },
+   "anchor": {
+    "x": 15,
+    "y": 48
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-031",
+   "name": "pillar_8",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Narrow rock pillar with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-031.png",
+   "w": 63,
+   "h": 62,
+   "src": {
+    "x": 957,
+    "y": 289,
+    "w": 63,
+    "h": 62
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1156,
+    "y": 1602,
+    "w": 63,
+    "h": 62
+   },
+   "anchor": {
+    "x": 19,
+    "y": 62
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-032",
+   "name": "plateau_tall",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Standalone tall circular plateau with layered cliffs",
+   "file": "sprites/rocks2/rocks2-rock-032.png",
+   "w": 194,
+   "h": 219,
+   "src": {
+    "x": 672,
+    "y": 352,
+    "w": 194,
+    "h": 219
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1152,
+    "y": 2,
+    "w": 194,
+    "h": 219
+   },
+   "anchor": {
+    "x": 92,
+    "y": 219
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-033",
+   "name": "outcrop_medium",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Medium rock outcrop",
+   "file": "sprites/rocks2/rocks2-rock-033.png",
+   "w": 134,
+   "h": 97,
+   "src": {
+    "x": 6,
+    "y": 404,
+    "w": 134,
+    "h": 97
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1659,
+    "y": 1312,
+    "w": 134,
+    "h": 97
+   },
+   "anchor": {
+    "x": 67,
+    "y": 97
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-034",
+   "name": "outcrop_medium_shadow",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Medium rock outcrop with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-034.png",
+   "w": 144,
+   "h": 104,
+   "src": {
+    "x": 166,
+    "y": 404,
+    "w": 144,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 983,
+    "y": 1312,
+    "w": 144,
+    "h": 104
+   },
+   "anchor": {
+    "x": 90,
+    "y": 104
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-035",
+   "name": "outcrop_medium_grass",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Medium rock outcrop merged with grass",
+   "file": "sprites/rocks2/rocks2-rock-035.png",
+   "w": 179,
+   "h": 108,
+   "src": {
+    "x": 326,
+    "y": 404,
+    "w": 179,
+    "h": 108
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1649,
+    "y": 1185,
+    "w": 179,
+    "h": 108
+   },
+   "anchor": {
+    "x": 103,
+    "y": 108
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-036",
+   "name": "outcrop_medium_fog",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Medium rock outcrop with fog-faded base",
+   "file": "sprites/rocks2/rocks2-rock-036.png",
+   "w": 134,
+   "h": 104,
+   "src": {
+    "x": 518,
+    "y": 404,
+    "w": 134,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1129,
+    "y": 1312,
+    "w": 134,
+    "h": 104
+   },
+   "anchor": {
+    "x": 90,
+    "y": 104
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-037",
+   "name": "outcrop_small",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock outcrop",
+   "file": "sprites/rocks2/rocks2-rock-037.png",
+   "w": 101,
+   "h": 75,
+   "src": {
+    "x": 0,
+    "y": 522,
+    "w": 101,
+    "h": 75
+   },
+   "atlas": {
+    "index": 0,
+    "x": 821,
+    "y": 1519,
+    "w": 101,
+    "h": 75
+   },
+   "anchor": {
+    "x": 52,
+    "y": 75
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-038",
+   "name": "outcrop_small_shadow",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock outcrop with cast shadow",
+   "file": "sprites/rocks2/rocks2-rock-038.png",
+   "w": 109,
+   "h": 77,
+   "src": {
+    "x": 128,
+    "y": 522,
+    "w": 109,
+    "h": 77
+   },
+   "atlas": {
+    "index": 0,
+    "x": 365,
+    "y": 1519,
+    "w": 109,
+    "h": 77
+   },
+   "anchor": {
+    "x": 52,
+    "y": 75
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-039",
+   "name": "outcrop_small_grass",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock outcrop merged with grass",
+   "file": "sprites/rocks2/rocks2-rock-039.png",
+   "w": 123,
+   "h": 75,
+   "src": {
+    "x": 256,
+    "y": 522,
+    "w": 123,
+    "h": 75
+   },
+   "atlas": {
+    "index": 0,
+    "x": 696,
+    "y": 1519,
+    "w": 123,
+    "h": 75
+   },
+   "anchor": {
+    "x": 34,
+    "y": 75
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-040",
+   "name": "outcrop_small_fog",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Small rock outcrop with fog-faded base",
+   "file": "sprites/rocks2/rocks2-rock-040.png",
+   "w": 101,
+   "h": 75,
+   "src": {
+    "x": 384,
+    "y": 522,
+    "w": 101,
+    "h": 75
+   },
+   "atlas": {
+    "index": 0,
+    "x": 924,
+    "y": 1519,
+    "w": 101,
+    "h": 75
+   },
+   "anchor": {
+    "x": 52,
+    "y": 75
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-041",
+   "name": "cliff_fog_tile",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "32x32 fogged cliff fill tile",
+   "file": "sprites/rocks2/rocks2-rock-041.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 512,
+    "y": 544,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1304,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 16,
+    "y": 32
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-001",
+   "name": "grass_patch_octagon",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Octagonal dark-green grass patch",
+   "file": "sprites/rocks2/rocks2-terrain-001.png",
+   "w": 157,
+   "h": 146,
+   "src": {
+    "x": 2,
+    "y": 614,
+    "w": 157,
+    "h": 146
+   },
+   "atlas": {
+    "index": 0,
+    "x": 142,
+    "y": 506,
+    "w": 157,
+    "h": 146
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-002",
+   "name": "grass_cross_frame",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Yellow-green grass frame around a cross of 32px tiles (inner tiles exported separately)",
+   "file": "sprites/rocks2/rocks2-terrain-002.png",
+   "w": 140,
+   "h": 144,
+   "src": {
+    "x": 170,
+    "y": 615,
+    "w": 140,
+    "h": 144
+   },
+   "atlas": {
+    "index": 0,
+    "x": 694,
+    "y": 506,
+    "w": 140,
+    "h": 144
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-003",
+   "name": "grass_cross_cutout",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Grass autotile cutout mask (cross-shaped hole)",
+   "file": "sprites/rocks2/rocks2-terrain-003.png",
+   "w": 140,
+   "h": 144,
+   "src": {
+    "x": 330,
+    "y": 615,
+    "w": 140,
+    "h": 144
+   },
+   "atlas": {
+    "index": 0,
+    "x": 836,
+    "y": 506,
+    "w": 140,
+    "h": 144
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-001",
+   "name": "grass_scatter_light",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Loose light-green grass blades scatter (decal set)",
+   "file": "sprites/rocks2/rocks2-plant-001.png",
+   "w": 160,
+   "h": 109,
+   "src": {
+    "x": 480,
+    "y": 608,
+    "w": 160,
+    "h": 109
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1402,
+    "y": 1185,
+    "w": 160,
+    "h": 109
+   },
+   "anchor": {
+    "x": 40,
+    "y": 109
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-004",
+   "name": "grass_tile_teal_dark",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "32x32 dark teal grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-004.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 192,
+    "y": 672,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1338,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-005",
+   "name": "grass_tile_sage",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "32x32 sage-green grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-005.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 224,
+    "y": 640,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1372,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-006",
+   "name": "grass_tile_green",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "32x32 mid-green grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-006.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 224,
+    "y": 672,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1406,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-007",
+   "name": "grass_tile_teal",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "32x32 teal grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-007.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 256,
+    "y": 672,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1440,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-002",
+   "name": "grass_tuft_light_a",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense light-green grass tuft",
+   "file": "sprites/rocks2/rocks2-plant-002.png",
+   "w": 64,
+   "h": 53,
+   "src": {
+    "x": 480,
+    "y": 712,
+    "w": 64,
+    "h": 53
+   },
+   "atlas": {
+    "index": 0,
+    "x": 667,
+    "y": 1668,
+    "w": 64,
+    "h": 53
+   },
+   "anchor": {
+    "x": 29,
+    "y": 53
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-003",
+   "name": "grass_tuft_light_b",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense light-green grass tuft",
+   "file": "sprites/rocks2/rocks2-plant-003.png",
+   "w": 94,
+   "h": 47,
+   "src": {
+    "x": 545,
+    "y": 717,
+    "w": 94,
+    "h": 47
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1404,
+    "y": 1668,
+    "w": 94,
+    "h": 47
+   },
+   "anchor": {
+    "x": 27,
+    "y": 47
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-008",
+   "name": "grass_band",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Horizontal grass band edge tile",
+   "file": "sprites/rocks2/rocks2-terrain-008.png",
+   "w": 128,
+   "h": 104,
+   "src": {
+    "x": 704,
+    "y": 684,
+    "w": 128,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1265,
+    "y": 1312,
+    "w": 128,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-004",
+   "name": "grass_scatter_green",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Loose green grass blades scatter (decal set)",
+   "file": "sprites/rocks2/rocks2-plant-004.png",
+   "w": 163,
+   "h": 115,
+   "src": {
+    "x": 477,
+    "y": 757,
+    "w": 163,
+    "h": 115
+   },
+   "atlas": {
+    "index": 0,
+    "x": 848,
+    "y": 1185,
+    "w": 163,
+    "h": 115
+   },
+   "anchor": {
+    "x": 53,
+    "y": 115
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-009",
+   "name": "cobble_ground_grass_edge",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Cobblestone ground tile with grassy edge",
+   "file": "sprites/rocks2/rocks2-terrain-009.png",
+   "w": 96,
+   "h": 94,
+   "src": {
+    "x": 0,
+    "y": 768,
+    "w": 96,
+    "h": 94
+   },
+   "atlas": {
+    "index": 0,
+    "x": 521,
+    "y": 1421,
+    "w": 96,
+    "h": 94
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-010",
+   "name": "cobble_tile_hole",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Cobblestone tile with hole",
+   "file": "sprites/rocks2/rocks2-terrain-010.png",
+   "w": 65,
+   "h": 70,
+   "src": {
+    "x": 96,
+    "y": 768,
+    "w": 65,
+    "h": 70
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1515,
+    "y": 1519,
+    "w": 65,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-011",
+   "name": "cobble_overgrown",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Cobblestone ground overgrown with grass",
+   "file": "sprites/rocks2/rocks2-terrain-011.png",
+   "w": 92,
+   "h": 94,
+   "src": {
+    "x": 161,
+    "y": 769,
+    "w": 92,
+    "h": 94
+   },
+   "atlas": {
+    "index": 0,
+    "x": 810,
+    "y": 1421,
+    "w": 92,
+    "h": 94
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-012",
+   "name": "stone_tile_hole",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "64x64 stone tile with hole",
+   "file": "sprites/rocks2/rocks2-terrain-012.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 256,
+    "y": 768,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 196,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-005",
+   "name": "grass_scatter_yellow",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Loose yellow grass blades scatter (decal set)",
+   "file": "sprites/rocks2/rocks2-plant-005.png",
+   "w": 157,
+   "h": 104,
+   "src": {
+    "x": 320,
+    "y": 768,
+    "w": 157,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 824,
+    "y": 1312,
+    "w": 157,
+    "h": 104
+   },
+   "anchor": {
+    "x": 50,
+    "y": 104
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-013",
+   "name": "grass_rim_bar_left",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Vertical green cliff-rim bar with ragged edges (left)",
+   "file": "sprites/rocks2/rocks2-terrain-013.png",
+   "w": 79,
+   "h": 104,
+   "src": {
+    "x": 626,
+    "y": 792,
+    "w": 79,
+    "h": 104
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1395,
+    "y": 1312,
+    "w": 79,
+    "h": 104
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-042",
+   "name": "pebble_crumbs_a",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Loose pebble crumbs",
+   "file": "sprites/rocks2/rocks2-rock-042.png",
+   "w": 58,
+   "h": 26,
+   "src": {
+    "x": 96,
+    "y": 835,
+    "w": 58,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 616,
+    "y": 1772,
+    "w": 58,
+    "h": 26
+   },
+   "anchor": {
+    "x": 10,
+    "y": 25
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-terrain-014",
+   "name": "grass_tile_light",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "64x64 light-green grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-014.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 256,
+    "y": 832,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 262,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-015",
+   "name": "grass_rim_bar_right",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Vertical green cliff-rim bar with ragged edges (right)",
+   "file": "sprites/rocks2/rocks2-terrain-015.png",
+   "w": 65,
+   "h": 96,
+   "src": {
+    "x": 767,
+    "y": 800,
+    "w": 65,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 258,
+    "y": 1421,
+    "w": 65,
+    "h": 96
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-016",
+   "name": "gravel_patch_round",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Round gravel patch",
+   "file": "sprites/rocks2/rocks2-terrain-016.png",
+   "w": 93,
+   "h": 96,
+   "src": {
+    "x": 2,
+    "y": 866,
+    "w": 93,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1893,
+    "y": 1312,
+    "w": 93,
+    "h": 96
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-terrain-017",
+   "name": "gravel_tile_holes",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Gravel tile with holes",
+   "file": "sprites/rocks2/rocks2-terrain-017.png",
+   "w": 64,
+   "h": 66,
+   "src": {
+    "x": 96,
+    "y": 860,
+    "w": 64,
+    "h": 66
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1848,
+    "y": 1519,
+    "w": 64,
+    "h": 66
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-006",
+   "name": "grass_tuft_yellow_cluster",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense yellow grass tufts cluster",
+   "file": "sprites/rocks2/rocks2-plant-006.png",
+   "w": 78,
+   "h": 85,
+   "src": {
+    "x": 320,
+    "y": 870,
+    "w": 78,
+    "h": 85
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1699,
+    "y": 1421,
+    "w": 78,
+    "h": 85
+   },
+   "anchor": {
+    "x": 38,
+    "y": 85
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-007",
+   "name": "grass_tuft_yellow",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense yellow grass tuft",
+   "file": "sprites/rocks2/rocks2-plant-007.png",
+   "w": 84,
+   "h": 51,
+   "src": {
+    "x": 388,
+    "y": 877,
+    "w": 84,
+    "h": 51
+   },
+   "atlas": {
+    "index": 0,
+    "x": 936,
+    "y": 1668,
+    "w": 84,
+    "h": 51
+   },
+   "anchor": {
+    "x": 70,
+    "y": 51
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-008",
+   "name": "grass_tuft_green_cluster",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense green grass tufts cluster",
+   "file": "sprites/rocks2/rocks2-plant-008.png",
+   "w": 83,
+   "h": 58,
+   "src": {
+    "x": 472,
+    "y": 870,
+    "w": 83,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1914,
+    "y": 1602,
+    "w": 83,
+    "h": 58
+   },
+   "anchor": {
+    "x": 41,
+    "y": 58
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-plant-009",
+   "name": "grass_tuft_green",
+   "class": "plant",
+   "sheet": "rocks2",
+   "description": "Dense green grass tuft",
+   "file": "sprites/rocks2/rocks2-plant-009.png",
+   "w": 84,
+   "h": 51,
+   "src": {
+    "x": 548,
+    "y": 877,
+    "w": 84,
+    "h": 51
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1022,
+    "y": 1668,
+    "w": 84,
+    "h": 51
+   },
+   "anchor": {
+    "x": 70,
+    "y": 51
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-018",
+   "name": "grass_rim_diamond",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Diamond-shaped green cliff-rim corner piece",
+   "file": "sprites/rocks2/rocks2-terrain-018.png",
+   "w": 199,
+   "h": 160,
+   "src": {
+    "x": 632,
+    "y": 848,
+    "w": 199,
+    "h": 160
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1027,
+    "y": 310,
+    "w": 199,
+    "h": 160
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-019",
+   "name": "rubble_overlay_set",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Rubble and dirt overlay pieces",
+   "file": "sprites/rocks2/rocks2-terrain-019.png",
+   "w": 89,
+   "h": 96,
+   "src": {
+    "x": 162,
+    "y": 896,
+    "w": 89,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1421,
+    "w": 89,
+    "h": 96
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-020",
+   "name": "grass_tile_dark",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "64x64 dark-green grass tile",
+   "file": "sprites/rocks2/rocks2-terrain-020.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 256,
+    "y": 896,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 328,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-rock-043",
+   "name": "pebble_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Single pebble",
+   "file": "sprites/rocks2/rocks2-rock-043.png",
+   "w": 21,
+   "h": 10,
+   "src": {
+    "x": 960,
+    "y": 915,
+    "w": 21,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 406,
+    "y": 1805,
+    "w": 21,
+    "h": 10
+   },
+   "anchor": {
+    "x": 10,
+    "y": 9
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-044",
+   "name": "pebble_crumbs_b",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Loose pebble crumbs",
+   "file": "sprites/rocks2/rocks2-rock-044.png",
+   "w": 27,
+   "h": 20,
+   "src": {
+    "x": 963,
+    "y": 896,
+    "w": 27,
+    "h": 20
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1514,
+    "y": 1772,
+    "w": 27,
+    "h": 20
+   },
+   "anchor": {
+    "x": 19,
+    "y": 19
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-rock-045",
+   "name": "pebble_c",
+   "class": "rock",
+   "sheet": "rocks2",
+   "description": "Single pebble",
+   "file": "sprites/rocks2/rocks2-rock-045.png",
+   "w": 17,
+   "h": 16,
+   "src": {
+    "x": 1001,
+    "y": 905,
+    "w": 17,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1874,
+    "y": 1772,
+    "w": 17,
+    "h": 16
+   },
+   "anchor": {
+    "x": 2,
+    "y": 15
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-terrain-021",
+   "name": "rubble_overlay_a",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Rubble and dirt overlay strip",
+   "file": "sprites/rocks2/rocks2-terrain-021.png",
+   "w": 83,
+   "h": 34,
+   "src": {
+    "x": 64,
+    "y": 958,
+    "w": 83,
+    "h": 34
+   },
+   "atlas": {
+    "index": 0,
+    "x": 604,
+    "y": 1728,
+    "w": 83,
+    "h": 34
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "rocks2-terrain-022",
+   "name": "pebble_patch_round",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Round pebble ground patch",
+   "file": "sprites/rocks2/rocks2-terrain-022.png",
+   "w": 94,
+   "h": 94,
+   "src": {
+    "x": 865,
+    "y": 930,
+    "w": 94,
+    "h": 94
+   },
+   "atlas": {
+    "index": 0,
+    "x": 619,
+    "y": 1421,
+    "w": 94,
+    "h": 94
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-terrain-023",
+   "name": "pebble_tile_hole",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Pebble ground tile with hole",
+   "file": "sprites/rocks2/rocks2-terrain-023.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 960,
+    "y": 928,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 394,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": true
+  },
+  {
+   "id": "rocks2-terrain-024",
+   "name": "rubble_overlay_c",
+   "class": "terrain",
+   "sheet": "rocks2",
+   "description": "Rubble and dirt overlay strip",
+   "file": "sprites/rocks2/rocks2-terrain-024.png",
+   "w": 60,
+   "h": 32,
+   "src": {
+    "x": 964,
+    "y": 992,
+    "w": 60,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 947,
+    "y": 1728,
+    "w": 60,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-001",
+   "name": "shell_spiral",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Yellow spiral shell",
+   "file": "sprites/beach/beach-prop-001.png",
+   "w": 14,
+   "h": 17,
+   "src": {
+    "x": 12,
+    "y": 6,
+    "w": 14,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1818,
+    "y": 1772,
+    "w": 14,
+    "h": 17
+   },
+   "anchor": {
+    "x": 6,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-002",
+   "name": "starfish_red_large",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Large red starfish",
+   "file": "sprites/beach/beach-prop-002.png",
+   "w": 28,
+   "h": 29,
+   "src": {
+    "x": 35,
+    "y": 2,
+    "w": 28,
+    "h": 29
+   },
+   "atlas": {
+    "index": 0,
+    "x": 259,
+    "y": 1772,
+    "w": 28,
+    "h": 29
+   },
+   "anchor": {
+    "x": 14,
+    "y": 28
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-003",
+   "name": "shell_yellow_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Yellow scallop shell",
+   "file": "sprites/beach/beach-prop-003.png",
+   "w": 14,
+   "h": 16,
+   "src": {
+    "x": 66,
+    "y": 37,
+    "w": 14,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1946,
+    "y": 1772,
+    "w": 14,
+    "h": 16
+   },
+   "anchor": {
+    "x": 5,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-004",
+   "name": "shell_yellow_large",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Large yellow scallop shell",
+   "file": "sprites/beach/beach-prop-004.png",
+   "w": 21,
+   "h": 22,
+   "src": {
+    "x": 72,
+    "y": 6,
+    "w": 21,
+    "h": 22
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1386,
+    "y": 1772,
+    "w": 21,
+    "h": 22
+   },
+   "anchor": {
+    "x": 8,
+    "y": 21
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-005",
+   "name": "shell_white_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White shell",
+   "file": "sprites/beach/beach-prop-005.png",
+   "w": 16,
+   "h": 11,
+   "src": {
+    "x": 107,
+    "y": 36,
+    "w": 16,
+    "h": 11
+   },
+   "atlas": {
+    "index": 0,
+    "x": 341,
+    "y": 1805,
+    "w": 16,
+    "h": 11
+   },
+   "anchor": {
+    "x": 8,
+    "y": 10
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-006",
+   "name": "shell_white_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White shell",
+   "file": "sprites/beach/beach-prop-006.png",
+   "w": 14,
+   "h": 14,
+   "src": {
+    "x": 111,
+    "y": 2,
+    "w": 14,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 131,
+    "y": 1805,
+    "w": 14,
+    "h": 14
+   },
+   "anchor": {
+    "x": 5,
+    "y": 13
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-007",
+   "name": "shell_pink_long",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Long pink shell",
+   "file": "sprites/beach/beach-prop-007.png",
+   "w": 13,
+   "h": 15,
+   "src": {
+    "x": 136,
+    "y": 9,
+    "w": 13,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 50,
+    "y": 1805,
+    "w": 13,
+    "h": 15
+   },
+   "anchor": {
+    "x": 9,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-001",
+   "name": "fern_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark green fern",
+   "file": "sprites/beach/beach-bush-001.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 160,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1474,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 17,
+    "y": 32
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-002",
+   "name": "dry_shrub",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dry white twig shrub",
+   "file": "sprites/beach/beach-bush-002.png",
+   "w": 32,
+   "h": 31,
+   "src": {
+    "x": 192,
+    "y": 1,
+    "w": 32,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1824,
+    "y": 1728,
+    "w": 32,
+    "h": 31
+   },
+   "anchor": {
+    "x": 17,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-003",
+   "name": "barrel_cactus_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark barrel cactus",
+   "file": "sprites/beach/beach-bush-003.png",
+   "w": 31,
+   "h": 31,
+   "src": {
+    "x": 224,
+    "y": 1,
+    "w": 31,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1858,
+    "y": 1728,
+    "w": 31,
+    "h": 31
+   },
+   "anchor": {
+    "x": 15,
+    "y": 30
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-004",
+   "name": "cactus_sprouts_flower",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Pair of small cactus sprouts with pink flower",
+   "file": "sprites/beach/beach-bush-004.png",
+   "w": 62,
+   "h": 31,
+   "src": {
+    "x": 225,
+    "y": 33,
+    "w": 62,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1634,
+    "y": 1728,
+    "w": 62,
+    "h": 31
+   },
+   "anchor": {
+    "x": 30,
+    "y": 30
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-005",
+   "name": "barrel_cactus_light",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Light green barrel cactus",
+   "file": "sprites/beach/beach-bush-005.png",
+   "w": 30,
+   "h": 31,
+   "src": {
+    "x": 257,
+    "y": 1,
+    "w": 30,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1923,
+    "y": 1728,
+    "w": 30,
+    "h": 31
+   },
+   "anchor": {
+    "x": 15,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-006",
+   "name": "cactus_column_light_small",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small light-green column cactus",
+   "file": "sprites/beach/beach-bush-006.png",
+   "w": 12,
+   "h": 32,
+   "src": {
+    "x": 299,
+    "y": 0,
+    "w": 12,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1606,
+    "y": 1728,
+    "w": 12,
+    "h": 32
+   },
+   "anchor": {
+    "x": 5,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-007",
+   "name": "cactus_column_dark_small",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small dark column cactus",
+   "file": "sprites/beach/beach-bush-007.png",
+   "w": 12,
+   "h": 32,
+   "src": {
+    "x": 299,
+    "y": 32,
+    "w": 12,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1620,
+    "y": 1728,
+    "w": 12,
+    "h": 32
+   },
+   "anchor": {
+    "x": 5,
+    "y": 31
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-008",
+   "name": "saguaro_light",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Large light-green saguaro cactus with shadow",
+   "file": "sprites/beach/beach-bush-008.png",
+   "w": 104,
+   "h": 127,
+   "src": {
+    "x": 321,
+    "y": 0,
+    "w": 104,
+    "h": 127
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1471,
+    "y": 1055,
+    "w": 104,
+    "h": 127
+   },
+   "anchor": {
+    "x": 31,
+    "y": 127
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-009",
+   "name": "saguaro_mid",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Large mid-green saguaro cactus with shadow",
+   "file": "sprites/beach/beach-bush-009.png",
+   "w": 104,
+   "h": 127,
+   "src": {
+    "x": 449,
+    "y": 0,
+    "w": 104,
+    "h": 127
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1577,
+    "y": 1055,
+    "w": 104,
+    "h": 127
+   },
+   "anchor": {
+    "x": 31,
+    "y": 127
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-010",
+   "name": "saguaro_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Large dark-green saguaro cactus with shadow",
+   "file": "sprites/beach/beach-bush-010.png",
+   "w": 104,
+   "h": 127,
+   "src": {
+    "x": 577,
+    "y": 0,
+    "w": 104,
+    "h": 127
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1683,
+    "y": 1055,
+    "w": 104,
+    "h": 127
+   },
+   "anchor": {
+    "x": 31,
+    "y": 127
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-001",
+   "name": "palm_tall_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Tall palm tree with diagonal shadow",
+   "file": "sprites/beach/beach-tree-001.png",
+   "w": 143,
+   "h": 157,
+   "src": {
+    "x": 708,
+    "y": 0,
+    "w": 143,
+    "h": 157
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1531,
+    "y": 310,
+    "w": 143,
+    "h": 157
+   },
+   "anchor": {
+    "x": 55,
+    "y": 157
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-002",
+   "name": "palm_tall_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Tall palm tree with diagonal shadow",
+   "file": "sprites/beach/beach-tree-002.png",
+   "w": 138,
+   "h": 157,
+   "src": {
+    "x": 873,
+    "y": 0,
+    "w": 138,
+    "h": 157
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1821,
+    "y": 310,
+    "w": 138,
+    "h": 157
+   },
+   "anchor": {
+    "x": 28,
+    "y": 157
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-008",
+   "name": "shell_white_c",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White shell",
+   "file": "sprites/beach/beach-prop-008.png",
+   "w": 13,
+   "h": 15,
+   "src": {
+    "x": 11,
+    "y": 41,
+    "w": 13,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 65,
+    "y": 1805,
+    "w": 13,
+    "h": 15
+   },
+   "anchor": {
+    "x": 3,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-009",
+   "name": "shell_white_d",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White clam shell",
+   "file": "sprites/beach/beach-prop-009.png",
+   "w": 14,
+   "h": 15,
+   "src": {
+    "x": 11,
+    "y": 76,
+    "w": 14,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1805,
+    "w": 14,
+    "h": 15
+   },
+   "anchor": {
+    "x": 6,
+    "y": 14
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-010",
+   "name": "shell_yellow_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Yellow scallop shell",
+   "file": "sprites/beach/beach-prop-010.png",
+   "w": 14,
+   "h": 14,
+   "src": {
+    "x": 40,
+    "y": 42,
+    "w": 14,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 147,
+    "y": 1805,
+    "w": 14,
+    "h": 14
+   },
+   "anchor": {
+    "x": 8,
+    "y": 13
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-011",
+   "name": "shell_yellow_long",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Long yellow shell",
+   "file": "sprites/beach/beach-prop-011.png",
+   "w": 13,
+   "h": 15,
+   "src": {
+    "x": 43,
+    "y": 75,
+    "w": 13,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 80,
+    "y": 1805,
+    "w": 13,
+    "h": 15
+   },
+   "anchor": {
+    "x": 3,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-012",
+   "name": "starfish_red_small",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small red starfish",
+   "file": "sprites/beach/beach-prop-012.png",
+   "w": 16,
+   "h": 16,
+   "src": {
+    "x": 74,
+    "y": 74,
+    "w": 16,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1893,
+    "y": 1772,
+    "w": 16,
+    "h": 16
+   },
+   "anchor": {
+    "x": 7,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-013",
+   "name": "shell_yellow_c",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Yellow scallop shell",
+   "file": "sprites/beach/beach-prop-013.png",
+   "w": 14,
+   "h": 16,
+   "src": {
+    "x": 79,
+    "y": 48,
+    "w": 14,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1962,
+    "y": 1772,
+    "w": 14,
+    "h": 16
+   },
+   "anchor": {
+    "x": 8,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-014",
+   "name": "shell_white_e",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White shell",
+   "file": "sprites/beach/beach-prop-014.png",
+   "w": 14,
+   "h": 14,
+   "src": {
+    "x": 100,
+    "y": 48,
+    "w": 14,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 163,
+    "y": 1805,
+    "w": 14,
+    "h": 14
+   },
+   "anchor": {
+    "x": 8,
+    "y": 13
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-015",
+   "name": "shell_pink_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Pink shell",
+   "file": "sprites/beach/beach-prop-015.png",
+   "w": 14,
+   "h": 14,
+   "src": {
+    "x": 111,
+    "y": 66,
+    "w": 14,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 179,
+    "y": 1805,
+    "w": 14,
+    "h": 14
+   },
+   "anchor": {
+    "x": 5,
+    "y": 13
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-016",
+   "name": "coral_red",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Red coral branch",
+   "file": "sprites/beach/beach-prop-016.png",
+   "w": 25,
+   "h": 23,
+   "src": {
+    "x": 131,
+    "y": 69,
+    "w": 25,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1253,
+    "y": 1772,
+    "w": 25,
+    "h": 23
+   },
+   "anchor": {
+    "x": 12,
+    "y": 22
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-017",
+   "name": "shell_pink_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Pink scallop shell",
+   "file": "sprites/beach/beach-prop-017.png",
+   "w": 14,
+   "h": 15,
+   "src": {
+    "x": 139,
+    "y": 44,
+    "w": 14,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 18,
+    "y": 1805,
+    "w": 14,
+    "h": 15
+   },
+   "anchor": {
+    "x": 6,
+    "y": 14
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-018",
+   "name": "starfish_yellow",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Yellow starfish",
+   "file": "sprites/beach/beach-prop-018.png",
+   "w": 16,
+   "h": 16,
+   "src": {
+    "x": 164,
+    "y": 71,
+    "w": 16,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1911,
+    "y": 1772,
+    "w": 16,
+    "h": 16
+   },
+   "anchor": {
+    "x": 8,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-011",
+   "name": "cactus_column_light",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Light-green column cactus",
+   "file": "sprites/beach/beach-bush-011.png",
+   "w": 22,
+   "h": 58,
+   "src": {
+    "x": 197,
+    "y": 66,
+    "w": 22,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 189,
+    "y": 1668,
+    "w": 22,
+    "h": 58
+   },
+   "anchor": {
+    "x": 11,
+    "y": 58
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-012",
+   "name": "barrel_cactus_dark_b",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark barrel cactus",
+   "file": "sprites/beach/beach-bush-012.png",
+   "w": 30,
+   "h": 30,
+   "src": {
+    "x": 224,
+    "y": 66,
+    "w": 30,
+    "h": 30
+   },
+   "atlas": {
+    "index": 0,
+    "x": 131,
+    "y": 1772,
+    "w": 30,
+    "h": 30
+   },
+   "anchor": {
+    "x": 15,
+    "y": 29
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-013",
+   "name": "barrel_cactus_dark_flower",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark barrel cactus with pink flower",
+   "file": "sprites/beach/beach-bush-013.png",
+   "w": 30,
+   "h": 31,
+   "src": {
+    "x": 256,
+    "y": 65,
+    "w": 30,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1955,
+    "y": 1728,
+    "w": 30,
+    "h": 31
+   },
+   "anchor": {
+    "x": 15,
+    "y": 30
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-014",
+   "name": "cactus_cluster_flower",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Cactus cluster with pink flower",
+   "file": "sprites/beach/beach-bush-014.png",
+   "w": 31,
+   "h": 32,
+   "src": {
+    "x": 289,
+    "y": 64,
+    "w": 31,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1542,
+    "y": 1728,
+    "w": 31,
+    "h": 32
+   },
+   "anchor": {
+    "x": 20,
+    "y": 32
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-019",
+   "name": "shell_nautilus",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Nautilus shell",
+   "file": "sprites/beach/beach-prop-019.png",
+   "w": 14,
+   "h": 17,
+   "src": {
+    "x": 12,
+    "y": 107,
+    "w": 14,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1834,
+    "y": 1772,
+    "w": 14,
+    "h": 17
+   },
+   "anchor": {
+    "x": 7,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-020",
+   "name": "sand_dollar_small",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small sand dollar",
+   "file": "sprites/beach/beach-prop-020.png",
+   "w": 14,
+   "h": 15,
+   "src": {
+    "x": 43,
+    "y": 107,
+    "w": 14,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 34,
+    "y": 1805,
+    "w": 14,
+    "h": 15
+   },
+   "anchor": {
+    "x": 6,
+    "y": 14
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-021",
+   "name": "sand_dollar_large",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Large sand dollar",
+   "file": "sprites/beach/beach-prop-021.png",
+   "w": 19,
+   "h": 20,
+   "src": {
+    "x": 73,
+    "y": 105,
+    "w": 19,
+    "h": 20
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1543,
+    "y": 1772,
+    "w": 19,
+    "h": 20
+   },
+   "anchor": {
+    "x": 8,
+    "y": 19
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-022",
+   "name": "shell_conch",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Pink conch shell",
+   "file": "sprites/beach/beach-prop-022.png",
+   "w": 16,
+   "h": 11,
+   "src": {
+    "x": 103,
+    "y": 83,
+    "w": 16,
+    "h": 11
+   },
+   "atlas": {
+    "index": 0,
+    "x": 359,
+    "y": 1805,
+    "w": 16,
+    "h": 11
+   },
+   "anchor": {
+    "x": 7,
+    "y": 10
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-023",
+   "name": "shell_pink_c",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Pink shell",
+   "file": "sprites/beach/beach-prop-023.png",
+   "w": 14,
+   "h": 14,
+   "src": {
+    "x": 110,
+    "y": 112,
+    "w": 14,
+    "h": 14
+   },
+   "atlas": {
+    "index": 0,
+    "x": 195,
+    "y": 1805,
+    "w": 14,
+    "h": 14
+   },
+   "anchor": {
+    "x": 5,
+    "y": 13
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-024",
+   "name": "coral_white",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "White dry coral branch",
+   "file": "sprites/beach/beach-prop-024.png",
+   "w": 25,
+   "h": 23,
+   "src": {
+    "x": 132,
+    "y": 101,
+    "w": 25,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1280,
+    "y": 1772,
+    "w": 25,
+    "h": 23
+   },
+   "anchor": {
+    "x": 12,
+    "y": 22
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-015",
+   "name": "barrel_cactus_green",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Green barrel cactus",
+   "file": "sprites/beach/beach-bush-015.png",
+   "w": 30,
+   "h": 30,
+   "src": {
+    "x": 224,
+    "y": 98,
+    "w": 30,
+    "h": 30
+   },
+   "atlas": {
+    "index": 0,
+    "x": 163,
+    "y": 1772,
+    "w": 30,
+    "h": 30
+   },
+   "anchor": {
+    "x": 15,
+    "y": 29
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-016",
+   "name": "barrel_cactus_green_flower",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Green barrel cactus with pink flower",
+   "file": "sprites/beach/beach-bush-016.png",
+   "w": 30,
+   "h": 30,
+   "src": {
+    "x": 256,
+    "y": 98,
+    "w": 30,
+    "h": 30
+   },
+   "atlas": {
+    "index": 0,
+    "x": 195,
+    "y": 1772,
+    "w": 30,
+    "h": 30
+   },
+   "anchor": {
+    "x": 15,
+    "y": 29
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-017",
+   "name": "cactus_column_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark column cactus",
+   "file": "sprites/beach/beach-bush-017.png",
+   "w": 22,
+   "h": 58,
+   "src": {
+    "x": 5,
+    "y": 130,
+    "w": 22,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 213,
+    "y": 1668,
+    "w": 22,
+    "h": 58
+   },
+   "anchor": {
+    "x": 11,
+    "y": 58
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-018",
+   "name": "cactus_column_green",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Green column cactus",
+   "file": "sprites/beach/beach-bush-018.png",
+   "w": 22,
+   "h": 58,
+   "src": {
+    "x": 37,
+    "y": 130,
+    "w": 22,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 237,
+    "y": 1668,
+    "w": 22,
+    "h": 58
+   },
+   "anchor": {
+    "x": 11,
+    "y": 58
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-019",
+   "name": "saguaro_small_a",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small saguaro cactus",
+   "file": "sprites/beach/beach-bush-019.png",
+   "w": 29,
+   "h": 64,
+   "src": {
+    "x": 65,
+    "y": 128,
+    "w": 29,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 863,
+    "y": 1602,
+    "w": 29,
+    "h": 64
+   },
+   "anchor": {
+    "x": 14,
+    "y": 63
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-020",
+   "name": "saguaro_small_b",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small saguaro cactus",
+   "file": "sprites/beach/beach-bush-020.png",
+   "w": 29,
+   "h": 64,
+   "src": {
+    "x": 97,
+    "y": 128,
+    "w": 29,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 894,
+    "y": 1602,
+    "w": 29,
+    "h": 64
+   },
+   "anchor": {
+    "x": 15,
+    "y": 63
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-021",
+   "name": "prickly_pear",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Prickly pear cactus",
+   "file": "sprites/beach/beach-bush-021.png",
+   "w": 48,
+   "h": 60,
+   "src": {
+    "x": 141,
+    "y": 131,
+    "w": 48,
+    "h": 60
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1745,
+    "y": 1602,
+    "w": 48,
+    "h": 60
+   },
+   "anchor": {
+    "x": 20,
+    "y": 58
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-022",
+   "name": "palm_shrub_a",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Low palm-frond shrub with shadow",
+   "file": "sprites/beach/beach-bush-022.png",
+   "w": 64,
+   "h": 44,
+   "src": {
+    "x": 517,
+    "y": 135,
+    "w": 64,
+    "h": 44
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1615,
+    "y": 1668,
+    "w": 64,
+    "h": 44
+   },
+   "anchor": {
+    "x": 35,
+    "y": 42
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-023",
+   "name": "palm_shrub_b",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Low palm-frond shrub with shadow",
+   "file": "sprites/beach/beach-bush-023.png",
+   "w": 66,
+   "h": 45,
+   "src": {
+    "x": 611,
+    "y": 145,
+    "w": 66,
+    "h": 45
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1500,
+    "y": 1668,
+    "w": 66,
+    "h": 45
+   },
+   "anchor": {
+    "x": 19,
+    "y": 42
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-024",
+   "name": "cactus_blob_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark round stacked cactus",
+   "file": "sprites/beach/beach-bush-024.png",
+   "w": 16,
+   "h": 27,
+   "src": {
+    "x": 6,
+    "y": 196,
+    "w": 16,
+    "h": 27
+   },
+   "atlas": {
+    "index": 0,
+    "x": 537,
+    "y": 1772,
+    "w": 16,
+    "h": 27
+   },
+   "anchor": {
+    "x": 7,
+    "y": 27
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-025",
+   "name": "cactus_stacked",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Stacked dark/light round cactus",
+   "file": "sprites/beach/beach-bush-025.png",
+   "w": 31,
+   "h": 64,
+   "src": {
+    "x": 33,
+    "y": 192,
+    "w": 31,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 830,
+    "y": 1602,
+    "w": 31,
+    "h": 64
+   },
+   "anchor": {
+    "x": 10,
+    "y": 64
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-026",
+   "name": "saguaro_small_dark_a",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small dark saguaro cactus",
+   "file": "sprites/beach/beach-bush-026.png",
+   "w": 29,
+   "h": 64,
+   "src": {
+    "x": 66,
+    "y": 192,
+    "w": 29,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 925,
+    "y": 1602,
+    "w": 29,
+    "h": 64
+   },
+   "anchor": {
+    "x": 14,
+    "y": 63
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-027",
+   "name": "saguaro_small_dark_b",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Small dark saguaro cactus",
+   "file": "sprites/beach/beach-bush-027.png",
+   "w": 29,
+   "h": 64,
+   "src": {
+    "x": 98,
+    "y": 192,
+    "w": 29,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 956,
+    "y": 1602,
+    "w": 29,
+    "h": 64
+   },
+   "anchor": {
+    "x": 15,
+    "y": 63
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-028",
+   "name": "prickly_pear_dark",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Dark prickly pear cactus",
+   "file": "sprites/beach/beach-bush-028.png",
+   "w": 53,
+   "h": 60,
+   "src": {
+    "x": 131,
+    "y": 195,
+    "w": 53,
+    "h": 60
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1690,
+    "y": 1602,
+    "w": 53,
+    "h": 60
+   },
+   "anchor": {
+    "x": 32,
+    "y": 58
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-003",
+   "name": "palm_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with shadow",
+   "file": "sprites/beach/beach-tree-003.png",
+   "w": 134,
+   "h": 123,
+   "src": {
+    "x": 548,
+    "y": 192,
+    "w": 134,
+    "h": 123
+   },
+   "atlas": {
+    "index": 0,
+    "x": 120,
+    "y": 1185,
+    "w": 134,
+    "h": 123
+   },
+   "anchor": {
+    "x": 55,
+    "y": 123
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-004",
+   "name": "palm_bananas_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Tall palm tree with bananas and shadow",
+   "file": "sprites/beach/beach-tree-004.png",
+   "w": 143,
+   "h": 157,
+   "src": {
+    "x": 708,
+    "y": 160,
+    "w": 143,
+    "h": 157
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1676,
+    "y": 310,
+    "w": 143,
+    "h": 157
+   },
+   "anchor": {
+    "x": 55,
+    "y": 157
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-005",
+   "name": "palm_bananas_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Tall palm tree with bananas and shadow",
+   "file": "sprites/beach/beach-tree-005.png",
+   "w": 138,
+   "h": 157,
+   "src": {
+    "x": 873,
+    "y": 160,
+    "w": 138,
+    "h": 157
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 506,
+    "w": 138,
+    "h": 157
+   },
+   "anchor": {
+    "x": 28,
+    "y": 157
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-bush-029",
+   "name": "cactus_blob_green",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Green round stacked cactus",
+   "file": "sprites/beach/beach-bush-029.png",
+   "w": 18,
+   "h": 28,
+   "src": {
+    "x": 5,
+    "y": 228,
+    "w": 18,
+    "h": 28
+   },
+   "atlas": {
+    "index": 0,
+    "x": 372,
+    "y": 1772,
+    "w": 18,
+    "h": 28
+   },
+   "anchor": {
+    "x": 9,
+    "y": 27
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-006",
+   "name": "gnarled_coastal_tree",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Gnarled coastal tree with twisted trunk",
+   "file": "sprites/beach/beach-tree-006.png",
+   "w": 101,
+   "h": 108,
+   "src": {
+    "x": 9,
+    "y": 265,
+    "w": 101,
+    "h": 108
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1830,
+    "y": 1185,
+    "w": 101,
+    "h": 108
+   },
+   "anchor": {
+    "x": 52,
+    "y": 108
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-007",
+   "name": "dead_gnarled_tree",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Dead leafless gnarled tree",
+   "file": "sprites/beach/beach-tree-007.png",
+   "w": 96,
+   "h": 128,
+   "src": {
+    "x": 128,
+    "y": 256,
+    "w": 96,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1115,
+    "y": 1055,
+    "w": 96,
+    "h": 128
+   },
+   "anchor": {
+    "x": 67,
+    "y": 128
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-008",
+   "name": "leafy_tree",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Leafy deciduous tree",
+   "file": "sprites/beach/beach-tree-008.png",
+   "w": 94,
+   "h": 134,
+   "src": {
+    "x": 225,
+    "y": 272,
+    "w": 94,
+    "h": 134
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1635,
+    "y": 506,
+    "w": 94,
+    "h": 134
+   },
+   "anchor": {
+    "x": 47,
+    "y": 134
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-025",
+   "name": "fallen_dead_branch",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Fallen dead tree branch with shadow",
+   "file": "sprites/beach/beach-prop-025.png",
+   "w": 128,
+   "h": 94,
+   "src": {
+    "x": 352,
+    "y": 258,
+    "w": 128,
+    "h": 94
+   },
+   "atlas": {
+    "index": 0,
+    "x": 391,
+    "y": 1421,
+    "w": 128,
+    "h": 94
+   },
+   "anchor": {
+    "x": 12,
+    "y": 94
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-026",
+   "name": "rib_arches",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Large fossil rib arches",
+   "file": "sprites/beach/beach-prop-026.png",
+   "w": 89,
+   "h": 133,
+   "src": {
+    "x": 354,
+    "y": 355,
+    "w": 89,
+    "h": 133
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1731,
+    "y": 506,
+    "w": 89,
+    "h": 133
+   },
+   "anchor": {
+    "x": 44,
+    "y": 131
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-009",
+   "name": "palm_bananas_c",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with bananas and shadow",
+   "file": "sprites/beach/beach-tree-009.png",
+   "w": 134,
+   "h": 123,
+   "src": {
+    "x": 580,
+    "y": 320,
+    "w": 134,
+    "h": 123
+   },
+   "atlas": {
+    "index": 0,
+    "x": 256,
+    "y": 1185,
+    "w": 134,
+    "h": 123
+   },
+   "anchor": {
+    "x": 55,
+    "y": 123
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-010",
+   "name": "palm_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with shadow",
+   "file": "sprites/beach/beach-tree-010.png",
+   "w": 119,
+   "h": 123,
+   "src": {
+    "x": 745,
+    "y": 320,
+    "w": 119,
+    "h": 123
+   },
+   "atlas": {
+    "index": 0,
+    "x": 392,
+    "y": 1185,
+    "w": 119,
+    "h": 123
+   },
+   "anchor": {
+    "x": 29,
+    "y": 123
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-011",
+   "name": "palm_bananas_d",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with bananas and shadow",
+   "file": "sprites/beach/beach-tree-011.png",
+   "w": 119,
+   "h": 123,
+   "src": {
+    "x": 873,
+    "y": 320,
+    "w": 119,
+    "h": 123
+   },
+   "atlas": {
+    "index": 0,
+    "x": 513,
+    "y": 1185,
+    "w": 119,
+    "h": 123
+   },
+   "anchor": {
+    "x": 29,
+    "y": 123
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-027",
+   "name": "cow_skull",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Horned cow skull",
+   "file": "sprites/beach/beach-prop-027.png",
+   "w": 80,
+   "h": 52,
+   "src": {
+    "x": 71,
+    "y": 388,
+    "w": 80,
+    "h": 52
+   },
+   "atlas": {
+    "index": 0,
+    "x": 733,
+    "y": 1668,
+    "w": 80,
+    "h": 52
+   },
+   "anchor": {
+    "x": 41,
+    "y": 51
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-028",
+   "name": "tree_stump",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Broken tree stump",
+   "file": "sprites/beach/beach-prop-028.png",
+   "w": 47,
+   "h": 31,
+   "src": {
+    "x": 172,
+    "y": 385,
+    "w": 47,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1698,
+    "y": 1728,
+    "w": 47,
+    "h": 31
+   },
+   "anchor": {
+    "x": 23,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-029",
+   "name": "ribcage",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Ribcage skeleton",
+   "file": "sprites/beach/beach-prop-029.png",
+   "w": 60,
+   "h": 74,
+   "src": {
+    "x": 2,
+    "y": 406,
+    "w": 60,
+    "h": 74
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1027,
+    "y": 1519,
+    "w": 60,
+    "h": 74
+   },
+   "anchor": {
+    "x": 30,
+    "y": 73
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-030",
+   "name": "bone_fragment_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragment",
+   "file": "sprites/beach/beach-prop-030.png",
+   "w": 9,
+   "h": 9,
+   "src": {
+    "x": 35,
+    "y": 423,
+    "w": 9,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 589,
+    "y": 1805,
+    "w": 9,
+    "h": 9
+   },
+   "anchor": {
+    "x": 2,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-031",
+   "name": "bone_fragments_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragments",
+   "file": "sprites/beach/beach-prop-031.png",
+   "w": 12,
+   "h": 9,
+   "src": {
+    "x": 96,
+    "y": 435,
+    "w": 12,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 538,
+    "y": 1805,
+    "w": 12,
+    "h": 9
+   },
+   "anchor": {
+    "x": 5,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-032",
+   "name": "bone_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Bone",
+   "file": "sprites/beach/beach-prop-032.png",
+   "w": 24,
+   "h": 26,
+   "src": {
+    "x": 163,
+    "y": 422,
+    "w": 24,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 735,
+    "y": 1772,
+    "w": 24,
+    "h": 26
+   },
+   "anchor": {
+    "x": 20,
+    "y": 24
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-033",
+   "name": "bone_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Bone",
+   "file": "sprites/beach/beach-prop-033.png",
+   "w": 24,
+   "h": 26,
+   "src": {
+    "x": 197,
+    "y": 422,
+    "w": 24,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 761,
+    "y": 1772,
+    "w": 24,
+    "h": 26
+   },
+   "anchor": {
+    "x": 3,
+    "y": 24
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-034",
+   "name": "bone_ring_arch",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Circular bone archway",
+   "file": "sprites/beach/beach-prop-034.png",
+   "w": 89,
+   "h": 93,
+   "src": {
+    "x": 258,
+    "y": 419,
+    "w": 89,
+    "h": 93
+   },
+   "atlas": {
+    "index": 0,
+    "x": 904,
+    "y": 1421,
+    "w": 89,
+    "h": 93
+   },
+   "anchor": {
+    "x": 44,
+    "y": 91
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-001",
+   "name": "sand_ring_tile",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand ring edge tile (hole in centre)",
+   "file": "sprites/beach/beach-terrain-001.png",
+   "w": 96,
+   "h": 96,
+   "src": {
+    "x": 448,
+    "y": 416,
+    "w": 96,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1795,
+    "y": 1312,
+    "w": 96,
+    "h": 96
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-002",
+   "name": "sand_ring_small",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Small sand ring disc",
+   "file": "sprites/beach/beach-terrain-002.png",
+   "w": 56,
+   "h": 56,
+   "src": {
+    "x": 548,
+    "y": 419,
+    "w": 56,
+    "h": 56
+   },
+   "atlas": {
+    "index": 0,
+    "x": 506,
+    "y": 1668,
+    "w": 56,
+    "h": 56
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-035",
+   "name": "animal_skull",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Animal skull",
+   "file": "sprites/beach/beach-prop-035.png",
+   "w": 60,
+   "h": 58,
+   "src": {
+    "x": 65,
+    "y": 452,
+    "w": 60,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 67,
+    "y": 1668,
+    "w": 60,
+    "h": 58
+   },
+   "anchor": {
+    "x": 11,
+    "y": 55
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-036",
+   "name": "long_bone",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Long curved bone",
+   "file": "sprites/beach/beach-prop-036.png",
+   "w": 63,
+   "h": 60,
+   "src": {
+    "x": 128,
+    "y": 452,
+    "w": 63,
+    "h": 60
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1625,
+    "y": 1602,
+    "w": 63,
+    "h": 60
+   },
+   "anchor": {
+    "x": 7,
+    "y": 60
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-037",
+   "name": "bone_fragment_c",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragment",
+   "file": "sprites/beach/beach-prop-037.png",
+   "w": 9,
+   "h": 9,
+   "src": {
+    "x": 133,
+    "y": 469,
+    "w": 9,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 600,
+    "y": 1805,
+    "w": 9,
+    "h": 9
+   },
+   "anchor": {
+    "x": 2,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-038",
+   "name": "bone_fragment_d",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragment",
+   "file": "sprites/beach/beach-prop-038.png",
+   "w": 7,
+   "h": 8,
+   "src": {
+    "x": 137,
+    "y": 452,
+    "w": 7,
+    "h": 8
+   },
+   "atlas": {
+    "index": 0,
+    "x": 646,
+    "y": 1805,
+    "w": 7,
+    "h": 8
+   },
+   "anchor": {
+    "x": 3,
+    "y": 7
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-039",
+   "name": "bone_claws_a",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Bone claws pair",
+   "file": "sprites/beach/beach-prop-039.png",
+   "w": 28,
+   "h": 61,
+   "src": {
+    "x": 194,
+    "y": 451,
+    "w": 28,
+    "h": 61
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1499,
+    "y": 1602,
+    "w": 28,
+    "h": 61
+   },
+   "anchor": {
+    "x": 18,
+    "y": 60
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-040",
+   "name": "bone_claws_b",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Bone claws pair",
+   "file": "sprites/beach/beach-prop-040.png",
+   "w": 27,
+   "h": 61,
+   "src": {
+    "x": 227,
+    "y": 451,
+    "w": 27,
+    "h": 61
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1529,
+    "y": 1602,
+    "w": 27,
+    "h": 61
+   },
+   "anchor": {
+    "x": 8,
+    "y": 60
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-012",
+   "name": "palm_very_tall_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Very tall palm tree with long shadow",
+   "file": "sprites/beach/beach-tree-012.png",
+   "w": 164,
+   "h": 202,
+   "src": {
+    "x": 644,
+    "y": 467,
+    "w": 164,
+    "h": 202
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1542,
+    "y": 2,
+    "w": 164,
+    "h": 202
+   },
+   "anchor": {
+    "x": 58,
+    "y": 202
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-013",
+   "name": "palm_crown_bananas_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm crown with bananas (top segment, stack on a trunk)",
+   "file": "sprites/beach/beach-tree-013.png",
+   "w": 83,
+   "h": 109,
+   "src": {
+    "x": 740,
+    "y": 467,
+    "w": 83,
+    "h": 109
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1564,
+    "y": 1185,
+    "w": 83,
+    "h": 109
+   },
+   "anchor": {
+    "x": 56,
+    "y": 109
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-014",
+   "name": "palm_very_tall_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Very tall palm tree with long shadow",
+   "file": "sprites/beach/beach-tree-014.png",
+   "w": 160,
+   "h": 202,
+   "src": {
+    "x": 841,
+    "y": 467,
+    "w": 160,
+    "h": 202
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1708,
+    "y": 2,
+    "w": 160,
+    "h": 202
+   },
+   "anchor": {
+    "x": 25,
+    "y": 202
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-015",
+   "name": "palm_crown_bananas_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm crown with bananas (top segment, stack on a trunk)",
+   "file": "sprites/beach/beach-tree-015.png",
+   "w": 83,
+   "h": 77,
+   "src": {
+    "x": 937,
+    "y": 467,
+    "w": 83,
+    "h": 77
+   },
+   "atlas": {
+    "index": 0,
+    "x": 476,
+    "y": 1519,
+    "w": 83,
+    "h": 77
+   },
+   "anchor": {
+    "x": 42,
+    "y": 77
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-001",
+   "name": "pebble_a",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-001.png",
+   "w": 8,
+   "h": 6,
+   "src": {
+    "x": 3,
+    "y": 512,
+    "w": 8,
+    "h": 6
+   },
+   "atlas": {
+    "index": 0,
+    "x": 708,
+    "y": 1805,
+    "w": 8,
+    "h": 6
+   },
+   "anchor": {
+    "x": 3,
+    "y": 5
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-002",
+   "name": "pebble_pair",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Pebble pair",
+   "file": "sprites/beach/beach-rock-002.png",
+   "w": 14,
+   "h": 10,
+   "src": {
+    "x": 14,
+    "y": 515,
+    "w": 14,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 469,
+    "y": 1805,
+    "w": 14,
+    "h": 10
+   },
+   "anchor": {
+    "x": 6,
+    "y": 9
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-prop-041",
+   "name": "bone_fragment_e",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragment",
+   "file": "sprites/beach/beach-prop-041.png",
+   "w": 9,
+   "h": 9,
+   "src": {
+    "x": 15,
+    "y": 484,
+    "w": 9,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 611,
+    "y": 1805,
+    "w": 9,
+    "h": 9
+   },
+   "anchor": {
+    "x": 6,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-042",
+   "name": "bone_fragments_f",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Scattered small bone fragments",
+   "file": "sprites/beach/beach-prop-042.png",
+   "w": 19,
+   "h": 17,
+   "src": {
+    "x": 29,
+    "y": 491,
+    "w": 19,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1758,
+    "y": 1772,
+    "w": 19,
+    "h": 17
+   },
+   "anchor": {
+    "x": 6,
+    "y": 16
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-prop-043",
+   "name": "bone_fragment_g",
+   "class": "prop",
+   "sheet": "beach",
+   "description": "Small bone fragment",
+   "file": "sprites/beach/beach-prop-043.png",
+   "w": 13,
+   "h": 12,
+   "src": {
+    "x": 31,
+    "y": 480,
+    "w": 13,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 302,
+    "y": 1805,
+    "w": 13,
+    "h": 12
+   },
+   "anchor": {
+    "x": 8,
+    "y": 11
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-003",
+   "name": "grass_patch_tile",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "192x64 bright grass terrain tile",
+   "file": "sprites/beach/beach-terrain-003.png",
+   "w": 192,
+   "h": 64,
+   "src": {
+    "x": 320,
+    "y": 512,
+    "w": 192,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1602,
+    "w": 192,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-003",
+   "name": "pebble_cluster",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble cluster",
+   "file": "sprites/beach/beach-rock-003.png",
+   "w": 21,
+   "h": 10,
+   "src": {
+    "x": 0,
+    "y": 531,
+    "w": 21,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 429,
+    "y": 1805,
+    "w": 21,
+    "h": 10
+   },
+   "anchor": {
+    "x": 10,
+    "y": 9
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-004",
+   "name": "gravel_tile_crack",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Gravel tile with cracked hole",
+   "file": "sprites/beach/beach-terrain-004.png",
+   "w": 64,
+   "h": 68,
+   "src": {
+    "x": 0,
+    "y": 540,
+    "w": 64,
+    "h": 68
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1718,
+    "y": 1519,
+    "w": 64,
+    "h": 68
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-004",
+   "name": "pebble_b",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-004.png",
+   "w": 9,
+   "h": 5,
+   "src": {
+    "x": 8,
+    "y": 524,
+    "w": 9,
+    "h": 5
+   },
+   "atlas": {
+    "index": 0,
+    "x": 738,
+    "y": 1805,
+    "w": 9,
+    "h": 5
+   },
+   "anchor": {
+    "x": 4,
+    "y": 4
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-005",
+   "name": "pebble_c",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-005.png",
+   "w": 8,
+   "h": 5,
+   "src": {
+    "x": 22,
+    "y": 527,
+    "w": 8,
+    "h": 5
+   },
+   "atlas": {
+    "index": 0,
+    "x": 749,
+    "y": 1805,
+    "w": 8,
+    "h": 5
+   },
+   "anchor": {
+    "x": 3,
+    "y": 4
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-006",
+   "name": "pebble_d",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-006.png",
+   "w": 7,
+   "h": 5,
+   "src": {
+    "x": 41,
+    "y": 532,
+    "w": 7,
+    "h": 5
+   },
+   "atlas": {
+    "index": 0,
+    "x": 759,
+    "y": 1805,
+    "w": 7,
+    "h": 5
+   },
+   "anchor": {
+    "x": 2,
+    "y": 4
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-007",
+   "name": "pebble_e",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-007.png",
+   "w": 13,
+   "h": 10,
+   "src": {
+    "x": 45,
+    "y": 521,
+    "w": 13,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 485,
+    "y": 1805,
+    "w": 13,
+    "h": 10
+   },
+   "anchor": {
+    "x": 5,
+    "y": 9
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-005",
+   "name": "sand_tile_hole",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "64x64 sand tile with hole",
+   "file": "sprites/beach/beach-terrain-005.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 64,
+    "y": 544,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 460,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-006",
+   "name": "sand_splat",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand splat decal",
+   "file": "sprites/beach/beach-terrain-006.png",
+   "w": 48,
+   "h": 51,
+   "src": {
+    "x": 139,
+    "y": 552,
+    "w": 48,
+    "h": 51
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1165,
+    "y": 1668,
+    "w": 48,
+    "h": 51
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-007",
+   "name": "gravel_tile_hole",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "64x64 gravel tile with hole",
+   "file": "sprites/beach/beach-terrain-007.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 192,
+    "y": 544,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 526,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-008",
+   "name": "gravel_splat",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Gravel splat decal",
+   "file": "sprites/beach/beach-terrain-008.png",
+   "w": 48,
+   "h": 52,
+   "src": {
+    "x": 267,
+    "y": 520,
+    "w": 48,
+    "h": 52
+   },
+   "atlas": {
+    "index": 0,
+    "x": 815,
+    "y": 1668,
+    "w": 48,
+    "h": 52
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-008",
+   "name": "pebble_f",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-008.png",
+   "w": 9,
+   "h": 6,
+   "src": {
+    "x": 32,
+    "y": 573,
+    "w": 9,
+    "h": 6
+   },
+   "atlas": {
+    "index": 0,
+    "x": 697,
+    "y": 1805,
+    "w": 9,
+    "h": 6
+   },
+   "anchor": {
+    "x": 4,
+    "y": 5
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-001",
+   "name": "tall_grass_wide",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Wide block of tall reeds with foreground tufts",
+   "file": "sprites/beach/beach-plant-001.png",
+   "w": 191,
+   "h": 127,
+   "src": {
+    "x": 289,
+    "y": 576,
+    "w": 191,
+    "h": 127
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1278,
+    "y": 1055,
+    "w": 191,
+    "h": 127
+   },
+   "anchor": {
+    "x": 60,
+    "y": 127
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-plant-002",
+   "name": "tall_grass_narrow",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Narrow tall reed block with gaps",
+   "file": "sprites/beach/beach-plant-002.png",
+   "w": 64,
+   "h": 96,
+   "src": {
+    "x": 480,
+    "y": 576,
+    "w": 64,
+    "h": 96
+   },
+   "atlas": {
+    "index": 0,
+    "x": 325,
+    "y": 1421,
+    "w": 64,
+    "h": 96
+   },
+   "anchor": {
+    "x": 31,
+    "y": 96
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-003",
+   "name": "tall_grass_block",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Tall reed block",
+   "file": "sprites/beach/beach-plant-003.png",
+   "w": 96,
+   "h": 127,
+   "src": {
+    "x": 544,
+    "y": 577,
+    "w": 96,
+    "h": 127
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1789,
+    "y": 1055,
+    "w": 96,
+    "h": 127
+   },
+   "anchor": {
+    "x": 37,
+    "y": 127
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-009",
+   "name": "gravel_patch",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Gravel patch with ragged edge",
+   "file": "sprites/beach/beach-terrain-009.png",
+   "w": 93,
+   "h": 94,
+   "src": {
+    "x": 2,
+    "y": 610,
+    "w": 93,
+    "h": 94
+   },
+   "atlas": {
+    "index": 0,
+    "x": 715,
+    "y": 1421,
+    "w": 93,
+    "h": 94
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-010",
+   "name": "sand_pit_square",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand edge around a square pit",
+   "file": "sprites/beach/beach-terrain-010.png",
+   "w": 77,
+   "h": 81,
+   "src": {
+    "x": 107,
+    "y": 614,
+    "w": 77,
+    "h": 81
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1519,
+    "w": 77,
+    "h": 81
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-011",
+   "name": "gravel_pit",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Gravel patch with sand edge",
+   "file": "sprites/beach/beach-terrain-011.png",
+   "w": 78,
+   "h": 81,
+   "src": {
+    "x": 202,
+    "y": 614,
+    "w": 78,
+    "h": 81
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1911,
+    "y": 1421,
+    "w": 78,
+    "h": 81
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-004",
+   "name": "grass_sprig_a",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-004.png",
+   "w": 11,
+   "h": 7,
+   "src": {
+    "x": 469,
+    "y": 678,
+    "w": 11,
+    "h": 7
+   },
+   "atlas": {
+    "index": 0,
+    "x": 655,
+    "y": 1805,
+    "w": 11,
+    "h": 7
+   },
+   "anchor": {
+    "x": 4,
+    "y": 6
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-016",
+   "name": "palm_trunk_a",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm trunk segment with shadow (stack under a crown)",
+   "file": "sprites/beach/beach-tree-016.png",
+   "w": 116,
+   "h": 125,
+   "src": {
+    "x": 693,
+    "y": 672,
+    "w": 116,
+    "h": 125
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1185,
+    "w": 116,
+    "h": 125
+   },
+   "anchor": {
+    "x": 9,
+    "y": 125
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-017",
+   "name": "palm_trunk_b",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm trunk segment with shadow (stack under a crown)",
+   "file": "sprites/beach/beach-tree-017.png",
+   "w": 143,
+   "h": 125,
+   "src": {
+    "x": 858,
+    "y": 672,
+    "w": 143,
+    "h": 125
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1887,
+    "y": 1055,
+    "w": 143,
+    "h": 125
+   },
+   "anchor": {
+    "x": 8,
+    "y": 125
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-rock-009",
+   "name": "pebble_g",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-009.png",
+   "w": 8,
+   "h": 6,
+   "src": {
+    "x": 12,
+    "y": 718,
+    "w": 8,
+    "h": 6
+   },
+   "atlas": {
+    "index": 0,
+    "x": 718,
+    "y": 1805,
+    "w": 8,
+    "h": 6
+   },
+   "anchor": {
+    "x": 3,
+    "y": 6
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-012",
+   "name": "sand_tile_pit_a",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand tile with pit",
+   "file": "sprites/beach/beach-terrain-012.png",
+   "w": 66,
+   "h": 68,
+   "src": {
+    "x": 30,
+    "y": 704,
+    "w": 66,
+    "h": 68
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1582,
+    "y": 1519,
+    "w": 66,
+    "h": 68
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-010",
+   "name": "pebble_h",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-010.png",
+   "w": 10,
+   "h": 8,
+   "src": {
+    "x": 107,
+    "y": 717,
+    "w": 10,
+    "h": 8
+   },
+   "atlas": {
+    "index": 0,
+    "x": 622,
+    "y": 1805,
+    "w": 10,
+    "h": 8
+   },
+   "anchor": {
+    "x": 4,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-013",
+   "name": "sand_tile_pit_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand tile with pit",
+   "file": "sprites/beach/beach-terrain-013.png",
+   "w": 64,
+   "h": 64,
+   "src": {
+    "x": 128,
+    "y": 704,
+    "w": 64,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 592,
+    "y": 1602,
+    "w": 64,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-011",
+   "name": "pebble_i",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-011.png",
+   "w": 8,
+   "h": 6,
+   "src": {
+    "x": 204,
+    "y": 718,
+    "w": 8,
+    "h": 6
+   },
+   "atlas": {
+    "index": 0,
+    "x": 728,
+    "y": 1805,
+    "w": 8,
+    "h": 6
+   },
+   "anchor": {
+    "x": 3,
+    "y": 6
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-014",
+   "name": "sand_tile_pit_c",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand tile with pit",
+   "file": "sprites/beach/beach-terrain-014.png",
+   "w": 66,
+   "h": 68,
+   "src": {
+    "x": 222,
+    "y": 704,
+    "w": 66,
+    "h": 68
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1650,
+    "y": 1519,
+    "w": 66,
+    "h": 68
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-005",
+   "name": "grass_sprig_b",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-005.png",
+   "w": 10,
+   "h": 9,
+   "src": {
+    "x": 298,
+    "y": 692,
+    "w": 10,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 566,
+    "y": 1805,
+    "w": 10,
+    "h": 9
+   },
+   "anchor": {
+    "x": 5,
+    "y": 9
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-012",
+   "name": "pebble_j",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Small pebble",
+   "file": "sprites/beach/beach-rock-012.png",
+   "w": 10,
+   "h": 8,
+   "src": {
+    "x": 299,
+    "y": 717,
+    "w": 10,
+    "h": 8
+   },
+   "atlas": {
+    "index": 0,
+    "x": 634,
+    "y": 1805,
+    "w": 10,
+    "h": 8
+   },
+   "anchor": {
+    "x": 4,
+    "y": 8
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-015",
+   "name": "sand_tile_pit_d",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand tile with pit",
+   "file": "sprites/beach/beach-terrain-015.png",
+   "w": 64,
+   "h": 65,
+   "src": {
+    "x": 320,
+    "y": 703,
+    "w": 64,
+    "h": 65
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1914,
+    "y": 1519,
+    "w": 64,
+    "h": 65
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-006",
+   "name": "grass_sprig_c",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-006.png",
+   "w": 13,
+   "h": 15,
+   "src": {
+    "x": 388,
+    "y": 714,
+    "w": 13,
+    "h": 15
+   },
+   "atlas": {
+    "index": 0,
+    "x": 95,
+    "y": 1805,
+    "w": 13,
+    "h": 15
+   },
+   "anchor": {
+    "x": 7,
+    "y": 15
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-007",
+   "name": "grass_sprig_d",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-007.png",
+   "w": 8,
+   "h": 12,
+   "src": {
+    "x": 404,
+    "y": 711,
+    "w": 8,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 331,
+    "y": 1805,
+    "w": 8,
+    "h": 12
+   },
+   "anchor": {
+    "x": 4,
+    "y": 12
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-008",
+   "name": "grass_sprig_e",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-008.png",
+   "w": 11,
+   "h": 7,
+   "src": {
+    "x": 425,
+    "y": 708,
+    "w": 11,
+    "h": 7
+   },
+   "atlas": {
+    "index": 0,
+    "x": 668,
+    "y": 1805,
+    "w": 11,
+    "h": 7
+   },
+   "anchor": {
+    "x": 5,
+    "y": 7
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-009",
+   "name": "grass_sprig_f",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-009.png",
+   "w": 6,
+   "h": 7,
+   "src": {
+    "x": 441,
+    "y": 691,
+    "w": 6,
+    "h": 7
+   },
+   "atlas": {
+    "index": 0,
+    "x": 681,
+    "y": 1805,
+    "w": 6,
+    "h": 7
+   },
+   "anchor": {
+    "x": 1,
+    "y": 6
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-010",
+   "name": "grass_sprig_g",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprigs",
+   "file": "sprites/beach/beach-plant-010.png",
+   "w": 20,
+   "h": 12,
+   "src": {
+    "x": 452,
+    "y": 691,
+    "w": 20,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 264,
+    "y": 1805,
+    "w": 20,
+    "h": 12
+   },
+   "anchor": {
+    "x": 13,
+    "y": 11
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-018",
+   "name": "palm_leaning",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Leaning palm tree with shadow",
+   "file": "sprites/beach/beach-tree-018.png",
+   "w": 108,
+   "h": 107,
+   "src": {
+    "x": 564,
+    "y": 717,
+    "w": 108,
+    "h": 107
+   },
+   "atlas": {
+    "index": 0,
+    "x": 141,
+    "y": 1312,
+    "w": 108,
+    "h": 107
+   },
+   "anchor": {
+    "x": 14,
+    "y": 107
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-016",
+   "name": "sand_clump_a",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand clump decal",
+   "file": "sprites/beach/beach-terrain-016.png",
+   "w": 23,
+   "h": 23,
+   "src": {
+    "x": 5,
+    "y": 740,
+    "w": 23,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1307,
+    "y": 1772,
+    "w": 23,
+    "h": 23
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-017",
+   "name": "sand_clump_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand clump decal",
+   "file": "sprites/beach/beach-terrain-017.png",
+   "w": 25,
+   "h": 25,
+   "src": {
+    "x": 100,
+    "y": 739,
+    "w": 25,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 937,
+    "y": 1772,
+    "w": 25,
+    "h": 25
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-018",
+   "name": "sand_clump_c",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand clump decal",
+   "file": "sprites/beach/beach-terrain-018.png",
+   "w": 23,
+   "h": 23,
+   "src": {
+    "x": 197,
+    "y": 740,
+    "w": 23,
+    "h": 23
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1332,
+    "y": 1772,
+    "w": 23,
+    "h": 23
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-019",
+   "name": "sand_clump_d",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand clump decal",
+   "file": "sprites/beach/beach-terrain-019.png",
+   "w": 25,
+   "h": 25,
+   "src": {
+    "x": 292,
+    "y": 739,
+    "w": 25,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 964,
+    "y": 1772,
+    "w": 25,
+    "h": 25
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-011",
+   "name": "grass_sprig_h",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-011.png",
+   "w": 12,
+   "h": 10,
+   "src": {
+    "x": 387,
+    "y": 741,
+    "w": 12,
+    "h": 10
+   },
+   "atlas": {
+    "index": 0,
+    "x": 514,
+    "y": 1805,
+    "w": 12,
+    "h": 10
+   },
+   "anchor": {
+    "x": 6,
+    "y": 10
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-012",
+   "name": "grass_sprig_i",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-012.png",
+   "w": 12,
+   "h": 9,
+   "src": {
+    "x": 402,
+    "y": 755,
+    "w": 12,
+    "h": 9
+   },
+   "atlas": {
+    "index": 0,
+    "x": 552,
+    "y": 1805,
+    "w": 12,
+    "h": 9
+   },
+   "anchor": {
+    "x": 6,
+    "y": 9
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-013",
+   "name": "agave_a",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Agave plant",
+   "file": "sprites/beach/beach-plant-013.png",
+   "w": 28,
+   "h": 25,
+   "src": {
+    "x": 416,
+    "y": 743,
+    "w": 28,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 879,
+    "y": 1772,
+    "w": 28,
+    "h": 25
+   },
+   "anchor": {
+    "x": 13,
+    "y": 24
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-plant-014",
+   "name": "grass_sprig_j",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Small grass sprig",
+   "file": "sprites/beach/beach-plant-014.png",
+   "w": 6,
+   "h": 7,
+   "src": {
+    "x": 422,
+    "y": 726,
+    "w": 6,
+    "h": 7
+   },
+   "atlas": {
+    "index": 0,
+    "x": 689,
+    "y": 1805,
+    "w": 6,
+    "h": 7
+   },
+   "anchor": {
+    "x": 3,
+    "y": 7
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-bush-030",
+   "name": "cactus_tall_arms",
+   "class": "bush",
+   "sheet": "beach",
+   "description": "Tall cactus with arms and shadow",
+   "file": "sprites/beach/beach-bush-030.png",
+   "w": 58,
+   "h": 87,
+   "src": {
+    "x": 454,
+    "y": 738,
+    "w": 58,
+    "h": 87
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1639,
+    "y": 1421,
+    "w": 58,
+    "h": 87
+   },
+   "anchor": {
+    "x": 28,
+    "y": 86
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-020",
+   "name": "sand_pit_dark_large",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Large sand pit with dark rim",
+   "file": "sprites/beach/beach-terrain-020.png",
+   "w": 91,
+   "h": 91,
+   "src": {
+    "x": 4,
+    "y": 770,
+    "w": 91,
+    "h": 91
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1125,
+    "y": 1421,
+    "w": 91,
+    "h": 91
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-021",
+   "name": "sand_pit_light_small",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand pit, light rim",
+   "file": "sprites/beach/beach-terrain-021.png",
+   "w": 68,
+   "h": 70,
+   "src": {
+    "x": 110,
+    "y": 783,
+    "w": 68,
+    "h": 70
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1375,
+    "y": 1519,
+    "w": 68,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-022",
+   "name": "sand_pit_dark_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Large sand pit with dark rim",
+   "file": "sprites/beach/beach-terrain-022.png",
+   "w": 91,
+   "h": 91,
+   "src": {
+    "x": 196,
+    "y": 770,
+    "w": 91,
+    "h": 91
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1218,
+    "y": 1421,
+    "w": 91,
+    "h": 91
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-023",
+   "name": "sand_pit_light_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand pit, light rim",
+   "file": "sprites/beach/beach-terrain-023.png",
+   "w": 68,
+   "h": 70,
+   "src": {
+    "x": 302,
+    "y": 783,
+    "w": 68,
+    "h": 70
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1445,
+    "y": 1519,
+    "w": 68,
+    "h": 70
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-015",
+   "name": "grass_tuft_tall",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Tall grass tuft",
+   "file": "sprites/beach/beach-plant-015.png",
+   "w": 25,
+   "h": 52,
+   "src": {
+    "x": 390,
+    "y": 775,
+    "w": 25,
+    "h": 52
+   },
+   "atlas": {
+    "index": 0,
+    "x": 909,
+    "y": 1668,
+    "w": 25,
+    "h": 52
+   },
+   "anchor": {
+    "x": 11,
+    "y": 51
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-plant-016",
+   "name": "agave_b",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Agave plant",
+   "file": "sprites/beach/beach-plant-016.png",
+   "w": 29,
+   "h": 25,
+   "src": {
+    "x": 419,
+    "y": 768,
+    "w": 29,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 848,
+    "y": 1772,
+    "w": 29,
+    "h": 25
+   },
+   "anchor": {
+    "x": 13,
+    "y": 24
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-024",
+   "name": "sand_crater_a",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand crater with stone well rim",
+   "file": "sprites/beach/beach-terrain-024.png",
+   "w": 96,
+   "h": 89,
+   "src": {
+    "x": 384,
+    "y": 835,
+    "w": 96,
+    "h": 89
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1410,
+    "y": 1421,
+    "w": 96,
+    "h": 89
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-plant-017",
+   "name": "spiky_plant",
+   "class": "plant",
+   "sheet": "beach",
+   "description": "Spiky green-blue plant",
+   "file": "sprites/beach/beach-plant-017.png",
+   "w": 22,
+   "h": 28,
+   "src": {
+    "x": 426,
+    "y": 800,
+    "w": 22,
+    "h": 28
+   },
+   "atlas": {
+    "index": 0,
+    "x": 348,
+    "y": 1772,
+    "w": 22,
+    "h": 28
+   },
+   "anchor": {
+    "x": 8,
+    "y": 27
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-rock-013",
+   "name": "sand_pebbles_set_a",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Set of small sand pebbles",
+   "file": "sprites/beach/beach-rock-013.png",
+   "w": 49,
+   "h": 57,
+   "src": {
+    "x": 485,
+    "y": 837,
+    "w": 49,
+    "h": 57
+   },
+   "atlas": {
+    "index": 0,
+    "x": 261,
+    "y": 1668,
+    "w": 49,
+    "h": 57
+   },
+   "anchor": {
+    "x": 29,
+    "y": 57
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-019",
+   "name": "palm_c",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with shadow",
+   "file": "sprites/beach/beach-tree-019.png",
+   "w": 156,
+   "h": 139,
+   "src": {
+    "x": 740,
+    "y": 821,
+    "w": 156,
+    "h": 139
+   },
+   "atlas": {
+    "index": 0,
+    "x": 978,
+    "y": 506,
+    "w": 156,
+    "h": 139
+   },
+   "anchor": {
+    "x": 68,
+    "y": 139
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-tree-020",
+   "name": "palm_d",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with shadow",
+   "file": "sprites/beach/beach-tree-020.png",
+   "w": 127,
+   "h": 139,
+   "src": {
+    "x": 897,
+    "y": 821,
+    "w": 127,
+    "h": 139
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1287,
+    "y": 506,
+    "w": 127,
+    "h": 139
+   },
+   "anchor": {
+    "x": 22,
+    "y": 139
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-terrain-025",
+   "name": "sand_strip_a",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand strip tile",
+   "file": "sprites/beach/beach-terrain-025.png",
+   "w": 101,
+   "h": 32,
+   "src": {
+    "x": 0,
+    "y": 864,
+    "w": 101,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 746,
+    "y": 1728,
+    "w": 101,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-014",
+   "name": "sand_crumbs",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Sand crumbs",
+   "file": "sprites/beach/beach-rock-014.png",
+   "w": 58,
+   "h": 27,
+   "src": {
+    "x": 98,
+    "y": 866,
+    "w": 58,
+    "h": 27
+   },
+   "atlas": {
+    "index": 0,
+    "x": 410,
+    "y": 1772,
+    "w": 58,
+    "h": 27
+   },
+   "anchor": {
+    "x": 16,
+    "y": 27
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-026",
+   "name": "sand_strip_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand strip tile",
+   "file": "sprites/beach/beach-terrain-026.png",
+   "w": 96,
+   "h": 32,
+   "src": {
+    "x": 192,
+    "y": 864,
+    "w": 96,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 849,
+    "y": 1728,
+    "w": 96,
+    "h": 32
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-tree-021",
+   "name": "palm_e",
+   "class": "tree",
+   "sheet": "beach",
+   "description": "Palm tree with shadow",
+   "file": "sprites/beach/beach-tree-021.png",
+   "w": 137,
+   "h": 107,
+   "src": {
+    "x": 599,
+    "y": 844,
+    "w": 137,
+    "h": 107
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1312,
+    "w": 137,
+    "h": 107
+   },
+   "anchor": {
+    "x": 69,
+    "y": 107
+   },
+   "shadow": true
+  },
+  {
+   "id": "beach-rock-015",
+   "name": "desert_rock_arch_a",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Desert rock arch with small crater",
+   "file": "sprites/beach/beach-rock-015.png",
+   "w": 192,
+   "h": 106,
+   "src": {
+    "x": 0,
+    "y": 918,
+    "w": 192,
+    "h": 106
+   },
+   "atlas": {
+    "index": 0,
+    "x": 251,
+    "y": 1312,
+    "w": 192,
+    "h": 106
+   },
+   "anchor": {
+    "x": 97,
+    "y": 106
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-016",
+   "name": "desert_rock_arch_b",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Desert rock arch with small crater",
+   "file": "sprites/beach/beach-rock-016.png",
+   "w": 191,
+   "h": 106,
+   "src": {
+    "x": 192,
+    "y": 918,
+    "w": 191,
+    "h": 106
+   },
+   "atlas": {
+    "index": 0,
+    "x": 445,
+    "y": 1312,
+    "w": 191,
+    "h": 106
+   },
+   "anchor": {
+    "x": 97,
+    "y": 106
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-027",
+   "name": "sand_ripples_set",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand ripple decal set",
+   "file": "sprites/beach/beach-terrain-027.png",
+   "w": 63,
+   "h": 128,
+   "src": {
+    "x": 481,
+    "y": 896,
+    "w": 63,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1213,
+    "y": 1055,
+    "w": 63,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-028",
+   "name": "sand_crater_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand crater with stone well rim",
+   "file": "sprites/beach/beach-terrain-028.png",
+   "w": 97,
+   "h": 89,
+   "src": {
+    "x": 383,
+    "y": 931,
+    "w": 97,
+    "h": 89
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1311,
+    "y": 1421,
+    "w": 97,
+    "h": 89
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-029",
+   "name": "sand_ripple_tile_a",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand ripple decal tile",
+   "file": "sprites/beach/beach-terrain-029.png",
+   "w": 63,
+   "h": 64,
+   "src": {
+    "x": 545,
+    "y": 960,
+    "w": 63,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 658,
+    "y": 1602,
+    "w": 63,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-terrain-030",
+   "name": "sand_ripple_tile_b",
+   "class": "terrain",
+   "sheet": "beach",
+   "description": "Sand ripple decal tile",
+   "file": "sprites/beach/beach-terrain-030.png",
+   "w": 63,
+   "h": 64,
+   "src": {
+    "x": 609,
+    "y": 960,
+    "w": 63,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 723,
+    "y": 1602,
+    "w": 63,
+    "h": 64
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "beach-rock-017",
+   "name": "sand_pebbles_set_b",
+   "class": "rock",
+   "sheet": "beach",
+   "description": "Set of small sand pebbles",
+   "file": "sprites/beach/beach-rock-017.png",
+   "w": 49,
+   "h": 57,
+   "src": {
+    "x": 677,
+    "y": 965,
+    "w": 49,
+    "h": 57
+   },
+   "atlas": {
+    "index": 0,
+    "x": 312,
+    "y": 1668,
+    "w": 49,
+    "h": 57
+   },
+   "anchor": {
+    "x": 29,
+    "y": 57
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-001",
+   "name": "broadleaf_plant_small",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Small green broad-leaf plant",
+   "file": "sprites/jungle/jungle-bush-001.png",
+   "w": 45,
+   "h": 45,
+   "src": {
+    "x": 15,
+    "y": 19,
+    "w": 45,
+    "h": 45
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1568,
+    "y": 1668,
+    "w": 45,
+    "h": 45
+   },
+   "anchor": {
+    "x": 22,
+    "y": 45
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-002",
+   "name": "jungle_bush_dense",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Dense tropical jungle bush",
+   "file": "sprites/jungle/jungle-bush-002.png",
+   "w": 48,
+   "h": 44,
+   "src": {
+    "x": 74,
+    "y": 15,
+    "w": 48,
+    "h": 44
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1681,
+    "y": 1668,
+    "w": 48,
+    "h": 44
+   },
+   "anchor": {
+    "x": 28,
+    "y": 44
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-003",
+   "name": "leaf_canopy_wide",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Wide horizontal leaf canopy",
+   "file": "sprites/jungle/jungle-bush-003.png",
+   "w": 59,
+   "h": 26,
+   "src": {
+    "x": 133,
+    "y": 24,
+    "w": 59,
+    "h": 26
+   },
+   "atlas": {
+    "index": 0,
+    "x": 555,
+    "y": 1772,
+    "w": 59,
+    "h": 26
+   },
+   "anchor": {
+    "x": 36,
+    "y": 26
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-004",
+   "name": "leaf_sprout_curved",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Curved tropical leaf sprout",
+   "file": "sprites/jungle/jungle-bush-004.png",
+   "w": 49,
+   "h": 36,
+   "src": {
+    "x": 202,
+    "y": 22,
+    "w": 49,
+    "h": 36
+   },
+   "atlas": {
+    "index": 0,
+    "x": 306,
+    "y": 1728,
+    "w": 49,
+    "h": 36
+   },
+   "anchor": {
+    "x": 41,
+    "y": 36
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-001",
+   "name": "purple_pitcher_plant",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Dark purple pitcher plant with coiled tendril",
+   "file": "sprites/jungle/jungle-plant-001.png",
+   "w": 64,
+   "h": 62,
+   "src": {
+    "x": 256,
+    "y": 2,
+    "w": 64,
+    "h": 62
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1090,
+    "y": 1602,
+    "w": 64,
+    "h": 62
+   },
+   "anchor": {
+    "x": 36,
+    "y": 62
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-002",
+   "name": "purple_spiky_alien",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Alien purple bulbous spiky plant",
+   "file": "sprites/jungle/jungle-plant-002.png",
+   "w": 64,
+   "h": 59,
+   "src": {
+    "x": 320,
+    "y": 5,
+    "w": 64,
+    "h": 59
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1795,
+    "y": 1602,
+    "w": 64,
+    "h": 59
+   },
+   "anchor": {
+    "x": 33,
+    "y": 59
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-003",
+   "name": "purple_trumpet_flower",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Large purple trumpet flower",
+   "file": "sprites/jungle/jungle-plant-003.png",
+   "w": 63,
+   "h": 62,
+   "src": {
+    "x": 385,
+    "y": 2,
+    "w": 63,
+    "h": 62
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1221,
+    "y": 1602,
+    "w": 63,
+    "h": 62
+   },
+   "anchor": {
+    "x": 34,
+    "y": 62
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-004",
+   "name": "purple_alien_pod",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Bulbous purple alien pod",
+   "file": "sprites/jungle/jungle-plant-004.png",
+   "w": 63,
+   "h": 61,
+   "src": {
+    "x": 448,
+    "y": 3,
+    "w": 63,
+    "h": 61
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1334,
+    "y": 1602,
+    "w": 63,
+    "h": 61
+   },
+   "anchor": {
+    "x": 30,
+    "y": 61
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-005",
+   "name": "broadleaf_plant_large",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Large light-green broad-leaf plant",
+   "file": "sprites/jungle/jungle-bush-005.png",
+   "w": 64,
+   "h": 56,
+   "src": {
+    "x": 64,
+    "y": 72,
+    "w": 64,
+    "h": 56
+   },
+   "atlas": {
+    "index": 0,
+    "x": 440,
+    "y": 1668,
+    "w": 64,
+    "h": 56
+   },
+   "anchor": {
+    "x": 33,
+    "y": 56
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-006",
+   "name": "jagged_foliage_bush",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Wide jagged green foliage bush",
+   "file": "sprites/jungle/jungle-bush-006.png",
+   "w": 63,
+   "h": 58,
+   "src": {
+    "x": 128,
+    "y": 70,
+    "w": 63,
+    "h": 58
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1668,
+    "w": 63,
+    "h": 58
+   },
+   "anchor": {
+    "x": 37,
+    "y": 58
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-007",
+   "name": "tropical_leaf_plant_dark",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Tropical leaf plant with dark base",
+   "file": "sprites/jungle/jungle-bush-007.png",
+   "w": 65,
+   "h": 60,
+   "src": {
+    "x": 191,
+    "y": 68,
+    "w": 65,
+    "h": 60
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1558,
+    "y": 1602,
+    "w": 65,
+    "h": 60
+   },
+   "anchor": {
+    "x": 34,
+    "y": 60
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-005",
+   "name": "heliconia_stalk",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Heliconia (lobster claw) flower stalk",
+   "file": "sprites/jungle/jungle-plant-005.png",
+   "w": 40,
+   "h": 64,
+   "src": {
+    "x": 331,
+    "y": 64,
+    "w": 40,
+    "h": 64
+   },
+   "atlas": {
+    "index": 0,
+    "x": 788,
+    "y": 1602,
+    "w": 40,
+    "h": 64
+   },
+   "anchor": {
+    "x": 23,
+    "y": 64
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-006",
+   "name": "red_yellow_flower_stalk",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Red-and-yellow flower stalk",
+   "file": "sprites/jungle/jungle-plant-006.png",
+   "w": 40,
+   "h": 61,
+   "src": {
+    "x": 460,
+    "y": 67,
+    "w": 40,
+    "h": 61
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1457,
+    "y": 1602,
+    "w": 40,
+    "h": 61
+   },
+   "anchor": {
+    "x": 18,
+    "y": 61
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-008",
+   "name": "fern_low",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Low green jungle fern",
+   "file": "sprites/jungle/jungle-bush-008.png",
+   "w": 58,
+   "h": 42,
+   "src": {
+    "x": 4,
+    "y": 86,
+    "w": 58,
+    "h": 42
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1728,
+    "w": 58,
+    "h": 42
+   },
+   "anchor": {
+    "x": 26,
+    "y": 42
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-007",
+   "name": "red_seed_pod_cluster",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Red/orange tropical seed pod cluster",
+   "file": "sprites/jungle/jungle-plant-007.png",
+   "w": 64,
+   "h": 40,
+   "src": {
+    "x": 256,
+    "y": 88,
+    "w": 64,
+    "h": 40
+   },
+   "atlas": {
+    "index": 0,
+    "x": 62,
+    "y": 1728,
+    "w": 64,
+    "h": 40
+   },
+   "anchor": {
+    "x": 37,
+    "y": 40
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-008",
+   "name": "red_pod_shoot",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Small red tropical pod shoot",
+   "file": "sprites/jungle/jungle-plant-008.png",
+   "w": 40,
+   "h": 39,
+   "src": {
+    "x": 397,
+    "y": 89,
+    "w": 40,
+    "h": 39
+   },
+   "atlas": {
+    "index": 0,
+    "x": 195,
+    "y": 1728,
+    "w": 40,
+    "h": 39
+   },
+   "anchor": {
+    "x": 19,
+    "y": 39
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-009",
+   "name": "hanging_vine_left",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Hanging leafy vine",
+   "file": "sprites/jungle/jungle-bush-009.png",
+   "w": 55,
+   "h": 34,
+   "src": {
+    "x": 3,
+    "y": 147,
+    "w": 55,
+    "h": 34
+   },
+   "atlas": {
+    "index": 0,
+    "x": 689,
+    "y": 1728,
+    "w": 55,
+    "h": 34
+   },
+   "anchor": {
+    "x": 26,
+    "y": 34
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-010",
+   "name": "hanging_vine_center",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Hanging leafy vine",
+   "file": "sprites/jungle/jungle-bush-010.png",
+   "w": 45,
+   "h": 38,
+   "src": {
+    "x": 72,
+    "y": 146,
+    "w": 45,
+    "h": 38
+   },
+   "atlas": {
+    "index": 0,
+    "x": 237,
+    "y": 1728,
+    "w": 45,
+    "h": 38
+   },
+   "anchor": {
+    "x": 39,
+    "y": 38
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-011",
+   "name": "drooping_palm_leaf",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Drooping single palm leaf",
+   "file": "sprites/jungle/jungle-bush-011.png",
+   "w": 31,
+   "h": 50,
+   "src": {
+    "x": 143,
+    "y": 153,
+    "w": 31,
+    "h": 50
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1266,
+    "y": 1668,
+    "w": 31,
+    "h": 50
+   },
+   "anchor": {
+    "x": 21,
+    "y": 50
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-012",
+   "name": "curved_hanging_leaf",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Curved hanging foliage leaf",
+   "file": "sprites/jungle/jungle-bush-012.png",
+   "w": 47,
+   "h": 44,
+   "src": {
+    "x": 196,
+    "y": 139,
+    "w": 47,
+    "h": 44
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1731,
+    "y": 1668,
+    "w": 47,
+    "h": 44
+   },
+   "anchor": {
+    "x": 1,
+    "y": 44
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-013",
+   "name": "dark_frond_bush_1",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Dark shadowed palm-leaf bush",
+   "file": "sprites/jungle/jungle-bush-013.png",
+   "w": 64,
+   "h": 82,
+   "src": {
+    "x": 256,
+    "y": 142,
+    "w": 64,
+    "h": 82
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1779,
+    "y": 1421,
+    "w": 64,
+    "h": 82
+   },
+   "anchor": {
+    "x": 29,
+    "y": 82
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-014",
+   "name": "dark_frond_bush_2",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Dark shadowed palm-leaf bush",
+   "file": "sprites/jungle/jungle-bush-014.png",
+   "w": 63,
+   "h": 87,
+   "src": {
+    "x": 321,
+    "y": 137,
+    "w": 63,
+    "h": 87
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1574,
+    "y": 1421,
+    "w": 63,
+    "h": 87
+   },
+   "anchor": {
+    "x": 27,
+    "y": 87
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-015",
+   "name": "dark_frond_bush_3",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Dark shadowed palm-leaf bush",
+   "file": "sprites/jungle/jungle-bush-015.png",
+   "w": 64,
+   "h": 82,
+   "src": {
+    "x": 384,
+    "y": 142,
+    "w": 64,
+    "h": 82
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1845,
+    "y": 1421,
+    "w": 64,
+    "h": 82
+   },
+   "anchor": {
+    "x": 26,
+    "y": 82
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-016",
+   "name": "dark_frond_bush_4",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Curved dark shadowed palm frond",
+   "file": "sprites/jungle/jungle-bush-016.png",
+   "w": 64,
+   "h": 89,
+   "src": {
+    "x": 448,
+    "y": 135,
+    "w": 64,
+    "h": 89
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1508,
+    "y": 1421,
+    "w": 64,
+    "h": 89
+   },
+   "anchor": {
+    "x": 43,
+    "y": 89
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-017",
+   "name": "canopy_overhang_upper",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Canopy foliage overhang (upper edge)",
+   "file": "sprites/jungle/jungle-bush-017.png",
+   "w": 96,
+   "h": 35,
+   "src": {
+    "x": 0,
+    "y": 221,
+    "w": 96,
+    "h": 35
+   },
+   "atlas": {
+    "index": 0,
+    "x": 378,
+    "y": 1728,
+    "w": 96,
+    "h": 35
+   },
+   "anchor": {
+    "x": 87,
+    "y": 35
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-009",
+   "name": "reed_orange_sheath",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Tall reed with orange flower sheath",
+   "file": "sprites/jungle/jungle-plant-009.png",
+   "w": 46,
+   "h": 112,
+   "src": {
+    "x": 203,
+    "y": 208,
+    "w": 46,
+    "h": 112
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1126,
+    "y": 1185,
+    "w": 46,
+    "h": 112
+   },
+   "anchor": {
+    "x": 20,
+    "y": 112
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-018",
+   "name": "leaf_shrub_red_flower",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Low leaf shrub with red flower",
+   "file": "sprites/jungle/jungle-bush-018.png",
+   "w": 59,
+   "h": 25,
+   "src": {
+    "x": 258,
+    "y": 231,
+    "w": 59,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 787,
+    "y": 1772,
+    "w": 59,
+    "h": 25
+   },
+   "anchor": {
+    "x": 29,
+    "y": 25
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-010",
+   "name": "orange_carnivorous_pod",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Orange bulbous carnivorous pod",
+   "file": "sprites/jungle/jungle-plant-010.png",
+   "w": 45,
+   "h": 30,
+   "src": {
+    "x": 333,
+    "y": 226,
+    "w": 45,
+    "h": 30
+   },
+   "atlas": {
+    "index": 0,
+    "x": 84,
+    "y": 1772,
+    "w": 45,
+    "h": 30
+   },
+   "anchor": {
+    "x": 23,
+    "y": 30
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-019",
+   "name": "green_leafy_shoot",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Bright green leafy shoot",
+   "file": "sprites/jungle/jungle-bush-019.png",
+   "w": 32,
+   "h": 32,
+   "src": {
+    "x": 384,
+    "y": 224,
+    "w": 32,
+    "h": 32
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1508,
+    "y": 1728,
+    "w": 32,
+    "h": 32
+   },
+   "anchor": {
+    "x": 18,
+    "y": 32
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-001",
+   "name": "bee_hive",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Hanging bee hive",
+   "file": "sprites/jungle/jungle-prop-001.png",
+   "w": 20,
+   "h": 25,
+   "src": {
+    "x": 424,
+    "y": 224,
+    "w": 20,
+    "h": 25
+   },
+   "atlas": {
+    "index": 0,
+    "x": 991,
+    "y": 1772,
+    "w": 20,
+    "h": 25
+   },
+   "anchor": {
+    "x": 10,
+    "y": 25
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-002",
+   "name": "campfire_logs",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Stacked campfire wood logs",
+   "file": "sprites/jungle/jungle-prop-002.png",
+   "w": 52,
+   "h": 24,
+   "src": {
+    "x": 454,
+    "y": 235,
+    "w": 52,
+    "h": 24
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1074,
+    "y": 1772,
+    "w": 52,
+    "h": 24
+   },
+   "anchor": {
+    "x": 25,
+    "y": 24
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-020",
+   "name": "leaf_overhang_large",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Large sweeping green leaf overhang",
+   "file": "sprites/jungle/jungle-bush-020.png",
+   "w": 95,
+   "h": 71,
+   "src": {
+    "x": 96,
+    "y": 249,
+    "w": 95,
+    "h": 71
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1278,
+    "y": 1519,
+    "w": 95,
+    "h": 71
+   },
+   "anchor": {
+    "x": 76,
+    "y": 71
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-021",
+   "name": "broadleaf_plant_low",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Low broad-leaf plant",
+   "file": "sprites/jungle/jungle-bush-021.png",
+   "w": 59,
+   "h": 24,
+   "src": {
+    "x": 258,
+    "y": 264,
+    "w": 59,
+    "h": 24
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1013,
+    "y": 1772,
+    "w": 59,
+    "h": 24
+   },
+   "anchor": {
+    "x": 30,
+    "y": 24
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-011",
+   "name": "grass_blades",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Grass blades cluster",
+   "file": "sprites/jungle/jungle-plant-011.png",
+   "w": 30,
+   "h": 31,
+   "src": {
+    "x": 321,
+    "y": 256,
+    "w": 30,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1987,
+    "y": 1728,
+    "w": 30,
+    "h": 31
+   },
+   "anchor": {
+    "x": 17,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-012",
+   "name": "weed_sprout",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Small weed sprout",
+   "file": "sprites/jungle/jungle-plant-012.png",
+   "w": 22,
+   "h": 31,
+   "src": {
+    "x": 354,
+    "y": 257,
+    "w": 22,
+    "h": 31
+   },
+   "atlas": {
+    "index": 0,
+    "x": 60,
+    "y": 1772,
+    "w": 22,
+    "h": 31
+   },
+   "anchor": {
+    "x": 11,
+    "y": 31
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-022",
+   "name": "micro_leaf_sprout",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Small leaf sprout",
+   "file": "sprites/jungle/jungle-bush-022.png",
+   "w": 22,
+   "h": 16,
+   "src": {
+    "x": 389,
+    "y": 272,
+    "w": 22,
+    "h": 16
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1850,
+    "y": 1772,
+    "w": 22,
+    "h": 16
+   },
+   "anchor": {
+    "x": 11,
+    "y": 16
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-bush-023",
+   "name": "canopy_overhang_lower",
+   "class": "bush",
+   "sheet": "jungle",
+   "description": "Canopy foliage overhang (lower edge)",
+   "file": "sprites/jungle/jungle-bush-023.png",
+   "w": 96,
+   "h": 34,
+   "src": {
+    "x": 0,
+    "y": 285,
+    "w": 96,
+    "h": 34
+   },
+   "atlas": {
+    "index": 0,
+    "x": 506,
+    "y": 1728,
+    "w": 96,
+    "h": 34
+   },
+   "anchor": {
+    "x": 22,
+    "y": 34
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-003",
+   "name": "hollow_log",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Hollow log",
+   "file": "sprites/jungle/jungle-prop-003.png",
+   "w": 40,
+   "h": 21,
+   "src": {
+    "x": 266,
+    "y": 299,
+    "w": 40,
+    "h": 21
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1409,
+    "y": 1772,
+    "w": 40,
+    "h": 21
+   },
+   "anchor": {
+    "x": 18,
+    "y": 21
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-013",
+   "name": "red_mushroom_pair",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Tiny red mushroom pair",
+   "file": "sprites/jungle/jungle-plant-013.png",
+   "w": 14,
+   "h": 12,
+   "src": {
+    "x": 331,
+    "y": 308,
+    "w": 14,
+    "h": 12
+   },
+   "atlas": {
+    "index": 0,
+    "x": 286,
+    "y": 1805,
+    "w": 14,
+    "h": 12
+   },
+   "anchor": {
+    "x": 7,
+    "y": 12
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-014",
+   "name": "red_mushroom_cluster",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Red mushroom cluster",
+   "file": "sprites/jungle/jungle-plant-014.png",
+   "w": 27,
+   "h": 22,
+   "src": {
+    "x": 356,
+    "y": 298,
+    "w": 27,
+    "h": 22
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1357,
+    "y": 1772,
+    "w": 27,
+    "h": 22
+   },
+   "anchor": {
+    "x": 14,
+    "y": 22
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-015",
+   "name": "glowing_blue_bulb_plant",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Tall dark plant with glowing blue bulb",
+   "file": "sprites/jungle/jungle-plant-015.png",
+   "w": 59,
+   "h": 63,
+   "src": {
+    "x": 450,
+    "y": 289,
+    "w": 59,
+    "h": 63
+   },
+   "atlas": {
+    "index": 0,
+    "x": 987,
+    "y": 1602,
+    "w": 59,
+    "h": 63
+   },
+   "anchor": {
+    "x": 20,
+    "y": 63
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-004",
+   "name": "canvas_tent",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Canvas tent with wooden frame",
+   "file": "sprites/jungle/jungle-prop-004.png",
+   "w": 112,
+   "h": 73,
+   "src": {
+    "x": 8,
+    "y": 342,
+    "w": 112,
+    "h": 73
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1089,
+    "y": 1519,
+    "w": 112,
+    "h": 73
+   },
+   "anchor": {
+    "x": 53,
+    "y": 73
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-005",
+   "name": "skull_spear_banner",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Tribal skull on spear with red banner",
+   "file": "sprites/jungle/jungle-prop-005.png",
+   "w": 40,
+   "h": 63,
+   "src": {
+    "x": 103,
+    "y": 320,
+    "w": 40,
+    "h": 63
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1048,
+    "y": 1602,
+    "w": 40,
+    "h": 63
+   },
+   "anchor": {
+    "x": 34,
+    "y": 63
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-006",
+   "name": "oil_lantern_post",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Lit oil lantern on post",
+   "file": "sprites/jungle/jungle-prop-006.png",
+   "w": 17,
+   "h": 59,
+   "src": {
+    "x": 165,
+    "y": 325,
+    "w": 17,
+    "h": 59
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1895,
+    "y": 1602,
+    "w": 17,
+    "h": 59
+   },
+   "anchor": {
+    "x": 12,
+    "y": 59
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-016",
+   "name": "blue_flower",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Small blue flower",
+   "file": "sprites/jungle/jungle-plant-016.png",
+   "w": 17,
+   "h": 17,
+   "src": {
+    "x": 198,
+    "y": 335,
+    "w": 17,
+    "h": 17
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1799,
+    "y": 1772,
+    "w": 17,
+    "h": 17
+   },
+   "anchor": {
+    "x": 8,
+    "y": 17
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-plant-017",
+   "name": "white_flower_sprout",
+   "class": "plant",
+   "sheet": "jungle",
+   "description": "Small white flower sprout",
+   "file": "sprites/jungle/jungle-plant-017.png",
+   "w": 21,
+   "h": 19,
+   "src": {
+    "x": 231,
+    "y": 333,
+    "w": 21,
+    "h": 19
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1564,
+    "y": 1772,
+    "w": 21,
+    "h": 19
+   },
+   "anchor": {
+    "x": 10,
+    "y": 19
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-prop-007",
+   "name": "hollow_log_mossy",
+   "class": "prop",
+   "sheet": "jungle",
+   "description": "Hollow mossy log",
+   "file": "sprites/jungle/jungle-prop-007.png",
+   "w": 40,
+   "h": 21,
+   "src": {
+    "x": 266,
+    "y": 331,
+    "w": 40,
+    "h": 21
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1451,
+    "y": 1772,
+    "w": 40,
+    "h": 21
+   },
+   "anchor": {
+    "x": 18,
+    "y": 21
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-rock-001",
+   "name": "crystal_node_blue",
+   "class": "rock",
+   "sheet": "jungle",
+   "description": "Rock node with glowing blue crystals",
+   "file": "sprites/jungle/jungle-rock-001.png",
+   "w": 59,
+   "h": 43,
+   "src": {
+    "x": 196,
+    "y": 372,
+    "w": 59,
+    "h": 43
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1780,
+    "y": 1668,
+    "w": 59,
+    "h": 43
+   },
+   "anchor": {
+    "x": 29,
+    "y": 43
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-rock-002",
+   "name": "crystal_node_green",
+   "class": "rock",
+   "sheet": "jungle",
+   "description": "Rock node with glowing green crystals",
+   "file": "sprites/jungle/jungle-rock-002.png",
+   "w": 59,
+   "h": 43,
+   "src": {
+    "x": 260,
+    "y": 372,
+    "w": 59,
+    "h": 43
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1841,
+    "y": 1668,
+    "w": 59,
+    "h": 43
+   },
+   "anchor": {
+    "x": 29,
+    "y": 43
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-rock-003",
+   "name": "crystal_node_pink",
+   "class": "rock",
+   "sheet": "jungle",
+   "description": "Rock node with glowing pink crystals",
+   "file": "sprites/jungle/jungle-rock-003.png",
+   "w": 59,
+   "h": 43,
+   "src": {
+    "x": 324,
+    "y": 372,
+    "w": 59,
+    "h": 43
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1902,
+    "y": 1668,
+    "w": 59,
+    "h": 43
+   },
+   "anchor": {
+    "x": 29,
+    "y": 43
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-rock-004",
+   "name": "ore_rock_orange",
+   "class": "rock",
+   "sheet": "jungle",
+   "description": "Rock with orange ore deposits",
+   "file": "sprites/jungle/jungle-rock-004.png",
+   "w": 58,
+   "h": 48,
+   "src": {
+    "x": 389,
+    "y": 368,
+    "w": 58,
+    "h": 48
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1299,
+    "y": 1668,
+    "w": 58,
+    "h": 48
+   },
+   "anchor": {
+    "x": 25,
+    "y": 48
+   },
+   "shadow": false
+  },
+  {
+   "id": "jungle-rock-005",
+   "name": "crystal_node_corrupted",
+   "class": "rock",
+   "sheet": "jungle",
+   "description": "Corrupted rock node with purple crystals",
+   "file": "sprites/jungle/jungle-rock-005.png",
+   "w": 42,
+   "h": 52,
+   "src": {
+    "x": 460,
+    "y": 364,
+    "w": 42,
+    "h": 52
+   },
+   "atlas": {
+    "index": 0,
+    "x": 865,
+    "y": 1668,
+    "w": 42,
+    "h": 52
+   },
+   "anchor": {
+    "x": 19,
+    "y": 52
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-001",
+   "name": "water_frame_01",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 1 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-001.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 0,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-002",
+   "name": "water_frame_02",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 2 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-002.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 160,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 324,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-003",
+   "name": "water_frame_03",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 3 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-003.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 320,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 646,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-004",
+   "name": "water_frame_04",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 4 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-004.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 480,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 968,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-005",
+   "name": "water_frame_05",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 5 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-005.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 640,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1290,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-006",
+   "name": "water_frame_06",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 6 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-006.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 800,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1612,
+    "y": 665,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-007",
+   "name": "water_frame_07",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 7 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-007.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 960,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-008",
+   "name": "water_frame_08",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 8 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-008.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1120,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 324,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-009",
+   "name": "water_frame_09",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 9 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-009.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1280,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 646,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-010",
+   "name": "water_frame_10",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 10 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-010.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1440,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 968,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-011",
+   "name": "water_frame_11",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 11 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-011.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1600,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1290,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-012",
+   "name": "water_frame_12",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 12 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-012.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1760,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1612,
+    "y": 795,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-013",
+   "name": "water_frame_13",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 13 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-013.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 1920,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-014",
+   "name": "water_frame_14",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 14 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-014.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2080,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 324,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-015",
+   "name": "water_frame_15",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 15 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-015.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2240,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 646,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-016",
+   "name": "water_frame_16",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 16 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-016.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2400,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 968,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-017",
+   "name": "water_frame_17",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 17 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-017.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2560,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1290,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-018",
+   "name": "water_frame_18",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 18 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-018.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2720,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 1612,
+    "y": 925,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-019",
+   "name": "water_frame_19",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 19 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-019.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 2880,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 2,
+    "y": 1055,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-020",
+   "name": "water_frame_20",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 20 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-020.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 3040,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 324,
+    "y": 1055,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  },
+  {
+   "id": "water-water-021",
+   "name": "water_frame_21",
+   "class": "water",
+   "sheet": "water",
+   "description": "Animated deep-water texture, frame 21 of 21 (tileable horizontally)",
+   "file": "sprites/water/water-water-021.png",
+   "w": 320,
+   "h": 128,
+   "src": {
+    "x": 0,
+    "y": 3200,
+    "w": 320,
+    "h": 128
+   },
+   "atlas": {
+    "index": 0,
+    "x": 646,
+    "y": 1055,
+    "w": 320,
+    "h": 128
+   },
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "shadow": false
+  }
+ ]
+}

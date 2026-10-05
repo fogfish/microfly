@@ -1,17 +1,10 @@
-// Draws the visible part of the world on a 2D canvas.
+// Draws the composed scene and the flies on a 2D canvas.
 //
-// Layers, bottom to top:
-//   1. Base terrain. Opaque fill on every visible cell, so no transparent
-//      pixel ever shows the page background (BUG-001).
-//   2. Group overlays. Terrain with a group is drawn with the edge tile picked
-//      from its neighbours (autotile.js), so transparent edge pixels reveal the base.
-//   3. Objects, sorted by y, drawn at their own sprite size, centred in their
-//      cell and bottom-aligned.
-//
-// Every cell edge is rounded to a whole device pixel, so neighbouring tiles
-// share an exact boundary and no seam shows at any zoom.
+// The scene is one bitmap (world/compose.js), so each frame copies a window of it. Flies are drawn
+// on top, centred on their continuous position in cells. Zoom is an integer, so every art pixel is
+// a whole number of device pixels, and the window is copied with smoothing off (research R5).
 
-import { openMask, pickEdge } from '../world/autotile.js';
+import { CELL_PX } from '../world/layout.js';
 
 export function createRenderer(canvas, sprites) {
   const ctx = canvas.getContext('2d');
@@ -29,68 +22,34 @@ export function createRenderer(canvas, sprites) {
     canvas.style.height = `${height}px`;
   }
 
-  // state: { camera, world: { width, height, tileSize, grid, terrain, groups, base, objects } }
-  //   groups[terrainIndex] is { fill, edges } with sprite ids, or undefined
-  //   objects must already be sorted by y
-  function render({ camera, world }) {
-    const { width, height, tileSize: ts, grid, terrain, groups, base, objects } = world;
+  // state: { camera, scene, flies }. scene is the composed canvas. camera.x, y are in scene px.
+  function render({ camera, scene, flies = [] }) {
     const z = camera.zoom;
-    const left = camera.x;
-    const top = camera.y;
+    const scale = z * dpr;
 
-    // Draw in device pixels so each rounded edge lands on an exact pixel
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const scale = z * dpr;
-    const toDeviceX = (wx) => Math.round((wx - left) * scale);
-    const toDeviceY = (wy) => Math.round((wy - top) * scale);
-
-    const draw = (s, dx0, dy0, dx1, dy1) => {
-      ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, dx0, dy0, dx1 - dx0, dy1 - dy0);
-    };
-
-    const x0 = Math.max(0, Math.floor(left / ts));
-    const y0 = Math.max(0, Math.floor(top / ts));
-    const x1 = Math.min(width - 1, Math.floor((left + cssWidth / z) / ts));
-    const y1 = Math.min(height - 1, Math.floor((top + cssHeight / z) / ts));
-
-    const baseSprite = sprites.get(terrain[base].sprite);
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        draw(baseSprite, toDeviceX(x * ts), toDeviceY(y * ts), toDeviceX((x + 1) * ts), toDeviceY((y + 1) * ts));
-      }
+    // Whole source pixels, so the copy starts on an art pixel. The sub-pixel rest is moved on screen.
+    const sx = Math.max(0, Math.floor(camera.x));
+    const sy = Math.max(0, Math.floor(camera.y));
+    const sw = Math.min(scene.width - sx, Math.ceil(cssWidth / z) + 1);
+    const sh = Math.min(scene.height - sy, Math.ceil(cssHeight / z) + 1);
+    const dx = Math.round((sx - camera.x) * scale);
+    const dy = Math.round((sy - camera.y) * scale);
+    if (sw > 0 && sh > 0) {
+      ctx.drawImage(scene, sx, sy, sw, sh, dx, dy, Math.round(sw * scale), Math.round(sh * scale));
     }
 
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const t = grid[y * width + x];
-        if (t === base) continue;
-        const group = groups[t];
-        const spriteId = group ? pickEdge(group, openMask(grid, width, height, x, y)) : terrain[t].sprite;
-        draw(sprites.get(spriteId), toDeviceX(x * ts), toDeviceY(y * ts), toDeviceX((x + 1) * ts), toDeviceY((y + 1) * ts));
-      }
-    }
+    const toDeviceX = (wx) => Math.round((wx * CELL_PX - camera.x) * scale);
+    const toDeviceY = (wy) => Math.round((wy * CELL_PX - camera.y) * scale);
 
-    // Margin of one cell: a sprite drawn in a cell may rise above it
-    for (const o of objects) {
-      if (o.x < x0 - 1 || o.x > x1 + 1 || o.y < y0 - 1 || o.y > y1 + 1) continue;
-      const s = sprites.get(o.sprite);
-      const dx0 = toDeviceX(o.x * ts + (ts - s.sw) / 2);
-      const dy0 = toDeviceY((o.y + 1) * ts - s.sh);
-      const dx1 = dx0 + Math.round(s.sw * scale);
-      const dy1 = dy0 + Math.round(s.sh * scale);
-      draw(s, dx0, dy0, dx1, dy1);
-    }
-
-    // Flies are drawn after objects, centred on their continuous position in tiles
-    for (const f of world.flies ?? []) {
-      if (f.body.x < x0 - 1 || f.body.x > x1 + 1 || f.body.y < y0 - 1 || f.body.y > y1 + 1) continue;
+    for (const f of flies) {
       const s = sprites.get(f.sprite);
-      const dx0 = toDeviceX(f.body.x * ts - s.sw / 2);
-      const dy0 = toDeviceY(f.body.y * ts - s.sh / 2);
-      draw(s, dx0, dy0, dx0 + Math.round(s.sw * scale), dy0 + Math.round(s.sh * scale));
+      const x0 = toDeviceX(f.body.x) - Math.round((s.sw * scale) / 2);
+      const y0 = toDeviceY(f.body.y) - Math.round((s.sh * scale) / 2);
+      ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, x0, y0, Math.round(s.sw * scale), Math.round(s.sh * scale));
     }
   }
 

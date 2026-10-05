@@ -1,9 +1,13 @@
-// Bootstrap: load config, validate, load sprites, then start the world.
-// On any error, show the error panel and draw nothing.
+// Bootstrap: load config → validate → load catalogue and sprites → compose → start the renderer.
+// On any error, show the error panel and draw nothing (FR-021).
 
 import { loadWorldConfig } from './config/load-world.js';
-import { validateConfig } from './world/validate.js';
-import { generateTerrain, placeObjects } from './world/generate.js';
+import { validateConfig, validateArt } from './world/validate.js';
+import { loadCatalog } from './world/catalog.js';
+import { buildLogic, CELL_PX } from './world/layout.js';
+import { groundPlan } from './world/ground.js';
+import { shorePlacements } from './world/shore.js';
+import { composeScene } from './world/compose.js';
 import { loadSprites } from './render/sprites.js';
 import { createCamera, resize as resizeCamera } from './render/camera.js';
 import { createRenderer } from './render/renderer.js';
@@ -30,7 +34,15 @@ async function boot() {
   const errors = validateConfig(loaded.config);
   if (errors.length > 0) return fail(errors);
 
-  const { sprites, errors: spriteErrors } = await loadSprites(loaded.config.sprites, APP_ROOT);
+  // The art names are checked once the catalogue is loaded, before any sprite is drawn
+  const catalogUrl = new URL(loaded.config.atlas, APP_ROOT);
+  const { catalog, errors: catalogErrors } = await loadCatalog(catalogUrl);
+  if (catalogErrors.length > 0) return fail(catalogErrors);
+
+  const artErrors = validateArt(loaded.config, catalog);
+  if (artErrors.length > 0) return fail(artErrors);
+
+  const { sprites, errors: spriteErrors } = await loadSprites(catalog, new URL('../', catalogUrl), loaded.config.sprites);
   if (spriteErrors.length > 0) return fail(spriteErrors);
 
   // A snapshot brain is read before anything starts. A bad file shows the error panel and no fly starts.
@@ -44,34 +56,26 @@ async function boot() {
     }
   }
 
-  startWorld({ config: loaded.config, sprites, snapshot });
+  startWorld({ config: loaded.config, catalog, sprites, snapshot });
 }
 
-function startWorld({ config, sprites, snapshot }) {
+function startWorld({ config, catalog, sprites, snapshot }) {
   hideErrors();
 
   const canvas = document.getElementById('world');
-  const { width, height } = config.world;
-  const tileSize = config.world.tileSize ?? 16;
+  const logic = buildLogic(config, catalog);
+  const scene = composeScene({
+    config,
+    sprites,
+    logic,
+    ground: groundPlan(config, catalog),
+    shores: shorePlacements(config),
+  });
 
-  const grid = generateTerrain(config);
-  const { objects, report } = placeObjects(config, grid);
-  for (const [id, missing] of Object.entries(report.shortfall)) {
-    console.warn(`object rule "${id}": placed ${report.placed[id]}, ${missing} short of count`);
-  }
-  // Sorted by y so that objects lower on the screen draw over those above
-  objects.sort((a, b) => a.y - b.y);
-
-  // Tile groups indexed by terrain index, so the renderer looks them up per cell
-  const groups = config.terrain.map((t) => config.groups?.[t.id]);
-  const base = config.terrain.findIndex((t) => t.base === true);
-
-  // world.flies is added below, after the flies are spawned
-  const world = { width, height, tileSize, grid, terrain: config.terrain, groups, base, objects };
   const camera = createCamera({
-    worldWidthPx: width * tileSize,
-    worldHeightPx: height * tileSize,
-    zoom: config.camera.zoom,
+    worldWidthPx: scene.width,
+    worldHeightPx: scene.height,
+    zoom: config.zoom,
     viewportWidth: innerWidth,
     viewportHeight: innerHeight,
   });
@@ -79,19 +83,20 @@ function startWorld({ config, sprites, snapshot }) {
   const renderer = createRenderer(canvas, sprites);
   renderer.resize(innerWidth, innerHeight);
 
+  // Flies are optional. Without a `flies` section the world is drawn with no fly.
+  const panel = document.getElementById('fly-panel');
+  let flies = [];
+  let records = [];
+  let selectedId = null;
+
   let frame = 0;
   const requestDraw = () => {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      renderer.render({ camera, world });
+      renderer.render({ camera, scene, flies });
     });
   };
-
-  // Flies are optional. Without a `flies` section the world is exactly as feature 001.
-  const panel = document.getElementById('fly-panel');
-  let records = [];
-  let selectedId = null;
 
   const updateFlyPanel = () => renderFlyPanel(panel, records, selectedId, (id) => {
     selectedId = id;
@@ -104,9 +109,8 @@ function startWorld({ config, sprites, snapshot }) {
 
   if (config.flies !== undefined) {
     try {
-      const flyWorld = buildWorld(config, grid, objects);
-      const flies = spawnFlies(config, flyWorld);
-      world.flies = flies;
+      const flyWorld = buildWorld(config, logic);
+      flies = spawnFlies(config, flyWorld);
       records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate, snapshot });
     } catch (e) {
       console.error(`flies: ${e.message}`);
@@ -114,12 +118,12 @@ function startWorld({ config, sprites, snapshot }) {
     }
   }
 
-  // Click selects the nearest fly within one tile. Clicking empty ground clears the selection.
-  const onWorldClick = (tileX, tileY) => {
+  // Click selects the nearest fly within one cell. Clicking empty ground clears the selection.
+  const onWorldClick = (cellX, cellY) => {
     let best = null;
     let bestDistance = 1;
     for (const r of records) {
-      const d = Math.hypot(r.state.body.x - tileX, r.state.body.y - tileY);
+      const d = Math.hypot(r.state.body.x - cellX, r.state.body.y - cellY);
       if (d < bestDistance) {
         best = r;
         bestDistance = d;
@@ -129,7 +133,7 @@ function startWorld({ config, sprites, snapshot }) {
     updateFlyPanel();
   };
 
-  attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize });
+  attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize: CELL_PX });
 
   window.addEventListener('resize', () => {
     renderer.resize(innerWidth, innerHeight);

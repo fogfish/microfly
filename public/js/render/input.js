@@ -1,10 +1,9 @@
-// Mouse input: drag to pan, wheel to zoom at the cursor, and click to report a world tile.
+// Mouse input: drag to pan, wheel to step the zoom at the cursor, and click to report a world tile.
 // Calls onChange after each camera change so the caller can schedule a redraw.
 // options.onClick(tileX, tileY) runs on a press and release within CLICK_SLOP px; needs options.tileSize.
 
 import { panBy, zoomAt } from './camera.js';
 
-const ZOOM_STEP = 1.1;
 const CLICK_SLOP = 4;
 
 export function attachInput(canvas, camera, onChange, options = {}) {
@@ -50,15 +49,14 @@ export function attachInput(canvas, camera, onChange, options = {}) {
     endDrag(e);
   });
 
-  // Magnitude of deltaY is ignored, so a fast wheel does not jump past the limits
+  // Each wheel event moves one integer zoom step. The size of deltaY is ignored.
   canvas.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
       if (e.deltaY === 0) return;
-      const factor = e.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
       const rect = canvas.getBoundingClientRect();
-      zoomAt(camera, factor, e.clientX - rect.left, e.clientY - rect.top);
+      zoomAt(camera, e.deltaY > 0 ? -1 : 1, e.clientX - rect.left, e.clientY - rect.top);
       onChange();
     },
     { passive: false },

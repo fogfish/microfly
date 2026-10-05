@@ -1,5 +1,5 @@
-// Pure camera math: pan, zoom at the cursor, clamp to the world. No DOM.
-// State: { x, y, zoom } in world px and screen px per world px.
+// Pure camera math: pan, integer zoom steps at the cursor, clamp to the world. No DOM.
+// State: { x, y, zoom } in world px and screen px per world px. zoom is a whole number.
 
 export function createCamera({ worldWidthPx, worldHeightPx, zoom, viewportWidth, viewportHeight }) {
   const cam = {
@@ -27,11 +27,13 @@ export function panBy(cam, dxScreen, dyScreen) {
   return cam;
 }
 
-// Multiply zoom by factor, keeping the world point under (sx, sy) fixed
-export function zoomAt(cam, factor, sx, sy) {
+// Move zoom by whole steps (direction +1 zooms in, -1 out), keeping the world point under (sx, sy)
+// fixed. Zoom is always an integer, so each art pixel is a whole number of device pixels (FR-009).
+export function zoomAt(cam, direction, sx, sy) {
   const wx = cam.x + sx / cam.zoom;
   const wy = cam.y + sy / cam.zoom;
-  cam.zoom = Math.min(cam.maxZoom, Math.max(cam.minZoom, cam.zoom * factor));
+  const next = cam.zoom + Math.sign(direction);
+  cam.zoom = Math.min(cam.maxZoom, Math.max(cam.minZoom, next));
   cam.x = wx - sx / cam.zoom;
   cam.y = wy - sy / cam.zoom;
   clamp(cam);

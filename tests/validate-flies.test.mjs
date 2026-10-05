@@ -25,12 +25,20 @@ test('outDegree equal to neuronCount is rejected with the contract message', () 
   assert.equal(errors[0].message, 'must be an integer from 1 to 39 (neuronCount - 1)');
 });
 
-test('honey is rejected as a stimulus because it is not in the fruit list', () => {
+test('apple is rejected as a stimulus: it is not an edible kind', () => {
   const c = load();
-  c.flies.stimulus.objects = ['apple', 'honey'];
+  c.flies.stimulus.objects = ['flower', 'apple'];
   const errors = validateConfig(c);
   assert.deepEqual(paths(errors), ['flies.stimulus.objects[1]']);
-  assert.equal(errors[0].message, '"honey" is not an edible object rule');
+  assert.equal(errors[0].message, '"apple" is not an edible kind');
+});
+
+test('flower is accepted as a stimulus kind and honey is not (BUG-001: honey removed)', () => {
+  const c = load();
+  c.flies.stimulus.objects = ['flower'];
+  assert.deepEqual(validateConfig(c), []);
+  c.flies.stimulus.objects = ['honey', 'flower'];
+  assert.deepEqual(paths(validateConfig(c)), ['flies.stimulus.objects[0]']);
 });
 
 test('an unknown sprite is rejected', () => {
