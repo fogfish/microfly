@@ -1,16 +1,19 @@
 // Browser host for the flies. One module Worker per toy fly, lockstep ticks per fly, pause while
-// the tab is hidden, and per-fly errors. Pure logic lives in body.js, stimulus.js and protocol.js;
-// this file only wires them to Workers and the clock.
+// the tab is hidden, and per-fly errors. Pure logic lives in body.js, stimulus.js, protocol.js and
+// activity.js; this file only wires them to Workers and the clock.
 
 import * as P from '../brain/protocol.js';
 import { parseSnapshot } from '../brain/snapshot.js';
+import { BASELINE_CAPABILITIES, TOY_CAPABILITIES } from '../brain/capabilities.js';
+import { createActivity } from '../brain/activity.js';
+import { neuronPositions } from '../brain/layout.js';
 import { stepBody } from './body.js';
 import { createBaselineMotor } from './baseline.js';
 import { senseAt } from './stimulus.js';
 import { resolveFlies } from './fly-config.js';
 
 const HISTORY = 200;
-const EMPTY = new Uint8Array(0);
+const NO_SPIKES = new Uint32Array(0);
 const WORKER_URL = new URL('../brain/fly.worker.js', import.meta.url);
 const MODE_LABEL = {
   toy: 'toy (synthetic test fixture)',
@@ -19,7 +22,8 @@ const MODE_LABEL = {
 
 // Fetches and checks the snapshot named by flies.brain.snapshot, before any fly starts (FR-019, FR-021).
 // root is the web root the path is relative to. Throws an Error that names the file and the problem.
-// Returns { url, release, createdAt, neuronCount } for the workers and the panel.
+// Returns { url, release, createdAt, neuronCount, capabilities, neurons } for the workers and the panel.
+// neurons is { soma, superclass } per neuron, from the header; a null soma gets a seeded position.
 export async function loadSnapshot(brain, root) {
   const path = brain.snapshot;
   const url = new URL(path, root);
@@ -37,23 +41,29 @@ export async function loadSnapshot(brain, root) {
   } catch (e) {
     throw new Error(`snapshot ${path} is not usable: ${e.message}`);
   }
-  for (const neuron of brain.telemetry ?? []) {
-    if (neuron >= snapshot.neuronCount) {
-      throw new Error(`flies.brain.telemetry ${neuron} is not below the snapshot's neuronCount ${snapshot.neuronCount}`);
-    }
-  }
   const { provenance } = snapshot.manifest;
   return {
     url: url.href,
     release: provenance?.datasetRelease ?? 'unknown release',
     createdAt: provenance?.createdAt ?? 'unknown date',
     neuronCount: snapshot.neuronCount,
+    capabilities: snapshot.capabilities,
+    neurons: snapshot.manifest.neurons.map((n) => ({ soma: n.soma ?? null, superclass: n.superclass ?? null })),
   };
+}
+
+// The declaration a fly's brain makes (channel-declaration.md): the snapshot's for connectome flies,
+// the toy declaration or its override for toy flies, and the baseline one for random-walk flies.
+function declarationOf(state, f, snapshot) {
+  if (state.mode === 'baseline') return BASELINE_CAPABILITIES;
+  if (snapshot) return snapshot.capabilities;
+  return f.brain?.capabilities ?? TOY_CAPABILITIES;
 }
 
 // world: from buildWorld. flies: from spawnFlies. snapshot: from loadSnapshot, or null for toy brains.
 // Returns one FlyRecord per fly.
-// FlyRecord: { state, worker, status, error, pending, history, telemetry, motorSource, brainLabel }
+// FlyRecord: { state, worker, status, error, pending, history, motorSource, brainLabel, capabilities,
+//              checks, neuronCount, activity, positions }
 export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
   const f = resolveFlies(config);
   const brainLabel = snapshot
@@ -74,28 +84,58 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   };
   const elapsed = createClock();
 
-  const records = flies.map((state) => ({
-    state,
-    worker: null,
-    status: 'starting',
-    error: null,
-    pending: false,
-    history: [],
-    telemetry: f.brain?.telemetry ?? [],
-    motorSource: state.mode === 'baseline' ? createBaselineMotor(state.brainSeed) : null,
-    brainLabel: state.mode === 'toy' && brainLabel ? brainLabel : MODE_LABEL[state.mode],
-  }));
+  // Soma positions are per brain, not per tick. A connectome brain shares one layout across its flies.
+  const layouts = new Map();
+  const positionsFor = (state, neuronCount) => {
+    const key = snapshot && state.mode === 'toy' ? 'snapshot' : `toy:${state.brainSeed}`;
+    if (!layouts.has(key)) {
+      const neurons = snapshot && state.mode === 'toy'
+        ? snapshot.neurons
+        : Array.from({ length: neuronCount }, () => ({ soma: null }));
+      layouts.set(key, neuronPositions(neurons, state.brainSeed));
+    }
+    return layouts.get(key);
+  };
+
+  const records = flies.map((state) => {
+    const capabilities = declarationOf(state, f, snapshot);
+    const neuronCount = state.mode === 'baseline'
+      ? 0
+      : (snapshot && state.mode === 'toy' ? snapshot.neuronCount : f.brain?.neuronCount);
+    const outputs = capabilities.channels.outputs;
+    return {
+      state,
+      worker: null,
+      status: 'starting',
+      error: null,
+      pending: false,
+      history: [],
+      motorSource: state.mode === 'baseline' ? createBaselineMotor(state.brainSeed) : null,
+      brainLabel: state.mode === 'toy' && brainLabel ? brainLabel : MODE_LABEL[state.mode],
+      capabilities,
+      checks: {
+        neuronCount,
+        outputCount: outputs.length,
+        leftIndex: outputs.findIndex((ch) => ch.drive === 'left'),
+        rightIndex: outputs.findIndex((ch) => ch.drive === 'right'),
+      },
+      neuronCount,
+      activity: state.mode === 'baseline' ? null : createActivity(neuronCount),
+      positions: state.mode === 'baseline' ? null : positionsFor(state, neuronCount),
+    };
+  });
 
   const senseOf = (s) => senseAt(points, s.body.x, s.body.y, f.stimulus);
 
-  // Applies one movement step for the fly's current tick, then records it for the readout
-  function applyTick(r, { sensory, left, right, selected }) {
+  // Applies one movement step for the fly's current tick, then records it for the panel
+  function applyTick(r, { sensory, left, right, outputs, spikes }) {
     const s = r.state;
     s.sensory = sensory;
     s.motor = { left, right };
     stepBody(s.body, s.motor, env);
 
-    r.history.push({ tick: s.tick, sensory, left, right, selected });
+    r.activity?.recordTick(spikes, performance.now());
+    r.history.push({ tick: s.tick, sensory, left, right, outputs, spikes });
     if (r.history.length > HISTORY) r.history.shift();
     s.tick++;
     r.pending = false;
@@ -118,13 +158,19 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
         r.status = 'running';
         onUpdate();
         return;
-      case 'motor':
+      case 'motor': {
         if (msg.tick !== r.state.tick) {
           fail(r, `motor tick ${msg.tick} does not match expected tick ${r.state.tick}`);
           return;
         }
+        const problem = P.validateMessage(msg, 'toHost') ?? P.validateMotor(msg, r.checks);
+        if (problem) {
+          fail(r, problem);
+          return;
+        }
         applyTick(r, msg);
         return;
+      }
       case 'error':
         fail(r, msg.message);
         return;
@@ -145,7 +191,9 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   function dispatch(r) {
     const s = r.state;
     if (s.mode === 'baseline') {
-      applyTick(r, { ...r.motorSource.next(), sensory: senseOf(s), selected: EMPTY });
+      const { left, right } = r.motorSource.next();
+      const outputs = Float32Array.from(r.capabilities.channels.outputs, (ch) => (ch.drive === 'left' ? left : right));
+      applyTick(r, { sensory: senseOf(s), left, right, outputs, spikes: NO_SPIKES });
       return;
     }
     r.pending = true;

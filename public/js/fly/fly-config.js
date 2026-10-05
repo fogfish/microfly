@@ -30,7 +30,6 @@ function resolveBrain(mode, brain) {
   if (brain?.snapshot === undefined) return { ...BRAIN_DEFAULTS, ...brain };
   return {
     motorSmoothing: BRAIN_DEFAULTS.motorSmoothing,
-    telemetry: BRAIN_DEFAULTS.telemetry,
     ...brain,
   };
 }

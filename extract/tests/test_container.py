@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 import numpy as np
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
@@ -15,6 +16,17 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from malecns_brain.container import read_container, write_container  # noqa: E402
 
 FIXTURE = os.path.normpath(os.path.join(HERE, "..", "..", "tests", "fixtures", "synthetic-smallest.brain"))
+
+CAPABILITIES = {
+    "signals": ["spikes"],
+    "channels": {
+        "inputs": [{"id": "food-odour", "label": "Food odour", "side": "both", "neuron": 0, "range": [0, 1]}],
+        "outputs": [
+            {"id": "left-motor", "label": "Left motor", "side": "L", "neuron": 1, "range": [0, 1], "drive": "left"},
+            {"id": "right-motor", "label": "Right motor", "side": "R", "neuron": 2, "range": [0, 1], "drive": "right"},
+        ],
+    },
+}
 
 
 def header_for(neurons, edge_count):
@@ -27,6 +39,7 @@ def header_for(neurons, edge_count):
         "neuronCount": len(neurons),
         "edgeCount": edge_count,
         "neurons": neurons,
+        "capabilities": json.loads(json.dumps(CAPABILITIES)),
     }
 
 
@@ -49,14 +62,22 @@ def read_bytes(path):
         return handle.read()
 
 
-def rebuild(data, mutate):
-    """Decode a container, let `mutate` change the header dict, and write it back with fresh sections."""
+def rebuild(data, mutate, checked=True):
+    """Decode a container, let `mutate` change the header dict, and write it back with fresh sections.
+
+    With checked=False the writer's own capability check is skipped, so a malformed declaration can be
+    written and then rejected by the reader, which is the case under test.
+    """
     result = read_container(data)
     header = {k: v for k, v in result["header"].items() if k != "sections"}
     mutate(header)
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "rebuilt.brain")
-        write_container(path, header, result["offsets"], result["targets"], result["weights"], result["synapses"])
+        if checked:
+            write_container(path, header, result["offsets"], result["targets"], result["weights"], result["synapses"])
+        else:
+            with mock.patch("malecns_brain.container.validate_capabilities"):
+                write_container(path, header, result["offsets"], result["targets"], result["weights"], result["synapses"])
         return read_bytes(path)
 
 
@@ -91,7 +112,7 @@ class ContainerTest(unittest.TestCase):
 
     def test_layout_prefix(self):
         self.assertEqual(self.data[:4], b"MFBR")
-        self.assertEqual(struct.unpack("<I", self.data[4:8])[0], 2)
+        self.assertEqual(struct.unpack("<I", self.data[4:8])[0], 3)
         header_length = struct.unpack("<I", self.data[8:12])[0]
         self.assertEqual(header_length % 8, 0)
         self.assertEqual(len(self.data) % 4, 0)
@@ -103,9 +124,35 @@ class ContainerTest(unittest.TestCase):
     def test_rejects_short_file(self):
         self.assertRejects(self.data[:8], "not a brain snapshot")
 
-    def test_rejects_version_3(self):
-        bad = self.data[:4] + struct.pack("<I", 3) + self.data[8:]
-        self.assertRejects(bad, "unsupported snapshot version 3; this build supports 2")
+    def test_rejects_version_2(self):
+        bad = self.data[:4] + struct.pack("<I", 2) + self.data[8:]
+        self.assertRejects(bad, "unsupported snapshot version 2; this build supports 3")
+
+    def test_rejects_version_4(self):
+        bad = self.data[:4] + struct.pack("<I", 4) + self.data[8:]
+        self.assertRejects(bad, "unsupported snapshot version 4; this build supports 3")
+
+    def test_round_trips_capabilities(self):
+        self.assertEqual(read_container(self.data)["header"]["capabilities"], CAPABILITIES)
+
+    def test_rejects_missing_capabilities(self):
+        def drop(header):
+            del header["capabilities"]
+        self.assertRejects(rebuild(self.data, drop, checked=False), "snapshot capabilities are missing")
+
+    def test_rejects_malformed_channel(self):
+        def bad_label(header):
+            header["capabilities"]["channels"]["inputs"][0]["label"] = ""
+        self.assertRejects(rebuild(self.data, bad_label, checked=False),
+                           "snapshot channel food-odour is malformed: label")
+
+    def test_writer_refuses_malformed_capabilities(self):
+        header = header_for([neuron(0, "sensory"), neuron(1, "left"), neuron(2, "right"), neuron(3, "interneuron")], 2)
+        header["capabilities"]["channels"]["outputs"][0]["drive"] = "right"
+        with self.assertRaises(ValueError) as caught:
+            write_container(os.path.join(self.directory.name, "bad.brain"), header,
+                            [0, 2, 2, 2, 2], [3, 1], [1.0, -0.2], [5, 1])
+        self.assertEqual(str(caught.exception), "snapshot outputs must have exactly one left and one right drive")
 
     def test_rejects_truncated_header(self):
         bad = self.data[:8] + struct.pack("<I", 100000 & ~7) + self.data[12:]

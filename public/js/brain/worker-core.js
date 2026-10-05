@@ -1,4 +1,4 @@
-// Pure message handler for one fly's worker (contracts/worker-protocol.md). No Worker global,
+// Pure message handler for one fly's worker (contracts/worker-protocol-v2.md). No Worker global,
 // so Node tests exercise the same code the browser runs through fly.worker.js.
 
 import { createFlyBrain } from './fly-brain.js';
@@ -27,7 +27,7 @@ export function createWorkerCore() {
         }
         flyId = msg.flyId;
         lastTick = -1;
-        return reply(ready({ flyId, neuronCount: brain.neuronCount }));
+        return reply(ready({ flyId, neuronCount: brain.neuronCount, capabilities: brain.capabilities }));
       }
 
       case 'sense': {
@@ -38,7 +38,9 @@ export function createWorkerCore() {
         }
         const out = brain.step(msg.sensory);
         lastTick = msg.tick;
-        const m = motor({ tick: msg.tick, sensory: out.sensory, left: out.left, right: out.right, selected: out.selected });
+        const m = motor({
+          tick: msg.tick, sensory: out.sensory, left: out.left, right: out.right, outputs: out.outputs, spikes: out.spikes,
+        });
         return { reply: m, transfer: transferables(m) };
       }
 

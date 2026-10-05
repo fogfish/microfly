@@ -12,14 +12,13 @@ export function createRenderer(canvas, sprites) {
   let cssHeight = 0;
   let dpr = 1;
 
+  // Sets the drawing buffer for a CSS box of width × height. The box itself comes from the CSS grid.
   function resize(width, height) {
     dpr = window.devicePixelRatio || 1;
     cssWidth = width;
     cssHeight = height;
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
   }
 
   // state: { camera, scene, flies }. scene is the composed canvas. camera.x, y are in scene px.

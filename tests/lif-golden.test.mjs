@@ -13,6 +13,6 @@ test('toy brain reproduces the golden trace tick by tick', () => {
   for (let t = 0; t < golden.left.length; t++) {
     assert.equal(trace.left[t], golden.left[t], `left differs at tick ${t}`);
     assert.equal(trace.right[t], golden.right[t], `right differs at tick ${t}`);
-    assert.deepEqual(trace.selected[t], golden.selected[t], `selected differs at tick ${t}`);
+    assert.deepEqual(trace.spikes[t], golden.spikes[t], `spikes differ at tick ${t}`);
   }
 });

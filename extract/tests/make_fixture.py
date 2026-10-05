@@ -117,6 +117,16 @@ CONFIG = {
     "minInterneurons": 2,
     "maxInterneurons": 2,
     "expectedNeuronCount": 5,
+    "capabilities": {
+        "signals": ["spikes"],
+        "channels": {
+            "inputs": [{"id": "food-odour", "label": "Food odour", "side": "both", "neuron": 0, "range": [0, 1]}],
+            "outputs": [
+                {"id": "left-motor", "label": "Left motor", "side": "L", "neuron": 1, "range": [0, 1], "drive": "left"},
+                {"id": "right-motor", "label": "Right motor", "side": "R", "neuron": 2, "range": [0, 1], "drive": "right"},
+            ],
+        },
+    },
 }
 
 
@@ -200,6 +210,7 @@ def write_fixture_container(path):
         "neuronCount": len(neurons),
         "edgeCount": len(targets),
         "neurons": neurons,
+        "capabilities": CONFIG["capabilities"],
     }
     return write_container(path, header, offsets, targets, weights, synapses)
 

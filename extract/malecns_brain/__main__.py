@@ -32,6 +32,7 @@ def build_header(config, brain, created_at):
         "neuronCount": len(brain["neurons"]),
         "edgeCount": brain["edgeCount"],
         "neurons": brain["neurons"],
+        "capabilities": config["capabilities"],
     }
 
 

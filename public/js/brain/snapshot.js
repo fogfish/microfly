@@ -1,9 +1,11 @@
-// Brain container, version 2 (specs/003-malecns-brain-extractor/contracts/snapshot-format.md).
-// Pure: no DOM, no fetch. The browser and Node both parse through parseSnapshot.
+// Brain container, version 3 (specs/006-fly-status-panel/contracts/snapshot-format-v3.md, which amends
+// the 003 format). Pure: no DOM, no fetch. The browser and Node both parse through parseSnapshot.
 // The rules and messages match extract/malecns_brain/container.py.
 
+import { validateCapabilities } from './capabilities.js';
+
 const MAGIC = 'MFBR';
-const FORMAT_VERSION = 2;
+const FORMAT_VERSION = 3;
 const PREFIX = 12;
 const ROLES = ['sensory', 'left', 'right'];
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
@@ -92,6 +94,8 @@ export function parseSnapshot(arrayBuffer) {
   }
   checkRoles(neurons, neuronCount);
   checkPositions(neurons);
+  const [capabilityError] = validateCapabilities(manifest.capabilities, neuronCount);
+  if (capabilityError) reject(capabilityError);
 
   const { table, end } = sectionTable(headerLength, neuronCount, edgeCount);
   if (!sections || typeof sections !== 'object') reject('snapshot section sections is out of bounds');
@@ -126,12 +130,14 @@ export function parseSnapshot(arrayBuffer) {
     if (!Number.isFinite(weights[k])) reject('snapshot CSR is inconsistent: a weight is not finite');
   }
 
-  return { manifest, neuronCount, edgeCount, offsets, targets, weights, synapses };
+  return {
+    manifest, neuronCount, edgeCount, offsets, targets, weights, synapses, capabilities: manifest.capabilities,
+  };
 }
 
 // Size-matched random control (research R9): a toy brain with the snapshot's neuron count and its
 // mean out-degree (edges ÷ neurons, rounded, kept between 1 and neuronCount − 1). Shared settings
-// (motorSmoothing, telemetry, lif, inhibitoryFraction) come from base, and snapshot is dropped.
+// (motorSmoothing, lif, inhibitoryFraction) come from base, and snapshot is dropped.
 export function matchedRandomBrain(header, base = {}) {
   const { snapshot, neuronCount: _n, outDegree: _d, ...shared } = base;
   const n = header.neuronCount;

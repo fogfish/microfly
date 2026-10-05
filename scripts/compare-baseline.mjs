@@ -51,7 +51,7 @@ const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL(config.atlas, w
 const logic = buildLogic(config, catalog);
 const world = buildWorld(config, logic);
 
-// The snapshot is read the same way as the browser reads it: parsed once, checked against telemetry
+// The snapshot is read the same way as the browser reads it: parsed once
 let snapshot = null;
 const snapshotPath = f.brain.snapshot;
 if (snapshotPath !== undefined) {
@@ -61,12 +61,6 @@ if (snapshotPath !== undefined) {
   } catch (e) {
     console.error(`flies.brain.snapshot: snapshot ${snapshotPath} is not usable: ${e.message}`);
     process.exit(1);
-  }
-  for (const neuron of f.brain.telemetry) {
-    if (neuron >= snapshot.neuronCount) {
-      console.error(`flies.brain.telemetry ${neuron} is not below the snapshot's neuronCount ${snapshot.neuronCount}`);
-      process.exit(1);
-    }
   }
 }
 

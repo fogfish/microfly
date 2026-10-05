@@ -21,7 +21,7 @@ test('a snapshot brain keeps the shared defaults that apply in both modes', () =
   c.flies.brain = { snapshot: 'brains/smallest-functional-brain.brain' };
   const brain = resolveFlies(c).brain;
   assert.equal(brain.motorSmoothing, 0.05);
-  assert.deepEqual(brain.telemetry, [0, 1, 2]);
+  assert.equal(brain.telemetry, undefined);
 });
 
 test('a toy brain still merges the toy defaults', () => {

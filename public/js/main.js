@@ -15,7 +15,9 @@ import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
 import { buildWorld, spawnFlies } from './fly/fly-world.js';
 import { loadSnapshot, startFlies } from './fly/fly-host.js';
-import { renderFlyPanel } from './ui/fly-panel.js';
+import { renderPanel } from './ui/panel/panel.js';
+import { SECTIONS } from './ui/panel/sections/index.js';
+import { initialTab, nextTab } from './ui/panel/tabs.js';
 
 // main.js lives in public/js/, so its parent is the web root that holds world/ and assets/
 const APP_ROOT = new URL('../', import.meta.url);
@@ -72,16 +74,20 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     shores: shorePlacements(config),
   });
 
+  // The world is the canvas's grid cell, which the CSS sizes beside the panel (or above it on a phone).
+  const worldBox = () => ({ width: canvas.clientWidth, height: canvas.clientHeight });
+  const { width, height } = worldBox();
+
   const camera = createCamera({
     worldWidthPx: scene.width,
     worldHeightPx: scene.height,
     zoom: config.zoom,
-    viewportWidth: innerWidth,
-    viewportHeight: innerHeight,
+    viewportWidth: width,
+    viewportHeight: height,
   });
 
   const renderer = createRenderer(canvas, sprites);
-  renderer.resize(innerWidth, innerHeight);
+  renderer.resize(width, height);
 
   // Flies are optional. Without a `flies` section the world is drawn with no fly.
   const panel = document.getElementById('fly-panel');
@@ -98,13 +104,22 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     });
   };
 
-  const updateFlyPanel = () => renderFlyPanel(panel, records, selectedId, (id) => {
+  // The list buttons and a click on the world both select through selectFly. Choosing a fly moves to the
+  // Fly tab; clearing the selection (a click on empty ground) keeps the current tab.
+  let tab = initialTab;
+  const selectFly = (id) => {
     selectedId = id;
-    updateFlyPanel();
-  });
+    if (id !== null) tab = nextTab(tab, { type: 'select' });
+    updatePanel();
+  };
+  const switchTab = (name) => {
+    tab = nextTab(tab, { type: 'tab', tab: name });
+    updatePanel();
+  };
+  const updatePanel = () => renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab);
   const onFlyUpdate = () => {
     requestDraw();
-    updateFlyPanel();
+    updatePanel();
   };
 
   if (config.flies !== undefined) {
@@ -129,20 +144,20 @@ function startWorld({ config, catalog, sprites, snapshot }) {
         bestDistance = d;
       }
     }
-    selectedId = best ? best.state.id : null;
-    updateFlyPanel();
+    selectFly(best ? best.state.id : null);
   };
 
   attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize: CELL_PX });
 
   window.addEventListener('resize', () => {
-    renderer.resize(innerWidth, innerHeight);
-    resizeCamera(camera, innerWidth, innerHeight);
+    const size = worldBox();
+    renderer.resize(size.width, size.height);
+    resizeCamera(camera, size.width, size.height);
     requestDraw();
   });
 
   requestDraw();
-  updateFlyPanel();
+  updatePanel();
 }
 
 boot().catch((e) => fail([{ path: '', message: e.message }]));

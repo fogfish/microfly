@@ -2,13 +2,15 @@
 
 import hashlib
 import json
+import math
 
+from .capabilities import validate_capabilities
 from .errors import ExtractError
 
 TOP_KEYS = {
     "formatVersion", "datasetRelease", "edgeVariant", "expect", "sensory",
     "readouts", "transmitterSign", "minConfidence", "synapseCap",
-    "minInterneurons", "maxInterneurons", "expectedNeuronCount",
+    "minInterneurons", "maxInterneurons", "expectedNeuronCount", "capabilities",
 }
 EXPECT_KEYS = {"annotationRows", "edgeRows", "neurotransmitterRows"}
 SENSORY_KEYS = {"class", "status"}
@@ -46,6 +48,8 @@ def validate(config):
     unknown = sorted(set(config) - TOP_KEYS)
     if unknown:
         _fail(f"unknown key: {unknown[0]}")
+    if "capabilities" not in config:
+        _fail("capabilities is required")
     missing = sorted(TOP_KEYS - set(config))
     if missing:
         _fail(f"missing key: {missing[0]}")
@@ -93,6 +97,13 @@ def validate(config):
     expected = config["expectedNeuronCount"]
     if expected is not None and (not _is_int(expected) or expected < 3):
         _fail("expectedNeuronCount must be null or an integer ≥ 3")
+
+    # The neuron bound (rule 16) is checked again when the container is written, with the real count.
+    bound = expected if _is_int(expected) else math.inf
+    try:
+        validate_capabilities(config["capabilities"], bound, subject="config")
+    except ValueError as error:
+        _fail(str(error))
 
 
 def load_config(path):

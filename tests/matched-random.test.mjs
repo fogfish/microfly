@@ -35,7 +35,7 @@ test('the result is a valid toy brain in the default world', () => {
 });
 
 test('shared settings come from the base brain and no snapshot setting is carried over', () => {
-  const base = { snapshot: 'brains/x.brain', motorSmoothing: 0.07, telemetry: [0, 1, 2], lif: { synapticScale: 0.5 } };
+  const base = { snapshot: 'brains/x.brain', motorSmoothing: 0.07, lif: { synapticScale: 0.5 } };
   const brain = matchedRandomBrain({ neuronCount: 5, edgeCount: 4 }, base);
   assert.equal(brain.snapshot, undefined);
   assert.equal(brain.motorSmoothing, 0.07);

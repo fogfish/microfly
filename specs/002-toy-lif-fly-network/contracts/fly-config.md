@@ -37,7 +37,7 @@
       "outDegree": 4,                    // optional, 1..neuronCount-1, default 4; rejected with "snapshot"
       "inhibitoryFraction": 0.2,         // optional, 0..1, default 0.2; rejected with "snapshot"
       "motorSmoothing": 0.05,            // optional, 0 < x <= 1, default 0.05
-      "telemetry": [0, 1, 2],            // optional, unique indices < neuronCount, default [0, 1, 2]
+      // "telemetry" was removed (spec 006): the panel reads the full spike stream. A value is rejected.
       "lif": {                           // optional, any subset of LIF parameter names
         "dt": 1.0,
         "tau": 20.0,

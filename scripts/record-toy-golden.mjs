@@ -12,5 +12,5 @@ const out = join(here, '..', 'tests', 'fixtures', 'toy-golden.json');
 
 const trace = runToyGolden();
 writeFileSync(out, `${JSON.stringify(trace)}\n`);
-const spikes = trace.selected.filter((s) => s.some(Boolean)).length;
-console.log(`wrote ${out}: ${trace.left.length} ticks, ${spikes} ticks with a telemetry spike`);
+const spiking = trace.spikes.filter((s) => s.length > 0).length;
+console.log(`wrote ${out}: ${trace.left.length} ticks, ${spiking} ticks with a spike`);

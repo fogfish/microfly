@@ -30,7 +30,7 @@ function rebuild(bytes, mutate, { recompute = true } = {}) {
   const finalJson = new TextEncoder().encode(JSON.stringify(manifest));
   const out = new Uint8Array(end);
   out.set([0x4d, 0x46, 0x42, 0x52]);
-  new DataView(out.buffer).setUint32(4, 2, true);
+  new DataView(out.buffer).setUint32(4, 3, true);
   new DataView(out.buffer).setUint32(8, newH, true);
   out.fill(0x20, 12, 12 + newH);
   out.set(finalJson, 12);
@@ -70,11 +70,19 @@ test('rejects a file shorter than the prefix', () => {
   assert.throws(() => parseSnapshot(toBuffer(new Uint8Array(8))), { message: 'not a brain snapshot' });
 });
 
+test('rejects a version 2 file, which has no capabilities block', () => {
+  const bytes = fixture();
+  new DataView(bytes.buffer).setUint32(4, 2, true);
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'unsupported snapshot version 2; this build supports 3',
+  });
+});
+
 test('rejects an unsupported format version', () => {
   const bytes = fixture();
-  new DataView(bytes.buffer).setUint32(4, 3, true);
+  new DataView(bytes.buffer).setUint32(4, 4, true);
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
-    message: 'unsupported snapshot version 3; this build supports 2',
+    message: 'unsupported snapshot version 4; this build supports 3',
   });
 });
 
@@ -177,5 +185,63 @@ test('rejects a superclass that is not a string', () => {
   });
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
     message: 'snapshot neuron 3 has a malformed superclass',
+  });
+});
+
+test('returns the declaration of the header', () => {
+  const snap = parseSnapshot(toBuffer(fixture()));
+  assert.deepEqual(snap.capabilities.signals, ['spikes']);
+  assert.deepEqual(snap.capabilities.channels.outputs.map((c) => c.drive), ['left', 'right']);
+});
+
+test('rejects a header with no capabilities block', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    delete m.capabilities;
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), { message: 'snapshot capabilities are missing' });
+});
+
+test('rejects a channel with an empty label, named by its id', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.capabilities.channels.inputs[0].label = '';
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot channel food-odour is malformed: label',
+  });
+});
+
+test('rejects an input that reads a neuron other than 0', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.capabilities.channels.inputs[0].neuron = 1;
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot input channel food-odour must read neuron 0',
+  });
+});
+
+test('rejects an output that reads a neuron outside neuronCount', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.capabilities.channels.outputs[1].neuron = 5;
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot output channel right-motor references neuron 5 outside neuronCount',
+  });
+});
+
+test('rejects two left drives', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.capabilities.channels.outputs[1].drive = 'left';
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot outputs must have exactly one left and one right drive',
+  });
+});
+
+test('rejects an unknown field on a channel', () => {
+  const bytes = rebuild(fixture(), (m) => {
+    m.capabilities.channels.outputs[0].gain = 2;
+  });
+  assert.throws(() => parseSnapshot(toBuffer(bytes)), {
+    message: 'snapshot channel left-motor has unknown field gain',
   });
 });

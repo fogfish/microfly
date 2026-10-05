@@ -1,5 +1,9 @@
 # Changelog
 
+# 2026-10-05
+
+Fly status side panel (006): the viewport is split into the world and a status panel for the selected fly, showing its action, a point cloud of its brain with fading spike activity, and bars for each declared input and output channel. Snapshot format moves to version 3 with a channel declaration, the worker protocol to version 2 (outputs and spikes replace telemetry), and the reference brain is migrated.
+
 # 2026-10-04
 
 /speckit-specify Setup the infrastructure for the app development. Create a world in the style of 90x arcade games. The world is scrollable and zoomable with mouse. The world has grass, trees, water, rocks, etc. It has a eadable elements fruits, honey and danger fires, spiders. The world is renderable in the browser and configurable via json so that in the future it can be changed. 

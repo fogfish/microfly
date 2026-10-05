@@ -4,6 +4,7 @@
 // Paths name the section and the entry, e.g. objects[3].
 
 import { resolveParams, LIF_DEFAULTS } from '../brain/lif.js';
+import { validateCapabilities } from '../brain/capabilities.js';
 import { cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX } from './layout.js';
 import { buildWaterField, waterField, cellWater, bodyKind, BODY_RANGES } from './water.js';
 const FORMAT = 'arcade-world';
@@ -367,7 +368,7 @@ function validateFlyBrain(brain, err) {
     if (typeof snapshot !== 'string' || snapshot === '') {
       err('flies.brain.snapshot', 'must be a non-empty path to a .brain file');
     }
-    for (const key of ['neuronCount', 'outDegree', 'inhibitoryFraction']) {
+    for (const key of ['neuronCount', 'outDegree', 'inhibitoryFraction', 'capabilities']) {
       if (brain[key] !== undefined) {
         err('flies.brain', `"snapshot" cannot be combined with "${key}"`);
       }
@@ -395,16 +396,15 @@ function validateFlyBrain(brain, err) {
     err('flies.brain.motorSmoothing', 'must be a number greater than 0 and at most 1');
   }
 
-  // A snapshot's neuronCount is only known after the file is read, so the host checks the bounds then.
-  const telemetry = brain.telemetry ?? [0, 1, 2];
-  const upper = isSnapshot ? Number.MAX_SAFE_INTEGER : (neuronsOk ? n - 1 : -1);
-  const telemetryOk =
-    Array.isArray(telemetry) &&
-    telemetry.every((t) => isInt(t, 0, upper)) &&
-    new Set(telemetry).size === telemetry.length;
-  if (!telemetryOk) {
-    const bound = isSnapshot ? 'the snapshot neuronCount - 1' : (neuronsOk ? n - 1 : 'neuronCount - 1');
-    err('flies.brain.telemetry', `must be a list of unique integers from 0 to ${bound}`);
+  // Removed in protocol 2: the panel reads the full spike stream, so the telemetry list is gone.
+  if (brain.telemetry !== undefined) {
+    err('flies.brain.telemetry', 'was removed; the panel reads the full spike stream');
+  }
+
+  // An optional declaration for a toy brain (channel-declaration.md). A snapshot brain reads its own.
+  if (brain.capabilities !== undefined && !isSnapshot) {
+    const [problem] = validateCapabilities(brain.capabilities, neuronsOk ? n : Infinity, 'brain');
+    if (problem) err('flies.brain.capabilities', problem);
   }
 
   if (brain.lif !== undefined) {

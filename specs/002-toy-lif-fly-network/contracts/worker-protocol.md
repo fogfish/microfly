@@ -1,5 +1,7 @@
 # Contract: Fly Worker Protocol (version 1)
 
+> **Superseded for the current protocol.** Version 2 (`specs/006-fly-status-panel/contracts/worker-protocol-v2.md`) removes `init.brain.telemetry` and replaces the `selected` array of `motor` with `outputs` and `spikes`.
+
 **Transport**: `postMessage` between the main thread and one module Worker per toy fly (`public/js/brain/fly.worker.js`). Bulk values use typed arrays and are transferred.
 
 **Version**: every message carries `v: 1`. A message with a missing or different `v` is rejected by the receiver with an error. Changing a field or meaning needs a new version. Adding an optional field is allowed within version 1.

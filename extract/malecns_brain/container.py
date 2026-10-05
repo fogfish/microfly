@@ -1,8 +1,9 @@
-"""Brain container, version 2 (specs/003-malecns-brain-extractor/contracts/snapshot-format.md).
+"""Brain container, version 3 (specs/006-fly-status-panel/contracts/snapshot-format-v3.md).
 
 Layout: "MFBR", formatVersion (uint32), header length H (uint32, multiple of 8),
 UTF-8 JSON header padded with spaces, then the CSR sections offsets, targets,
-weights, synapses. All integers and floats are little-endian.
+weights, synapses. All integers and floats are little-endian. Version 3 adds the
+required `capabilities` header block. Version 2 is read only by the migration tool.
 """
 
 import json
@@ -11,8 +12,11 @@ import tempfile
 
 import numpy as np
 
+from .capabilities import validate_capabilities
+
 MAGIC = b"MFBR"
-FORMAT_VERSION = 2
+FORMAT_VERSION = 3
+LEGACY_VERSION = 2
 PREFIX = 12
 ROLES = ("sensory", "left", "right")
 
@@ -55,7 +59,7 @@ def _section_table(header_length, neuron_count, edge_count):
 def write_container(path, header, offsets, targets, weights, synapses):
     """Write the container to a temporary file in the same directory, then rename it.
 
-    `header` carries provenance, synapseCap, neuronCount, edgeCount and neurons;
+    `header` carries provenance, synapseCap, neuronCount, edgeCount, neurons and capabilities;
     its `sections` entry is computed here. Returns the number of bytes written.
     """
     offsets = np.asarray(offsets, dtype=DTYPES["offsets"])
@@ -67,6 +71,7 @@ def write_container(path, header, offsets, targets, weights, synapses):
     edge_count = len(targets)
     if header["neuronCount"] != neuron_count or header["edgeCount"] != edge_count:
         raise ValueError("header counts do not match the arrays")
+    validate_capabilities(header.get("capabilities"), neuron_count)
 
     # The header holds the section offsets, which depend on the header length.
     # Iterate until the padded length is stable; it only grows, so this ends.
@@ -115,18 +120,20 @@ def _is_position(value):
             and all(isinstance(v, int) and not isinstance(v, bool) for v in value))
 
 
-def read_container(data):
-    """Parse and check a container (rules 1–7 of snapshot-format.md).
+def read_container(data, version=FORMAT_VERSION):
+    """Parse and check a container (rules 1–7 of snapshot-format.md, rules 8–18 of v3).
 
+    `version` is FORMAT_VERSION for every reader except the migration, which passes LEGACY_VERSION.
+    A legacy file has no capabilities block, so the capability rules are skipped for it.
     Returns a dict with `header`, `neuronCount`, `edgeCount` and the four CSR arrays.
     Raises ValueError with the exact message of the contract.
     """
     if len(data) < PREFIX or data[:4] != MAGIC:
         _reject("not a brain snapshot")
 
-    version = int.from_bytes(data[4:8], "little")
-    if version != FORMAT_VERSION:
-        _reject(f"unsupported snapshot version {version}; this build supports {FORMAT_VERSION}")
+    found = int.from_bytes(data[4:8], "little")
+    if found != version:
+        _reject(f"unsupported snapshot version {found}; this build supports {version}")
 
     header_length = int.from_bytes(data[8:12], "little")
     if header_length % 8 != 0 or PREFIX + header_length > len(data):
@@ -164,6 +171,9 @@ def read_container(data):
         superclass = neuron.get("superclass")
         if superclass is not None and not isinstance(superclass, str):
             _reject(f"snapshot neuron {index} has a malformed superclass")
+
+    if version == FORMAT_VERSION:
+        validate_capabilities(header.get("capabilities"), neuron_count)
 
     expected, end = _section_table(header_length, neuron_count, edge_count)
     sections = header.get("sections")

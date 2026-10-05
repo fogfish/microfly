@@ -7,7 +7,6 @@ import { validateConfig } from '../public/js/world/validate.js';
 const load = () => JSON.parse(readFileSync(new URL('../public/world/world.json', import.meta.url), 'utf8'));
 const snapshotBrain = () => ({
   snapshot: 'brains/smallest-functional-brain.brain',
-  telemetry: [0, 1, 2],
   motorSmoothing: 0.05,
   lif: { synapticScale: 0.2 },
 });

@@ -4,6 +4,10 @@
   --error-bg: #fff4f2;
   --error-fg: #7a1f12;
   --error-border: #c2410c;
+  /* Channel bars (BUG-001): L, R and both-side channels */
+  --bar-left: #2563eb;
+  --bar-right: #d97706;
+  --bar-both: #7c3aed;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -13,6 +17,9 @@
     --error-bg: #3a1410;
     --error-fg: #ffd7cc;
     --error-border: #f97316;
+    --bar-left: #60a5fa;
+    --bar-right: #fbbf24;
+    --bar-both: #c4b5fd;
   }
 }
 
@@ -22,6 +29,9 @@
   --error-bg: #3a1410;
   --error-fg: #ffd7cc;
   --error-border: #f97316;
+  --bar-left: #60a5fa;
+  --bar-right: #fbbf24;
+  --bar-both: #c4b5fd;
 }
 
 html,
@@ -33,12 +43,21 @@ body {
   overflow: hidden;
 }
 
-#world {
+/* Stage: the world and the status panel. Side by side from 900 px; the panel stacks under the world below that. */
+#stage {
   position: fixed;
   inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+#world {
   display: block;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   cursor: grab;
   touch-action: none;
   image-rendering: pixelated;
@@ -48,26 +67,16 @@ body {
   cursor: grabbing;
 }
 
-/* Fly panel: bottom of the screen, full width on a phone (16 px gutter, no horizontal scroll) */
+/* Fly panel: a column on the right; below 900 px it stacks under the world (16 px gutter, no horizontal scroll) */
 #fly-panel {
-  position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  max-width: 420px;
-  max-height: 40vh;
+  min-height: 0;
   overflow: auto;
   padding: 12px 16px;
-  border: 1px solid var(--fg);
-  border-radius: 6px;
+  border-left: 1px solid var(--fg);
   background: var(--bg);
   color: var(--fg);
   font: 14px/1.4 system-ui, sans-serif;
   box-sizing: border-box;
-}
-
-#fly-panel:empty {
-  display: none;
 }
 
 #fly-panel ul {
@@ -104,20 +113,152 @@ body {
   font-size: 15px;
 }
 
+#fly-panel h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 #fly-panel p {
   margin: 8px 0 0;
 }
 
-#fly-panel dl {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 2px 12px;
-  margin: 8px 0 0;
+.panel-box {
+  margin-top: 14px;
 }
 
-#fly-panel dd {
-  margin: 0;
+.panel-body {
+  margin-top: 6px;
+}
+
+.panel-body.error {
+  color: var(--error-fg);
+}
+
+.neuron-canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border-radius: 4px;
+  background: #0e1016;
+}
+
+.neuron-counts {
   font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+
+/* Tabs (BUG-001): World (fly list) and Fly (status) */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--fg);
+}
+
+#fly-panel .tabs button {
+  flex: 1 1 0;
+  width: auto;
+  min-height: 36px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  text-align: center;
+  opacity: 0.6;
+}
+
+#fly-panel .tabs button[aria-selected="true"] {
+  border-color: var(--fg);
+  opacity: 1;
+  font-weight: 700;
+}
+
+#fly-panel .pane[hidden] {
+  display: none;
+}
+
+#fly-panel .pane {
+  margin-top: 12px;
+}
+
+/* Channel rows (BUG-001): one row per channel, zero line in the middle of the track */
+.channel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 40px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.channel-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-bar {
+  position: relative;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* The zero line at the centre of the track */
+.channel-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: currentColor;
+}
+
+.channel-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0.85;
+}
+
+/* L grows left from the centre, R grows right */
+.channel-fill.side-L {
+  right: 50%;
+  background: var(--bar-left);
+}
+
+.channel-fill.side-R {
+  left: 50%;
+  background: var(--bar-right);
+}
+
+/* A "both" channel is drawn on each side in its own colour */
+.channel-fill.both {
+  background: var(--bar-both);
+}
+
+.channel-value {
+  font-family: ui-monospace, monospace;
+  text-align: right;
+}
+
+@media (max-width: 899.98px) {
+  #stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 60vh auto;
+    overflow-y: auto;
+  }
+
+  #world {
+    height: 60vh;
+  }
+
+  #fly-panel {
+    border-left: 0;
+    border-top: 1px solid var(--fg);
+    overflow: visible;
+  }
 }
 
 #error-panel {

@@ -1,5 +1,5 @@
 // createFlyBrain with a parsed snapshot (contracts/integration.md §3): the container's graph,
-// no motor drive overwrite, determinism, telemetry defaults.
+// no motor drive overwrite, determinism, the declaration of the container.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -23,7 +23,7 @@ test('two runs with the same sensory sequence give identical outputs', () => {
     const brain = createFlyBrain({ snapshot: loadSnapshot() }, 7);
     return sequence.map((v) => {
       const o = brain.step(v);
-      return [o.left, o.right, [...o.selected]];
+      return [o.left, o.right, [...o.spikes], [...o.outputs]];
     });
   };
   assert.deepEqual(run(), run());
@@ -36,9 +36,11 @@ test('the sensory neuron keeps the container weights (no addMotorDrive overwrite
   assert.deepEqual(fromSensory, [Math.fround(1.0), Math.fround(0.4)]);
 });
 
-test('telemetry defaults to neurons 0, 1 and 2', () => {
-  const brain = createFlyBrain({ snapshot: loadSnapshot() }, 1);
-  assert.equal(brain.step(0.5).selected.length, 3);
+test('the brain takes the declaration of the container', () => {
+  const snap = loadSnapshot();
+  const brain = createFlyBrain({ snapshot: snap }, 1);
+  assert.deepEqual(brain.capabilities, snap.capabilities);
+  assert.equal(brain.step(0.5).outputs.length, 2);
 });
 
 test('a snapshot that is still a URL string is refused by the brain builder', () => {

@@ -66,16 +66,45 @@ test('a baseline fly does not need a brain', () => {
   assert.deepEqual(validateConfig(c), []);
 });
 
-test('duplicate telemetry indices are rejected', () => {
+test('the removed telemetry list is rejected, with the reason', () => {
   const c = load();
-  c.flies.brain.telemetry = [0, 0, 1];
-  assert.deepEqual(paths(validateConfig(c)), ['flies.brain.telemetry']);
+  c.flies.brain.telemetry = [0, 1, 2];
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.telemetry']);
+  assert.match(errors[0].message, /was removed; the panel reads the full spike stream/);
 });
 
-test('telemetry index at or above neuronCount is rejected', () => {
+test('a valid toy declaration override is accepted', () => {
   const c = load();
-  c.flies.brain.telemetry = [0, 1, 40];
-  assert.deepEqual(paths(validateConfig(c)), ['flies.brain.telemetry']);
+  c.flies.brain.capabilities = {
+    signals: ['spikes'],
+    channels: {
+      inputs: [{ id: 'food-odour', label: 'Food odour', side: 'both', neuron: 0, range: [0, 1] }],
+      outputs: [
+        { id: 'left-motor', label: 'Left motor', side: 'L', neuron: 1, range: [0, 1], drive: 'left' },
+        { id: 'right-motor', label: 'Right motor', side: 'R', neuron: 2, range: [0, 1], drive: 'right' },
+        { id: 'wing-motor', label: 'Wing motor', side: 'L', neuron: 7, range: [0, 1] },
+      ],
+    },
+  };
+  assert.deepEqual(validateConfig(c), []);
+});
+
+test('a malformed toy declaration override is rejected at its path, with the channel named', () => {
+  const c = load();
+  c.flies.brain.capabilities = {
+    signals: ['spikes'],
+    channels: {
+      inputs: [{ id: 'food-odour', label: '', side: 'both', neuron: 0, range: [0, 1] }],
+      outputs: [
+        { id: 'left-motor', label: 'Left motor', side: 'L', neuron: 1, range: [0, 1], drive: 'left' },
+        { id: 'right-motor', label: 'Right motor', side: 'R', neuron: 2, range: [0, 1], drive: 'right' },
+      ],
+    },
+  };
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.capabilities']);
+  assert.equal(errors[0].message, 'brain channel food-odour is malformed: label');
 });
 
 test('an unknown LIF parameter is rejected', () => {

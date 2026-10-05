@@ -1,5 +1,7 @@
 # Contract: Brain Snapshot Container (version 2)
 
+> **Superseded for the current format.** Version 3 (`specs/006-fly-status-panel/contracts/snapshot-format-v3.md`) adds the required `capabilities` header block. This document still describes the layout and rules 1–9, which version 3 keeps. Version 2 files are no longer read by the browser.
+
 **File**: `*.brain`, one file per brain. Reference: `public/brains/smallest-functional-brain.brain`.
 
 **Writers**: `extract/malecns_brain/container.py`. **Readers**: `public/js/brain/snapshot.js` (browser and Node) and `extract/malecns_brain/container.py` (read-back in tests).

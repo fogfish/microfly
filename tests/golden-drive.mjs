@@ -10,7 +10,6 @@ export const GOLDEN_CONFIG = Object.freeze({
   outDegree: 4,
   inhibitoryFraction: 0.2,
   motorSmoothing: 0.05,
-  telemetry: [0, 1, 2],
 });
 export const GOLDEN_DRIVE = Object.freeze([
   { value: 0.5, ticks: 200 },
@@ -18,16 +17,16 @@ export const GOLDEN_DRIVE = Object.freeze([
   { value: 1.0, ticks: 200 },
 ]);
 
-// Returns { left, right, selected } with one entry per tick.
+// Returns { left, right, spikes } with one entry per tick. spikes lists the neurons that spiked that tick.
 export function runToyGolden() {
   const brain = createFlyBrain(GOLDEN_CONFIG, GOLDEN_SEED);
-  const trace = { left: [], right: [], selected: [] };
+  const trace = { left: [], right: [], spikes: [] };
   for (const { value, ticks } of GOLDEN_DRIVE) {
     for (let t = 0; t < ticks; t++) {
       const out = brain.step(value);
       trace.left.push(out.left);
       trace.right.push(out.right);
-      trace.selected.push(Array.from(out.selected));
+      trace.spikes.push(Array.from(out.spikes));
     }
   }
   return trace;
