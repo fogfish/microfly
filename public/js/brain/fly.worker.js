@@ -5,6 +5,7 @@
 import { createWorkerCore } from './worker-core.js';
 import { parseSnapshot } from './snapshot.js';
 import { error } from './protocol.js';
+import { error as errorV3 } from './protocol-v3.js';
 
 const core = createWorkerCore();
 
@@ -22,7 +23,8 @@ self.onmessage = async (e) => {
     try {
       msg = await resolveInit(msg);
     } catch (err) {
-      self.postMessage(error({ flyId: msg.flyId, message: err.message }));
+      const build = msg.v === 3 ? errorV3 : error;
+      self.postMessage(build({ flyId: msg.flyId, message: err.message }));
       return;
     }
   }

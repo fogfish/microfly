@@ -49,3 +49,34 @@ function free(x, y, env) {
   if (x < 0 || y < 0 || x >= env.width || y >= env.height) return false;
   return env.isWalkable(Math.floor(x), Math.floor(y));
 }
+
+// Forager motion (ADR 003 W4). The turn sign is fixed by the sign test in tests/forager-body.test.mjs: the fly's left
+// is (sin θ, −cos θ) (stimulus.js), and increasing the heading turns the fly right, so a turnLeft drive lowers it.
+export const FORAGER_TURN_SIGN = -1;
+
+// drives: { turnLeft, turnRight, forward, backward } in [0, 1]. Speed is set by forward − backward (clamped to
+// [−1, 1]); the heading changes by the turn difference. Sets body.speed (tiles per second, the distance moved over dt)
+// for the eating rule (W2). Mutates and returns body.
+export function stepForagerBody(body, drives, env) {
+  const drive = Math.min(1, Math.max(-1, drives.forward - drives.backward));
+  const v = env.maxSpeed * drive;
+  const omega = env.turnRate * FORAGER_TURN_SIGN * (drives.turnLeft - drives.turnRight);
+  const heading = body.heading + omega * env.dt;
+  const dx = Math.cos(heading) * v * env.dt;
+  const dy = Math.sin(heading) * v * env.dt;
+
+  const next = pick(body.x, body.y, dx, dy, env);
+  body.speed = Math.hypot(next.x - body.x, next.y - body.y) / env.dt;
+  body.heading = heading;
+  body.x = next.x;
+  body.y = next.y;
+
+  const cx = Math.floor(body.x);
+  const cy = Math.floor(body.y);
+  const key = cellKey(cx, cy);
+  if (key !== body.cell) {
+    body.cell = key;
+    if (env.isStimulusCell(cx, cy)) body.contacts++;
+  }
+  return body;
+}

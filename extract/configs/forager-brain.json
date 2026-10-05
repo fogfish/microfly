@@ -1,0 +1,261 @@
+{
+  "formatVersion": 3,
+  "kind": "forager",
+  "datasetRelease": "male-cns-v1.0",
+  "edgeVariant": "traced-only",
+  "expect": {
+    "annotationRows": 211577,
+    "edgeRows": 25563197,
+    "neurotransmitterRows": 1835518
+  },
+  "transmitterSign": {
+    "acetylcholine": 1,
+    "gaba": -1,
+    "glutamate": -1
+  },
+  "minConfidence": 0.5,
+  "synapseCap": 65535,
+  "inputs": {
+    "odour-left": {
+      "class": "olfactory",
+      "types": [
+        "ORN_DM1",
+        "ORN_DM2",
+        "ORN_DM4",
+        "ORN_VA2",
+        "ORN_VM2",
+        "ORN_DP1m"
+      ],
+      "rootSide": "L"
+    },
+    "odour-right": {
+      "class": "olfactory",
+      "types": [
+        "ORN_DM1",
+        "ORN_DM2",
+        "ORN_DM4",
+        "ORN_VA2",
+        "ORN_VM2",
+        "ORN_DP1m"
+      ],
+      "rootSide": "R"
+    },
+    "taste-left": {
+      "class": "gustatory",
+      "subclasses": [
+        "labellar bristle",
+        "taste peg"
+      ],
+      "typePrefixes": [
+        "LgLG"
+      ],
+      "rootSide": "L"
+    },
+    "taste-right": {
+      "class": "gustatory",
+      "subclasses": [
+        "labellar bristle",
+        "taste peg"
+      ],
+      "typePrefixes": [
+        "LgLG"
+      ],
+      "rootSide": "R"
+    }
+  },
+  "sideMatch": {
+    "odour": true,
+    "taste": false
+  },
+  "outputs": {
+    "turn-left": {
+      "types": [
+        "DNa01",
+        "DNa02"
+      ],
+      "somaSide": "L",
+      "drive": "turnLeft"
+    },
+    "turn-right": {
+      "types": [
+        "DNa01",
+        "DNa02"
+      ],
+      "somaSide": "R",
+      "drive": "turnRight"
+    },
+    "forward": {
+      "types": [
+        "DNp09"
+      ],
+      "drive": "forward"
+    },
+    "backward": {
+      "types": [
+        "MDN"
+      ],
+      "drive": "backward"
+    },
+    "feed": {
+      "types": [
+        "MN9"
+      ],
+      "drive": "feed"
+    }
+  },
+  "pathways": {
+    "odour": [
+      "odour-left",
+      "odour-right"
+    ],
+    "taste": [
+      "taste-left",
+      "taste-right"
+    ]
+  },
+  "flowSteps": 5,
+  "budget": {
+    "odour": 1500,
+    "taste": 1500
+  },
+  "excludeInterneuronClasses": [
+    "olfactory",
+    "gustatory"
+  ],
+  "excludeInterneuronSuperclassSuffix": "_sensory",
+  "weightRule": "postFraction",
+  "outputAdmission": "low-confidence-sign-zero",
+  "modulators": [
+    {
+      "id": "hunger",
+      "label": "Hunger",
+      "range": [
+        0,
+        1
+      ],
+      "gain": [
+        0.5,
+        1.5
+      ],
+      "targets": [
+        "odour-left",
+        "odour-right"
+      ]
+    },
+    {
+      "id": "hunger-taste",
+      "label": "Hunger taste",
+      "source": "hunger",
+      "gain": [
+        0.1,
+        1.5
+      ],
+      "targets": [
+        "taste-left",
+        "taste-right"
+      ]
+    }
+  ],
+  "capabilities": {
+    "signals": [
+      "spikes"
+    ],
+    "channels": {
+      "inputs": [
+        {
+          "id": "odour-left",
+          "label": "Odour left",
+          "side": "L",
+          "range": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "odour-right",
+          "label": "Odour right",
+          "side": "R",
+          "range": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "taste-left",
+          "label": "Taste left",
+          "side": "L",
+          "range": [
+            0,
+            1
+          ]
+        },
+        {
+          "id": "taste-right",
+          "label": "Taste right",
+          "side": "R",
+          "range": [
+            0,
+            1
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "id": "turn-left",
+          "label": "Turn left",
+          "side": "L",
+          "range": [
+            0,
+            1
+          ],
+          "drive": "turnLeft"
+        },
+        {
+          "id": "turn-right",
+          "label": "Turn right",
+          "side": "R",
+          "range": [
+            0,
+            1
+          ],
+          "drive": "turnRight"
+        },
+        {
+          "id": "forward",
+          "label": "Forward",
+          "side": "both",
+          "range": [
+            0,
+            1
+          ],
+          "drive": "forward"
+        },
+        {
+          "id": "backward",
+          "label": "Backward",
+          "side": "both",
+          "range": [
+            0,
+            1
+          ],
+          "drive": "backward"
+        },
+        {
+          "id": "feed",
+          "label": "Feed",
+          "side": "both",
+          "range": [
+            0,
+            1
+          ],
+          "drive": "feed"
+        }
+      ]
+    }
+  },
+  "expectedNeuronCount": null,
+  "neuronCountRange": [
+    2000,
+    6000
+  ]
+}

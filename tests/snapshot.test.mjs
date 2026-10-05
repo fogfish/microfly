@@ -74,15 +74,15 @@ test('rejects a version 2 file, which has no capabilities block', () => {
   const bytes = fixture();
   new DataView(bytes.buffer).setUint32(4, 2, true);
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
-    message: 'unsupported snapshot version 2; this build supports 3',
+    message: 'unsupported snapshot version 2; this build supports 3 and 4',
   });
 });
 
 test('rejects an unsupported format version', () => {
   const bytes = fixture();
-  new DataView(bytes.buffer).setUint32(4, 4, true);
+  new DataView(bytes.buffer).setUint32(4, 5, true);
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
-    message: 'unsupported snapshot version 4; this build supports 3',
+    message: 'unsupported snapshot version 5; this build supports 3 and 4',
   });
 });
 

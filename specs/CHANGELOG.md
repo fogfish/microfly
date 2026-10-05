@@ -20,6 +20,12 @@ The panel and channels visualization has to be extendible to the capabilities en
 
 /speckit-plan Implement the odor lavel toggle in the world tab. Use the arcade style visibility toggle. Draw the odol intesity as heatmap style over the world map. 
 
+--
+
+/speckit-specify Write an utility to parse malecns dataset, extract the brain as defined by ADR 003-hungry-forager-brain.md. This brain should enable the fly behave like a hungry animal. It should smell food from a distance, walk toward it, stop on it, eat for a while, and leave when it is full. Integrate the brain into LIF and simulator. Keep existing LIF, brains available under the version v0 (lif-v0.js, etc). Allow user to choose between mock, small brain v0 and the new brain v1 via config. Make sure the extractor is able to produce multiple brain formats.
+
+/speckit-plan Write an utility to parse malecns dataset, extract the brain as defined by ADR 003-hungry-forager-brain.md Preserve compatibility of the simulator with previous versions allowing user to choose between mock, small brain v0 and the new brain v1 via config. The goal is comparision of various brain behaviours. 
+
 
 # 2026-10-04
 

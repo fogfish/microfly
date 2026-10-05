@@ -201,6 +201,8 @@ export function groupNameFor(neuron, level) {
       if (neuron.superclass) return `(no class) ${neuron.superclass}`;
       return 'Unannotated';
     case 'type': return neuron.type || 'Untyped';
+    // Version 4 pools (ADR 003 W5): each input and output channel is a group; interneurons have no channel.
+    case 'channel': return neuron.channel ?? 'Interneurons';
     default: throw new Error(`unknown level ${level}`);
   }
 }

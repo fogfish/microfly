@@ -4,16 +4,21 @@ Exit status: 0 written and self-check identical; 1 an ExtractError (no file writ
 """
 
 import argparse
+import copy
 import os
 import sys
 from datetime import datetime, timezone
 
+import numpy as np
+
 from . import __version__
 from . import dataset
-from .config import config_hash, load_config
+from .admission import admit_forager
+from .config import config_hash, format_of, load_config
 from .container import write_container
 from .errors import ExtractError
 from .selection import admit, select_brain
+from .selection_forager import select_forager
 
 
 def build_header(config, brain, created_at):
@@ -33,6 +38,33 @@ def build_header(config, brain, created_at):
         "edgeCount": brain["edgeCount"],
         "neurons": brain["neurons"],
         "capabilities": config["capabilities"],
+    }
+
+
+def build_header_forager(config, brain, created_at):
+    """The version 4 container header (container-v4.md) for a forager brain. The channels of the declaration get the
+    neuron indices of their pools; the config declares them without neurons."""
+    capabilities = copy.deepcopy(config["capabilities"])
+    for channel in capabilities["channels"]["inputs"] + capabilities["channels"]["outputs"]:
+        channel["neurons"] = brain["pools"][channel["id"]]
+    return {
+        "provenance": {
+            "datasetRelease": config["datasetRelease"],
+            "edgeVariant": config["edgeVariant"],
+            "minConfidence": config["minConfidence"],
+            "configHash": config_hash(config),
+            "toolVersion": __version__,
+            "createdAt": created_at,
+            "positionSource": "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation",
+        },
+        "kind": config["kind"],
+        "synapseCap": config["synapseCap"],
+        "weightRule": config["weightRule"],
+        "neuronCount": len(brain["neurons"]),
+        "edgeCount": brain["edgeCount"],
+        "neurons": brain["neurons"],
+        "capabilities": capabilities,
+        "modulators": config["modulators"],
     }
 
 
@@ -77,8 +109,72 @@ def report(config, brain, output, size, self_check):
     return "\n".join(lines)
 
 
+def report_forager(config, brain, output, size, self_check):
+    """Per pool and per output: counts, side balance, edges into each output, weight range and the self-check."""
+    neurons = brain["neurons"]
+    pools = brain["pools"]
+    incoming = np.bincount(brain["targets"].astype(np.int64), minlength=len(neurons))
+    lines = [
+        f"dataset        {config['datasetRelease']} ({config['edgeVariant']}), forager kind",
+        f"neurons        {len(neurons)}   (inputs {sum(1 for n in neurons if n['role'] == 'input')}, "
+        f"outputs {sum(1 for n in neurons if n['role'] == 'output')}, "
+        f"interneurons {sum(1 for n in neurons if n['role'] == 'interneuron')})",
+        f"edges          {brain['edgeCount']}",
+        "pools:",
+    ]
+    for cid in pools:
+        lines.append(f"  {cid:<14} {len(pools[cid]):>5} neurons, {int(sum(incoming[pools[cid]])):>7} edges in")
+    for pathway in ("odour", "taste"):
+        left = [c for c in config["pathways"][pathway] if config["inputs"][c]["rootSide"] == "L"][0]
+        right = [c for c in config["pathways"][pathway] if config["inputs"][c]["rootSide"] == "R"][0]
+        lines.append(f"side balance   {pathway}: left {len(pools[left])}, right {len(pools[right])}")
+    feed = pools["feed"]
+    lines.append(f"edges into outputs: " + ", ".join(
+        f"{cid} {int(sum(incoming[pools[cid]]))}" for cid in config["outputs"]))
+    lines.append(f"feed (MN9) edges {int(sum(incoming[feed]))} from {len(feed)} neuron(s)")
+    weights = brain["weights"]
+    synapses = brain["synapses"]
+    lines += [
+        f"weights        min {float(weights.min()):g}, max {float(weights.max()):g}; "
+        f"synapses min {int(synapses.min())}, max {int(synapses.max())}",
+        f"output         {output} ({size} bytes)",
+        f"self-check     {self_check}",
+    ]
+    return "\n".join(lines)
+
+
+def extract_forager(config, dataset_dir, out_path):
+    """The forager kind (ADR 003): pools, side matching, flow ranking, weights, container version 4."""
+    dataset.check_files(dataset_dir)
+    dataset.check_rows(dataset_dir, config["expect"])
+
+    annotations = dataset.load_annotations(dataset_dir, dataset.FORAGER_ANNOTATION_COLUMNS)
+    transmitters = dataset.load_neurotransmitters(dataset_dir)
+    pool_types = {t for spec in config["outputs"].values() for t in spec["types"]}
+    bodies = admit_forager(annotations, transmitters, config, pool_types)
+    if not bodies:
+        raise ExtractError("E-POOL-EMPTY", "no body is admitted")
+    edges = dataset.stream_edges(dataset_dir, sorted(bodies))
+
+    brain = select_forager(config, bodies, edges)
+
+    # Self-check (as the small brain): a second run must match byte for byte, except provenance.createdAt.
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    header = build_header_forager(config, brain, created_at)
+    again = select_forager(config, bodies, edges)
+    again_header = build_header_forager(config, again, created_at)
+    if not (_same_body(brain, again) and _same_header(header, again_header)):
+        raise ExtractError("E-NONDETERMINISTIC", "the second selection run differs from the first")
+
+    size = write_container(out_path, header, brain["offsets"], brain["targets"],
+                           brain["weights"], brain["synapses"])
+    return report_forager(config, brain, out_path, size, "identical")
+
+
 def extract(config_path, dataset_dir, out_path):
     config = load_config(config_path)
+    if format_of(config) == "forager":
+        return extract_forager(config, dataset_dir, out_path)
     dataset.check_files(dataset_dir)
     dataset.check_rows(dataset_dir, config["expect"])
 

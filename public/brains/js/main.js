@@ -38,6 +38,7 @@ const state = {
     superclass: new Set(),
     class: new Set(),
     type: new Set(['Other typed', 'Untyped']),
+    channel: new Set(),
   },
   hover: null,             // { type: 'group', name } | { type: 'neuron', index } | null
   pinned: null,
@@ -296,6 +297,7 @@ async function show(file) {
 
   state.scene.setBrain(snapshot, drawable);
   state.snapshot = snapshot;
+  document.getElementById('levelChannel').hidden = snapshot.version !== 4;
   state.drawable = drawable;
   state.bodyEdges = bodyEdges(snapshot);
   state.cache = {};

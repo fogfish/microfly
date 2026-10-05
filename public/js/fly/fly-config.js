@@ -3,6 +3,13 @@
 
 import { BRAIN_DEFAULTS } from '../brain/fly-brain.js';
 
+// Forager defaults (contracts/world-config-forager.md). The values are starting points until calibration (T096).
+export const ENERGY_DEFAULTS = Object.freeze({ initial: 0.3, metabolism: 0.01, intake: 0.2 });
+export const FOOD_DEFAULTS = Object.freeze({
+  eatSpeed: 0.5, feedThreshold: 0.5, stock: 1.0, consumeRate: 0.2, regrowth: 0.02, sated: 0.9,
+});
+export const ANTENNA_OFFSET_DEFAULT = 0.5;
+
 export function resolveFlies(config) {
   const f = config.flies;
   const mode = f.mode ?? 'toy';
@@ -13,23 +20,38 @@ export function resolveFlies(config) {
     tickHz: f.tickHz ?? 20,
     sprite: f.sprite,
     baselineSprite: f.baselineSprite ?? f.sprite,
-    body: { maxSpeed: f.body.maxSpeed, turnRate: f.body.turnRate },
-    stimulus: { resting: 0, ...f.stimulus },
+    body: {
+      maxSpeed: f.body.maxSpeed,
+      turnRate: f.body.turnRate,
+      energy: { ...ENERGY_DEFAULTS, ...f.body.energy },
+    },
+    food: { ...FOOD_DEFAULTS, ...f.food },
+    stimulus: { resting: 0, antennaOffset: ANTENNA_OFFSET_DEFAULT, ...f.stimulus },
     brain: resolveBrain(mode, f.brain),
     experiment: {
       seeds: f.experiment?.seeds ?? [f.seed ?? config.seed],
       ticks: f.experiment?.ticks ?? 3000,
+      ...(f.experiment?.heldOut !== undefined ? { heldOut: f.experiment.heldOut } : {}),
     },
   };
 }
 
 // Toy brains merge every default. A snapshot brain has no toy size, so only the settings that apply
-// in both modes get defaults (contracts/integration.md §1).
+// in both modes get defaults (contracts/integration.md §1). The resolved brain always carries its version.
 function resolveBrain(mode, brain) {
   if (mode !== 'toy') return null;
-  if (brain?.snapshot === undefined) return { ...BRAIN_DEFAULTS, ...brain };
+  const version = resolveBrainVersion(brain);
+  if (brain?.snapshot === undefined) return { ...BRAIN_DEFAULTS, ...brain, version };
   return {
     motorSmoothing: BRAIN_DEFAULTS.motorSmoothing,
     ...brain,
+    version,
   };
+}
+
+// The brain stack for a brain section (contracts/world-config-forager.md). Absent version: "mock" when there is
+// no snapshot, "v0" when there is one (spec FR-002). Existing worlds therefore resolve as before.
+export function resolveBrainVersion(brain) {
+  if (brain?.version !== undefined) return brain.version;
+  return brain?.snapshot === undefined ? 'mock' : 'v0';
 }

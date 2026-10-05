@@ -32,6 +32,15 @@ export const neuronMapSection = {
     const cloud = createPointCloud(canvas);
     cloud.setPoints(model.positions, BASE_COLOUR);
     const buffer = new Float32Array(model.neuronCount);
+    // One brightness per drawn point. A snapshot brain draws a subset of the neurons (FR-030), so the
+    // per-neuron brightness is picked through model.drawn; with no list, every neuron is a point.
+    const drawn = model.drawn;
+    const pointBrightness = new Float32Array(model.coveredCount);
+    const brightnessOfPoints = (all) => {
+      if (!drawn) return all;
+      for (let k = 0; k < drawn.length; k++) pointBrightness[k] = all[drawn[k]];
+      return pointBrightness;
+    };
     let activity = model.activity;
     let loop = 0;
     // True when the canvas shows an old frame (just mounted, resized or shown again).
@@ -46,7 +55,7 @@ export const neuronMapSection = {
         return;
       }
       const now = performance.now();
-      cloud.update(activity.brightness(now, buffer));
+      cloud.update(brightnessOfPoints(activity.brightness(now, buffer)));
       stale = false;
       if (activity.isFading(now)) loop = requestAnimationFrame(frame);
     };
@@ -66,7 +75,8 @@ export const neuronMapSection = {
 
     const update = (m) => {
       activity = m.activity;
-      setText(counts, `${m.neuronCount} neurons, ${m.activeCount} active in the last ${WINDOW_TICKS} ticks`);
+      const left = m.leftOut > 0 ? `${m.leftOut} without a soma position not drawn, ` : '';
+      setText(counts, `${m.neuronCount} neurons, ${left}${m.activeCount} active in the last ${WINDOW_TICKS} ticks`);
       start();
     };
     update(model);

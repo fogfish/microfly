@@ -1,7 +1,7 @@
 // createNetwork rejects invalid parameters with a message that names the parameter.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNetwork, LIF_DEFAULTS } from '../public/js/brain/lif.js';
+import { createNetwork, LIF_DEFAULTS } from '../public/js/brain/lif-v0.js';
 
 const graph = { neuronCount: 2, edges: [] };
 

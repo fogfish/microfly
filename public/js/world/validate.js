@@ -3,7 +3,8 @@
 // references against the atlas catalogue. Both return an array of { path, message }; empty means valid.
 // Paths name the section and the entry, e.g. objects[3].
 
-import { resolveParams, LIF_DEFAULTS } from '../brain/lif.js';
+import { resolveParams, LIF_DEFAULTS } from '../brain/lif-v0.js';
+import { resolveParams as resolveParamsV1, LIF_V1_DEFAULTS } from '../brain/lif-v1.js';
 import { validateCapabilities } from '../brain/capabilities.js';
 import { cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX } from './layout.js';
 import { buildWaterField, waterField, cellWater, bodyKind, BODY_RANGES } from './water.js';
@@ -14,6 +15,7 @@ const GROVE_MIN = 4;
 const GROVE_MAX = 12;
 const MAX_SPRITE_SIDE = 32;
 const SEED_MAX = 4294967295;
+const BRAIN_VERSIONS = ['mock', 'v0', 'v1'];
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -313,6 +315,7 @@ function validateFlies(flies, config, err) {
   }
 
   validateFlyBody(flies.body, err);
+  validateFlyFood(flies.food, err);
   validateFlyStimulus(flies.stimulus, edible, err);
 
   // The brain is ignored in baseline mode, so it is only checked for toy flies
@@ -328,12 +331,50 @@ function validateFlyBody(body, err) {
   }
   if (!(isNum(body.maxSpeed) && body.maxSpeed > 0)) err('flies.body.maxSpeed', 'must be a number greater than 0');
   if (!(isNum(body.turnRate) && body.turnRate > 0)) err('flies.body.turnRate', 'must be a number greater than 0');
+
+  // Energy (v1 only; defaults in fly-config.js). Ignored by v0 worlds, but checked when present.
+  if (body.energy !== undefined) {
+    const e = body.energy;
+    if (!isObject(e)) err('flies.body.energy', 'must be an object with initial, metabolism and intake');
+    else {
+      if (e.initial !== undefined && !(isNum(e.initial) && e.initial >= 0 && e.initial <= 1)) {
+        err('flies.body.energy.initial', 'must be a number from 0 to 1');
+      }
+      if (e.metabolism !== undefined && !(isNum(e.metabolism) && e.metabolism >= 0)) {
+        err('flies.body.energy.metabolism', 'must be a number of 0 or more');
+      }
+      if (e.intake !== undefined && !(isNum(e.intake) && e.intake >= 0)) {
+        err('flies.body.energy.intake', 'must be a number of 0 or more');
+      }
+    }
+  }
+}
+
+// Food (v1 only; contracts/world-config-forager.md, flies.food).
+function validateFlyFood(food, err) {
+  if (food === undefined) return;
+  if (!isObject(food)) {
+    err('flies.food', 'must be an object');
+    return;
+  }
+  const check = (key, ok, text) => {
+    if (food[key] !== undefined && !ok(food[key])) err(`flies.food.${key}`, text);
+  };
+  check('eatSpeed', (v) => isNum(v) && v > 0, 'must be a number greater than 0');
+  check('feedThreshold', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
+  check('stock', (v) => isNum(v) && v > 0, 'must be a number greater than 0');
+  check('consumeRate', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
+  check('regrowth', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
+  check('sated', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
 }
 
 function validateFlyStimulus(stimulus, edible, err) {
   if (!isObject(stimulus)) {
     err('flies.stimulus', 'must be an object');
     return;
+  }
+  if (stimulus.antennaOffset !== undefined && !(isNum(stimulus.antennaOffset) && stimulus.antennaOffset >= 0)) {
+    err('flies.stimulus.antennaOffset', 'must be a number of 0 or more');
   }
   if (!Array.isArray(stimulus.objects) || stimulus.objects.length === 0) {
     err('flies.stimulus.objects', 'must be a non-empty list of edible object ids');
@@ -361,9 +402,21 @@ function validateFlyBrain(brain, err) {
     return;
   }
 
-  // A snapshot brain takes its size from the file, so toy-only settings are a conflict (contracts/integration.md §1).
+  // The version selects the brain stack (contracts/world-config-forager.md). Absent: mock, or v0 when a snapshot is given.
   const snapshot = brain.snapshot;
   const isSnapshot = snapshot !== undefined;
+  if (brain.version !== undefined && !BRAIN_VERSIONS.includes(brain.version)) {
+    err('flies.brain.version', 'must be "mock", "v0" or "v1"');
+  }
+  const version = BRAIN_VERSIONS.includes(brain.version) ? brain.version : (isSnapshot ? 'v0' : 'mock');
+  if (version === 'mock' && isSnapshot) {
+    err('flies.brain.snapshot', 'cannot be set for version "mock"');
+  }
+  if (version !== 'mock' && !isSnapshot && BRAIN_VERSIONS.includes(brain.version)) {
+    err('flies.brain.snapshot', `is required for version "${version}"`);
+  }
+
+  // A snapshot brain takes its size from the file, so toy-only settings are a conflict (contracts/integration.md §1).
   if (isSnapshot) {
     if (typeof snapshot !== 'string' || snapshot === '') {
       err('flies.brain.snapshot', 'must be a non-empty path to a .brain file');
@@ -407,21 +460,29 @@ function validateFlyBrain(brain, err) {
     if (problem) err('flies.brain.capabilities', problem);
   }
 
+  // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1.
+  if (brain.stepsPerTick !== undefined) {
+    if (version !== 'v1') err('flies.brain.stepsPerTick', 'is only for version "v1"');
+    else if (!isInt(brain.stepsPerTick, 1, 20)) err('flies.brain.stepsPerTick', 'must be an integer from 1 to 20');
+  }
+
   if (brain.lif !== undefined) {
     if (!isObject(brain.lif)) {
       err('flies.brain.lif', 'must be an object of LIF parameters');
       return;
     }
+    const defaults = version === 'v1' ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
     const entries = Object.entries(brain.lif);
-    const unknown = entries.filter(([key]) => !Object.hasOwn(LIF_DEFAULTS, key));
-    const notNumbers = entries.filter(([key, value]) => Object.hasOwn(LIF_DEFAULTS, key) && !isNum(value));
+    const unknown = entries.filter(([key]) => !Object.hasOwn(defaults, key));
+    const notNumbers = entries.filter(([key, value]) => Object.hasOwn(defaults, key) && !isNum(value));
     for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');
 
-    // Range checks (dt > 0, vThreshold > vReset, ...) live in lif.js, so they match the engine
+    // Range checks (dt > 0, vThreshold > vReset, ...) live in the engine (lif-v0.js, lif-v1.js), so they match it
     if (unknown.length === 0 && notNumbers.length === 0) {
       try {
-        resolveParams(brain.lif);
+        if (version === 'v1') resolveParamsV1(brain.lif);
+        else resolveParams(brain.lif);
       } catch (e) {
         err('flies.brain.lif', e.message);
       }
@@ -443,5 +504,17 @@ function validateFlyExperiment(experiment, err) {
   }
   if (experiment.ticks !== undefined && !isInt(experiment.ticks, 1, 1000000)) {
     err('flies.experiment.ticks', 'must be an integer from 1 to 1000000');
+  }
+  // The held-out seeds of the comparison (ADR 003 Gate C): 30 distinct seeds, none of them a calibration seed.
+  if (experiment.heldOut !== undefined) {
+    const held = experiment.heldOut;
+    const valid = Array.isArray(held) && held.length === 30 && new Set(held).size === 30
+      && held.every((s) => isInt(s, 0, SEED_MAX));
+    if (!valid) {
+      err('flies.experiment.heldOut', `must be a list of 30 distinct integers from 0 to ${SEED_MAX}`);
+    } else if (Array.isArray(experiment.seeds)) {
+      const overlap = held.filter((s) => experiment.seeds.includes(s)).sort((a, b) => a - b);
+      if (overlap.length > 0) err('flies.experiment.heldOut', `overlaps flies.experiment.seeds: ${overlap.join(', ')}`);
+    }
   }
 }

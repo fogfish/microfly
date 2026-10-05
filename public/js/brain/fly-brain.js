@@ -1,102 +1,16 @@
-// Brain runner (ADR 001 Annex A, research R5; ADR 002 for the snapshot). Pure: no DOM, no workers.
-// Neuron 0 is the sensory input. What the brain exposes is its declaration (capabilities.js): every
-// declared output is an exponential moving average of its neuron's spike rate, and the outputs with a
-// drive set the body's left and right values.
-// Toy brains are random graphs wired from the declaration. A snapshot brain (brainConfig.snapshot, a
-// parsed container) is the connectome graph from the file; the seed is not used by it (contracts/integration.md §2).
+// Brain dispatcher. Chooses the brain stack by flies.brain.version (contracts/world-config-forager.md):
+// "mock" and "v0" (or no version) run the v0 runner in fly-brain-v0.js; "v1" runs the forager runner in
+// fly-brain-v1.js. Callers import from here, so the choice of stack is made in one place.
 
-import { createPrng } from '../world/prng.js';
-import { addMotorDrive, randomGraph } from './graph.js';
-import { createNetwork, step as lifStep } from './lif.js';
-import { TOY_CAPABILITIES, validateCapabilities } from './capabilities.js';
+import { createFlyBrain as createV0FlyBrain, BRAIN_DEFAULTS } from './fly-brain-v0.js';
+import { createFlyBrain as createV1FlyBrain } from './fly-brain-v1.js';
 
-const SENSORY = 0;
+export { BRAIN_DEFAULTS };
 
-// Defaults match contracts/fly-config.md. The host also validates these before sending.
-export const BRAIN_DEFAULTS = Object.freeze({
-  neuronCount: 40,
-  outDegree: 4,
-  inhibitoryFraction: 0.2,
-  motorSmoothing: 0.05,
-});
-
+// Version absent: a world with a snapshot is v0, a world without one is mock (spec FR-002).
 export function createFlyBrain(brainConfig, seed) {
-  if (brainConfig.snapshot !== undefined) return createSnapshotBrain(brainConfig);
-
-  const cfg = { ...BRAIN_DEFAULTS, ...brainConfig };
-  const { neuronCount, motorSmoothing } = cfg;
-  const capabilities = brainConfig.capabilities ?? TOY_CAPABILITIES;
-  const [problem] = validateCapabilities(capabilities, neuronCount, 'brain');
-  if (problem) throw new Error(problem);
-
-  const graph = addMotorDrive(randomGraph({
-    neuronCount,
-    outDegree: cfg.outDegree,
-    inhibitoryFraction: cfg.inhibitoryFraction,
-    rand: createPrng(seed).next,
-  }), { sensory: SENSORY, motors: driveNeurons(capabilities) });
-  const net = createNetwork(graph, brainConfig.lif ?? {});
-  return runner({ net, neuronCount, motorSmoothing, capabilities });
-}
-
-function createSnapshotBrain(brainConfig) {
-  const snap = brainConfig.snapshot;
-  if (typeof snap === 'string') {
-    throw new Error('snapshot must be resolved to a parsed container before the brain is built');
-  }
-  const { motorSmoothing } = { ...BRAIN_DEFAULTS, ...brainConfig };
-  const neuronCount = snap.neuronCount;
-  const net = createNetwork(
-    { neuronCount, offsets: snap.offsets, targets: snap.targets, weights: snap.weights },
-    brainConfig.lif ?? {},
-  );
-  return runner({ net, neuronCount, motorSmoothing, capabilities: snap.capabilities });
-}
-
-// The neurons of the outputs that drive the body, left first (the order the toy graph was wired in).
-function driveNeurons(capabilities) {
-  const byDrive = Object.fromEntries(capabilities.channels.outputs.filter((ch) => ch.drive).map((ch) => [ch.drive, ch.neuron]));
-  return [byDrive.left, byDrive.right];
-}
-
-// Returns the indices of the neurons that spiked on this tick, ascending.
-function spikeIndices(spikes) {
-  let count = 0;
-  for (let i = 0; i < spikes.length; i++) if (spikes[i]) count++;
-  const out = new Uint32Array(count);
-  let k = 0;
-  for (let i = 0; i < spikes.length; i++) if (spikes[i]) out[k++] = i;
-  return out;
-}
-
-// The per-tick loop, shared by both kinds. Only the graph construction differs.
-function runner({ net, neuronCount, motorSmoothing, capabilities }) {
-  const external = new Float64Array(neuronCount);
-  const outputs = capabilities.channels.outputs;
-  const outputNeurons = outputs.map((ch) => ch.neuron);
-  const average = new Float64Array(outputs.length);
-  const leftIndex = outputs.findIndex((ch) => ch.drive === 'left');
-  const rightIndex = outputs.findIndex((ch) => ch.drive === 'right');
-  let ticks = 0;
-
-  // Runs one brain tick. tick is this step's index, counting from 0.
-  function step(sensoryValue) {
-    external[SENSORY] = sensoryValue;
-    lifStep(net, external);
-
-    for (let k = 0; k < average.length; k++) {
-      average[k] += motorSmoothing * (net.spikes[outputNeurons[k]] - average[k]);
-    }
-
-    return {
-      tick: ticks++,
-      sensory: sensoryValue,
-      left: average[leftIndex],
-      right: average[rightIndex],
-      outputs: Float32Array.from(average),
-      spikes: spikeIndices(net.spikes),
-    };
-  }
-
-  return { net, neuronCount, capabilities, step };
+  const version = brainConfig.version ?? (brainConfig.snapshot !== undefined ? 'v0' : 'mock');
+  if (version === 'mock' || version === 'v0') return createV0FlyBrain(brainConfig, seed);
+  if (version === 'v1') return createV1FlyBrain({ ...brainConfig, version }, seed);
+  throw new Error(`brain version "${version}" is not available in this build`);
 }

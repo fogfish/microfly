@@ -1,7 +1,7 @@
 // The FlyStatusModel (specs/006-fly-status-panel/data-model.md): the plain input every section renders
 // from. Pure: built from one fly record and a clock reading, so the sections can be tested without a DOM.
 
-import { actionLabel } from '../../fly/action.js';
+import { actionLabel, forageAction } from '../../fly/action.js';
 import { activeCount, windowCounts } from './counts.js';
 
 // Action, counts, brightness and channel values of the selected fly at time nowMs.
@@ -10,21 +10,34 @@ export function buildStatusModel(record, nowMs) {
   const neuronCount = record.neuronCount ?? 0;
   const counts = record.activity ? windowCounts(record.history, neuronCount) : null;
   const outputs = record.capabilities.channels.outputs;
+  // A forager entry carries named drives and energy (ADR 003 W1–W4); a v0 or tank entry carries left and right.
+  const forager = last?.drives !== undefined;
+  const action = !last ? null
+    : last.eating ? 'Eat'
+      : forager ? forageAction(last.drives)
+        : actionLabel(last.left, last.right);
 
   return {
     flyId: record.state.id,
     brainLabel: record.brainLabel,
-    action: last ? actionLabel(last.left, last.right) : null,
+    action,
+    energy: last?.energy ?? null,
+    hunger: last?.hunger ?? null,
+    eating: last?.eating ?? false,
     neuronCount,
     capabilities: record.capabilities,
     activeCount: counts ? activeCount(counts) : 0,
+    // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,
+    leftOut: record.positions ? neuronCount - record.positions.length / 3 : 0,
     positions: record.positions ?? null,
+    drawn: record.drawn ?? null,
     activity: record.activity ?? null,
     brightness: record.activity ? record.activity.brightness(nowMs) : null,
-    inputs: record.capabilities.channels.inputs.map((channel) => ({
+    // A forager entry has one value per declared input; a v0 entry has the single sensory value for every row.
+    inputs: record.capabilities.channels.inputs.map((channel, k) => ({
       channel,
-      value: last ? last.sensory : 0,
+      value: !last ? 0 : last.inputs ? last.inputs[k] : last.sensory,
     })),
     outputs: outputs.map((channel, k) => ({
       channel,

@@ -64,6 +64,68 @@ if (snapshotPath !== undefined) {
   }
 }
 
+// The forager world (flies.brain.version "v1") runs the Gate C comparison (ADR 003; contracts/experiment-metrics.md).
+// --brains picks the arms, --seeds=held-out uses experiment.heldOut, --json writes the run record.
+const brainsArg = process.argv.find((a) => a.startsWith('--brains='))?.slice('--brains='.length);
+const seedsArg = process.argv.find((a) => a.startsWith('--seeds='))?.slice('--seeds='.length);
+const jsonArg = process.argv.find((a) => a.startsWith('--json='))?.slice('--json='.length);
+const ticksArg = process.argv.find((a) => a.startsWith('--ticks='))?.slice('--ticks='.length);
+const forageTicks = ticksArg !== undefined ? Number(ticksArg) : f.experiment.ticks;
+if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
+  const { runForagerArms, armMetrics, printForagerTable, verdicts } = await import('./forager-arms.mjs');
+  const { createHash } = await import('node:crypto');
+  const arms = (brainsArg ?? 'mock,v1,random-matched,baseline').split(',');
+  if (seedsArg !== undefined && seedsArg !== 'held-out') {
+    console.error(`--seeds must be "held-out" or omitted, got "${seedsArg}"`);
+    process.exit(1);
+  }
+  const seeds = seedsArg === 'held-out' ? f.experiment.heldOut : f.experiment.seeds;
+  if (seedsArg === 'held-out' && seeds === undefined) {
+    console.error('experiment.heldOut is not set in the world');
+    process.exit(1);
+  }
+  const overlap = (f.experiment.heldOut ?? []).filter((s) => (f.experiment.seeds ?? []).includes(s));
+  if (seedsArg === 'held-out' && overlap.length > 0) {
+    console.error(`held-out seeds overlap the calibration seeds: ${overlap.join(', ')}`);
+    process.exit(1);
+  }
+  // The v0 arm needs the small snapshot (version 3), read from the same root as the world's snapshot.
+  let v0Snapshot;
+  if (arms.includes('v0')) {
+    const small = readFileSync(new URL('brains/smallest-functional-brain.brain', webRoot));
+    v0Snapshot = parseSnapshot(small.buffer.slice(small.byteOffset, small.byteOffset + small.byteLength));
+  }
+  const result = runForagerArms({
+    f, world, expConfig, snapshot, v0Snapshot, arms, seeds, ticks: forageTicks,
+    capabilities: snapshot.capabilities,
+  });
+  const metrics = armMetrics(arms, result, f.stimulus.radius, 1);
+  console.log(`world ${worldArg}, seeds ${seedsArg === 'held-out' ? 'held-out' : 'calibration'} (${seeds.length}), ` +
+    `${f.count} flies per cohort, ${forageTicks} ticks per fly`);
+  console.log('');
+  console.log(printForagerTable(metrics, seeds.length));
+  console.log('');
+  for (const v of verdicts(metrics)) {
+    const mark = v.pass === null ? 'MEASURED' : v.pass ? 'PASS' : 'FAIL';
+    console.log(`${mark.padEnd(9)} ${v.metric.padEnd(18)} ${v.expectation}: ${v.values}`);
+  }
+  console.log('');
+  console.log('contacts are printed for information and do not decide the verdict (FR-028).');
+  if (jsonArg) {
+    const record = {
+      world: { file: worldArg, sha256: createHash('sha256').update(readFileSync(worldUrl)).digest('hex') },
+      snapshot: { path: snapshotPath, configHash: snapshot.manifest.provenance.configHash, version: snapshot.version },
+      seeds, ticks: forageTicks, arms,
+      lif: f.brain.lif ?? {},
+      metrics,
+    };
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(jsonArg, `${JSON.stringify(record, null, 2)}\n`);
+    console.log(`run record written to ${jsonArg}`);
+  }
+  process.exit(0);
+}
+
 // Shared settings for every toy-style brain: no snapshot, no size (those come from the arm)
 const { snapshot: _unused, ...shared } = f.brain ?? {};
 const toyBrain = { ...BRAIN_DEFAULTS, ...shared };

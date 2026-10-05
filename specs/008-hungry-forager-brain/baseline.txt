@@ -1,0 +1,46 @@
+# Baseline (T001, T002)
+date: 2026-10-05T16:29:20Z
+
+## npm test
+ℹ tests 257
+ℹ pass 257
+ℹ fail 0
+
+## extractor unittest
+Ran 95 tests in 0.893s
+
+OK
+
+## versions
+25.0.1 2.5.3
+
+## compare-baseline (connectome, verbose)
+world seed 1990, 6 flies per arm, 3000 ticks per fly, tickHz 20
+snapshot brains/smallest-functional-brain.brain: 11 neurons, 78 edges (male-cns-v1.0, created 2026-10-04T13:54:00Z)
+
+seed   toy            nature         random-matched baseline       
+1      1              0              0              1              
+2      4              6              1              3              
+3      0              0              0              2              
+4      3              0              0              1              
+5      3              0              0              6              
+total  11             6              1              13             
+
+nature - random-matched: +5
+nature - toy:            -5
+toy - baseline: -2
+nature - baseline: -7
+random-matched - baseline: -12
+verdict: toy <= baseline
+
+readout firing rate (spikes per fly-tick, all seeds):
+  toy              LEFT 0.1254  RIGHT 0.1358
+  nature           LEFT 0.0331  RIGHT 0.0666
+  random-matched   LEFT 0.0867  RIGHT 0.0882
+
+per arm and seed, fruit contacts (see the table above for totals)
+  seed 1: {"toy":1,"nature":0,"random-matched":0,"baseline":1}
+  seed 2: {"toy":4,"nature":6,"random-matched":1,"baseline":3}
+  seed 3: {"toy":0,"nature":0,"random-matched":0,"baseline":2}
+  seed 4: {"toy":3,"nature":0,"random-matched":0,"baseline":1}
+  seed 5: {"toy":3,"nature":0,"random-matched":0,"baseline":6}

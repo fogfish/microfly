@@ -3,15 +3,18 @@
 // activity.js; this file only wires them to Workers and the clock.
 
 import * as P from '../brain/protocol.js';
-import { parseSnapshot } from '../brain/snapshot.js';
+import * as P3 from '../brain/protocol-v3.js';
+import { checkBrainVersion, parseSnapshot } from '../brain/snapshot.js';
 import { BASELINE_CAPABILITIES, TOY_CAPABILITIES } from '../brain/capabilities.js';
 import { createActivity } from '../brain/activity.js';
-import { neuronPositions } from '../brain/layout.js';
+import { neuronPositions, somaPositions } from '../brain/layout.js';
 import { stepBody } from './body.js';
 import { createBaselineMotor } from './baseline.js';
 import { senseAt } from './stimulus.js';
 import { resolveFlies } from './fly-config.js';
 import { stimulusPoints } from './fly-world.js';
+import { createFood } from './food.js';
+import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
 
 const HISTORY = 200;
 const NO_SPIKES = new Uint32Array(0);
@@ -42,9 +45,13 @@ export async function loadSnapshot(brain, root) {
   } catch (e) {
     throw new Error(`snapshot ${path} is not usable: ${e.message}`);
   }
+  // The brain version of the world must match the container version of the file, before any fly starts (FR-003).
+  checkBrainVersion(brain.version ?? 'v0', snapshot.version, `${path}`);
+
   const { provenance } = snapshot.manifest;
   return {
     url: url.href,
+    version: snapshot.version,
     release: provenance?.datasetRelease ?? 'unknown release',
     createdAt: provenance?.createdAt ?? 'unknown date',
     neuronCount: snapshot.neuronCount,
@@ -64,13 +71,19 @@ function declarationOf(state, f, snapshot) {
 // world: from buildWorld. flies: from spawnFlies. snapshot: from loadSnapshot, or null for toy brains.
 // Returns one FlyRecord per fly.
 // FlyRecord: { state, worker, status, error, pending, history, motorSource, brainLabel, capabilities,
-//              checks, neuronCount, activity, positions }
+//              checks, neuronCount, activity, positions, drawn }
 export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
   const f = resolveFlies(config);
-  const brainLabel = snapshot
-    ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
-    : null;
+  // The forager brain (version v1) runs on protocol 3. Its toy flies are the only ones that use the brain.
+  const forager = f.brain?.version === 'v1' && snapshot !== null;
+  const brainLabel = forager
+    ? `v1 forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
+    : snapshot
+      ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
+      : null;
   const points = stimulusPoints(world);
+  const flowers = forager ? createFood(world, f) : null;
+  const forageEnvironment = forager ? forageEnv(f, world, flowers, snapshot.capabilities) : null;
   const env = {
     dt: 1 / f.tickHz,
     maxSpeed: f.body.maxSpeed,
@@ -83,19 +96,25 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   const elapsed = createClock();
 
   // Soma positions are per brain, not per tick. A connectome brain shares one layout across its flies.
+  // Returns { drawn, positions }: drawn lists the neuron index of each point (FR-030: a snapshot brain draws
+  // only neurons with a soma); null means every neuron is drawn, as in a toy brain.
   const layouts = new Map();
   const positionsFor = (state, neuronCount) => {
     const key = snapshot && state.mode === 'toy' ? 'snapshot' : `toy:${state.brainSeed}`;
     if (!layouts.has(key)) {
-      const neurons = snapshot && state.mode === 'toy'
-        ? snapshot.neurons
-        : Array.from({ length: neuronCount }, () => ({ soma: null }));
-      layouts.set(key, neuronPositions(neurons, state.brainSeed));
+      if (snapshot && state.mode === 'toy') {
+        layouts.set(key, somaPositions(snapshot.neurons));
+      } else {
+        const neurons = Array.from({ length: neuronCount }, () => ({ soma: null }));
+        layouts.set(key, { drawn: null, positions: neuronPositions(neurons, state.brainSeed) });
+      }
     }
     return layouts.get(key);
   };
 
   const records = flies.map((state) => {
+    const isForager = forager && state.mode === 'toy';
+    if (isForager) initForagerFly(state, f.body.energy.initial);
     const capabilities = declarationOf(state, f, snapshot);
     const neuronCount = state.mode === 'baseline'
       ? 0
@@ -107,6 +126,7 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
       status: 'starting',
       error: null,
       pending: false,
+      forager: isForager,
       history: [],
       motorSource: state.mode === 'baseline' ? createBaselineMotor(state.brainSeed) : null,
       brainLabel: state.mode === 'toy' && brainLabel ? brainLabel : MODE_LABEL[state.mode],
@@ -119,11 +139,21 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
       },
       neuronCount,
       activity: state.mode === 'baseline' ? null : createActivity(neuronCount),
-      positions: state.mode === 'baseline' ? null : positionsFor(state, neuronCount),
+      ...(state.mode === 'baseline' ? { positions: null, drawn: null } : positionsFor(state, neuronCount)),
     };
   });
 
   const senseOf = (s) => senseAt(points, s.body.x, s.body.y, f.stimulus);
+
+  // One forager tick: the motor reply drives the body, the flower and the energy, and goes into the history (ADR 003).
+  function applyForagerTick(r, msg) {
+    const entry = applyForagerMotor(r.state, msg, forageEnvironment);
+    r.activity?.recordTick(msg.spikes, performance.now());
+    r.history.push({ ...entry, sensory: entry.inputs[0] });
+    if (r.history.length > HISTORY) r.history.shift();
+    r.pending = false;
+    onUpdate();
+  }
 
   // Applies one movement step for the fly's current tick, then records it for the panel
   function applyTick(r, { sensory, left, right, outputs, spikes }) {
@@ -161,6 +191,15 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
           fail(r, `motor tick ${msg.tick} does not match expected tick ${r.state.tick}`);
           return;
         }
+        if (r.forager) {
+          const forageProblem = P3.validateMessage(msg, 'toHost') ?? P3.validateMotorV3(msg, r.checks);
+          if (forageProblem) {
+            fail(r, forageProblem);
+            return;
+          }
+          applyForagerTick(r, msg);
+          return;
+        }
         const problem = P.validateMessage(msg, 'toHost') ?? P.validateMotor(msg, r.checks);
         if (problem) {
           fail(r, problem);
@@ -182,6 +221,10 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
     worker.onerror = (e) => fail(r, e.message || 'worker failed');
     // A snapshot is fetched by each worker from its absolute URL (R7); toy brains are built in place.
     const brain = snapshot && r.state.mode === 'toy' ? { ...f.brain, snapshot: snapshot.url } : f.brain;
+    if (r.forager) {
+      worker.postMessage(P3.init({ flyId: r.state.id, seed: r.state.brainSeed, brain }));
+      return;
+    }
     worker.postMessage(P.init({ flyId: r.state.id, seed: r.state.brainSeed, brain }));
   }
 
@@ -195,6 +238,10 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
       return;
     }
     r.pending = true;
+    if (r.forager) {
+      r.worker.postMessage(senseForagerFly(s, forageEnvironment).message);
+      return;
+    }
     r.worker.postMessage(P.sense({ tick: s.tick, sensory: senseOf(s) }));
   }
 

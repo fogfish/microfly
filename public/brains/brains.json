@@ -3,7 +3,17 @@
   "version": 1,
   "default": "smallest-functional-brain.brain",
   "brains": [
-    { "file": "smallest-functional-brain.brain", "label": "Smallest functional brain" },
-    { "file": "antennal-lobe-brain.brain", "label": "Antennal-lobe brain (ORN, 35 neurons)" }
+    {
+      "file": "smallest-functional-brain.brain",
+      "label": "Smallest functional brain"
+    },
+    {
+      "file": "antennal-lobe-brain.brain",
+      "label": "Antennal-lobe brain (ORN, 35 neurons)"
+    },
+    {
+      "file": "forager-brain.brain",
+      "label": "Forager brain (ADR 003, v1)"
+    }
   ]
 }

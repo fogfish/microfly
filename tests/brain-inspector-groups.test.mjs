@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  regionOf, groupsForLevel, groupEdges, groupCentroids,
+  regionOf, groupsForLevel, groupEdges, groupCentroids, groupNameFor,
 } from '../public/brains/js/model.js';
 
 // Builds the parseSnapshot shape from neuron records and [src, dst, synapses, weight] edges.
@@ -114,4 +114,16 @@ test('groupCentroids places a group with no member positions at the weighted mea
   // Glia's only neighbour is ALPN (edge weight 6), so Glia sits at ALPN's centroid.
   assert.deepEqual(placed.get('Glia').centroid, [2, 2, 2]);
   assert.equal(placed.get('Glia').fromNeighbours, true);
+});
+
+test('the channel level groups version 4 pools by channel, and interneurons together (ADR 003 W5)', () => {
+  assert.equal(groupNameFor({ channel: 'odour-left' }, 'channel'), 'odour-left');
+  assert.equal(groupNameFor({ channel: 'turn-left' }, 'channel'), 'turn-left');
+  assert.equal(groupNameFor({ channel: null }, 'channel'), 'Interneurons');
+  const groups = groupsForLevel(snapshotOf([
+    neuron({ channel: 'odour-left', soma: [0, 0, 0] }),
+    neuron({ channel: 'odour-left', soma: [1, 0, 0] }),
+    neuron({ channel: null, soma: [2, 0, 0] }),
+  ], []), 'channel');
+  assert.deepEqual(groups.map((g) => [g.name, g.count]), [['odour-left', 2], ['Interneurons', 1]]);
 });

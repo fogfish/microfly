@@ -1,7 +1,7 @@
 // ADR 001 Stage 1 checks: determinism, constant-drive ISI, refractory steps, inhibition.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNetwork, step } from '../public/js/brain/lif.js';
+import { createNetwork, step } from '../public/js/brain/lif-v0.js';
 import { randomGraph } from '../public/js/brain/graph.js';
 import { createPrng } from '../public/js/world/prng.js';
 

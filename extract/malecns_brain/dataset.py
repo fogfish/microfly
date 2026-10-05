@@ -16,6 +16,8 @@ NEUROTRANSMITTERS = "body-neurotransmitters-male-cns-v1.0.feather"
 EDGES = "connectome-weights-male-cns-v1.0-minconf-0.5-traced-only.feather"
 
 ANNOTATION_COLUMNS = ["bodyId", "class", "superclass", "somaSide", "somaLocation", "status", "type"]
+# The forager pools (ADR 003 D1) filter on the side and subclass of a body, and receptorType is recorded.
+FORAGER_ANNOTATION_COLUMNS = ANNOTATION_COLUMNS + ["rootSide", "subclass", "receptorType"]
 NEUROTRANSMITTER_COLUMNS = ["body", "predicted_nt", "predicted_nt_confidence"]
 EDGE_COLUMNS = ["body_pre", "body_post", "weight"]
 
@@ -70,8 +72,9 @@ def load_rows(path, columns):
     return table.to_pylist()
 
 
-def load_annotations(directory):
-    return load_rows(dataset_path(directory, ANNOTATIONS), ANNOTATION_COLUMNS)
+def load_annotations(directory, columns=ANNOTATION_COLUMNS):
+    """Annotation rows with the selected columns. The version 3 path reads ANNOTATION_COLUMNS, as before."""
+    return load_rows(dataset_path(directory, ANNOTATIONS), columns)
 
 
 def load_neurotransmitters(directory):

@@ -29,3 +29,28 @@ export function senseAt(points, x, y, stimulus) {
     stimulus.resting,
   );
 }
+
+// The fly's left, in screen coordinates (y points down): (sin θ, −cos θ). A fly facing east (θ = 0) has its left
+// to the north. The turn sign in body.js (FORAGER_TURN_SIGN) is fixed by this convention.
+export function antennaPoints(fly, antennaOffset) {
+  const sin = Math.sin(fly.heading);
+  const cos = Math.cos(fly.heading);
+  return {
+    left: { x: fly.x + antennaOffset * sin, y: fly.y - antennaOffset * cos },
+    right: { x: fly.x - antennaOffset * sin, y: fly.y + antennaOffset * cos },
+  };
+}
+
+// Bilateral odour (ADR 003 W3): one sample at each antenna. points: [{x, y, fraction}] flower cells, where fraction is
+// the stock over the full stock (1 when absent). Each sample is sensoryValue of Σ falloff(d, radius) × fraction.
+export function senseBilateral(points, fly, stimulus) {
+  const { left, right } = antennaPoints(fly, stimulus.antennaOffset);
+  const sample = (at) => {
+    let sum = 0;
+    for (const p of points) {
+      sum += falloff(Math.hypot(p.x - at.x, p.y - at.y), stimulus.radius) * (p.fraction ?? 1);
+    }
+    return sensoryValue(sum, stimulus.gain, stimulus.max, stimulus.resting);
+  };
+  return { left: sample(left), right: sample(right) };
+}

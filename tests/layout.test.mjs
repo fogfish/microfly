@@ -1,7 +1,7 @@
 // Neuron positions (research R6): soma layout keeps proportions, the seeded fallback is stable.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { neuronPositions } from '../public/js/brain/layout.js';
+import { neuronPositions, somaPositions } from '../public/js/brain/layout.js';
 
 const somas = (list) => list.map((soma) => ({ soma }));
 
@@ -38,4 +38,12 @@ test('neurons without a soma lie on the unit sphere', () => {
     const r = Math.hypot(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]);
     assert.ok(Math.abs(r - 1) < 1e-5, `neuron ${i} radius ${r}`);
   }
+});
+
+test('a snapshot brain draws only the neurons with a soma, in index order (FR-030)', () => {
+  const neurons = [{ soma: [0, 0, 0] }, { soma: null }, { soma: [10, 0, 0] }, { soma: null }, { soma: [0, 4, 0] }];
+  const { drawn, positions } = somaPositions(neurons);
+  assert.deepEqual(drawn, [0, 2, 4]);
+  assert.equal(positions.length, 9);
+  assert.deepEqual([...positions.slice(3, 6)].map((v) => Math.round(v * 1e6) / 1e6), [1, -0.4, 0]);
 });

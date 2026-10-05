@@ -1,13 +1,36 @@
 // Point positions for the brain's neurons (specs/006-fly-status-panel/research.md R6). Pure.
 // Neurons with a soma are centred and scaled uniformly into a unit cube (the largest extent maps to 2),
-// so the dataset's proportions survive. Neurons without a soma, and every neuron of a toy brain, are
-// placed on a sphere from a seeded PRNG, so the layout is stable between reloads.
+// so the dataset's proportions survive. A snapshot brain draws only those neurons (somaPositions, FR-030).
+// Every neuron of a toy brain is placed on a sphere from a seeded PRNG (neuronPositions), so the layout
+// is stable between reloads.
 
 import { createPrng } from '../world/prng.js';
 
 const SPHERE_RADIUS = 1;
 
+// The indices of the neurons that have a soma, in index order. A snapshot brain draws only these (FR-030).
+export function drawnNeurons(neurons) {
+  const out = [];
+  neurons.forEach((neuron, i) => {
+    if (neuron.soma != null) out.push(i);
+  });
+  return out;
+}
+
+// A snapshot brain's drawn neurons only (FR-030, BUG-001): { drawn, positions }, where drawn is the index of each
+// point and positions holds 3 values per drawn neuron, in the same order. Same cube as neuronPositions.
+export function somaPositions(neurons) {
+  const drawn = drawnNeurons(neurons);
+  const { centre, scale } = somaFrame(drawn.map((i) => neurons[i].soma));
+  const positions = new Float32Array(3 * drawn.length);
+  drawn.forEach((i, k) => {
+    for (let axis = 0; axis < 3; axis++) positions[3 * k + axis] = (neurons[i].soma[axis] - centre[axis]) * scale;
+  });
+  return { drawn, positions };
+}
+
 // neurons: [{ soma: [x, y, z] | null }] in index order. Returns Float32Array of 3 × neurons.length.
+// Used for toy brains (no soma at all). A neuron without a soma gets a seeded point on the sphere.
 export function neuronPositions(neurons, seed) {
   const out = new Float32Array(3 * neurons.length);
   const somas = neurons.filter((n) => n.soma != null).map((n) => n.soma);
