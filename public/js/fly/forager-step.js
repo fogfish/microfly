@@ -58,13 +58,15 @@ export function driveValues(outputs, drives) {
 
 // Applies one motor reply: the body moves (W4), the fly eats if W2 holds, energy and the flower change, and the bout is
 // updated. Returns the history entry for the panel.
+// Eating uses the cell the fly stood on when it sensed taste (senseForagerFly, before the move), so the taste input and
+// the eating of one tick always come from the same flower (BUG-002). The body moves after that cell is read.
 export function applyForagerMotor(fly, motor, env) {
   const drives = driveValues(motor.outputs, env.drives);
-  stepForagerBody(fly.body, drives, env);
-
   const { dt, flowers, foodConfig, energyConfig } = env;
   const cx = Math.floor(fly.body.x);
   const cy = Math.floor(fly.body.y);
+  stepForagerBody(fly.body, drives, env);
+
   const cell = flowers.cellOf(cx, cy);
   const stock = flowers.stockAt(cx, cy);
   const eating = canEat({ stock, speed: fly.body.speed, feed: drives.feed ?? 0 }, foodConfig);
@@ -91,6 +93,7 @@ export function applyForagerMotor(fly, motor, env) {
     inputs: motor.inputs,
     hunger: hungerOf(fly.energy),
     energy: fly.energy,
+    speed: fly.body.speed,
     eating,
     outputs: motor.outputs,
     spikes: motor.spikes,

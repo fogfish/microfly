@@ -487,7 +487,7 @@
       "turnRate": 4,
       "energy": {
         "initial": 0.3,
-        "metabolism": 0.01,
+        "metabolism": 0.005,
         "intake": 0.2
       }
     },

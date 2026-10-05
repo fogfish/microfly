@@ -296,9 +296,27 @@ metrics and the held-out seed count.
   for the same file: a neuron without a soma position MUST NOT be drawn, and the view MUST state how many neurons were
   left out. This supersedes the seeded sphere placement for snapshot brains in `006-fly-status-panel` (research R6).
   Toy brains, which have no soma positions at all, keep the seeded sphere.
+- **FR-031**: The panel MUST show a v1 fly's energy and hunger as two bars from 0% to 100%, updated on every tick. The
+  bars show the fly's own state, not the brain's outputs.
+- **FR-032**: In the shipped `world-forager.json`, a hungry fly (energy 0.1) placed on a flower MUST slow below the eating
+  speed and eat, using the trained brain's own drives, with no hold or stop in the world (FR-026). The calibration MUST
+  choose its values by an eating criterion as well as the find rate, and the calibration record MUST state the eating
+  bouts and eating ticks for each setting it considered.
+- **FR-033**: For a snapshot brain, the brain activity view MUST show activity the user can compare with the simple brain.
+  The counts line MUST state the active neurons in the window, and the same seed run with `v0` and with `v1` MUST be
+  reportable side by side.
+- **FR-034**: For the selected v1 fly, the panel MUST show the speed, the feed output and the eating state, so that a
+  fly which does not stop can be explained from the panel.
+
+**Bugfix**: 2026-10-05 — BUG-002 Added FR-031 to FR-034 for the panel bars, the eating behaviour of the shipped world,
+the activity view and the panel diagnostic.
 
 **Bugfix**: 2026-10-05 — BUG-001 Added FR-030 and the matching edge case and success criterion, resolving the conflict
 between the inspector (004: soma-less neurons not drawn) and the app (006 R6: seeded sphere) for the forager brain.
+
+**Bugfix**: 2026-10-05 — BUG-002 Added FR-031 to FR-034 and SC-011 to SC-013. The forager fly never slows to eat in the
+shipped world, the panel shows no hunger bars for the user, and the activity view gives no comparison with the simple
+brain. The spec had no requirement for any of these.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -333,6 +351,12 @@ between the inspector (004: soma-less neurons not drawn) and the app (006 R6: se
 - **SC-010**: For `forager-brain.brain`, the brain activity view draws exactly the neurons that have a soma position
   (2,444 of 3,408), and the drawn set equals the inspector's drawn set in a test (FR-030).
 - **SC-009**: No eating bout occurs off a flower, and no fly eats while its speed is above the eating speed, in any run.
+- **SC-011**: In `world-forager.json`, on the held-out seeds, at least 50% of flies that reach a flower eat in at least one
+  bout, and each such bout has a fly speed below the eating speed. The 50% threshold is proposed here and is confirmed or
+  changed in `calibration.md` before the run.
+- **SC-012**: Every eating tick has taste input above 0 on both taste channels. A run that eats with taste at 0 fails.
+- **SC-013**: The Action section shows energy and hunger bars for a v1 fly, and they match the energy and hunger in the
+  last history entry on every tick (FR-031).
 
 ## Assumptions
 

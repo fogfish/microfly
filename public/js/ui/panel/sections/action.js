@@ -1,8 +1,8 @@
 // Action section: Forward, Turn left, Turn right, Backward, Idle or Eat, from the motor outputs (browser only).
-// A forager fly also shows its energy and hunger as two bars (ADR 003 W1).
+// A forager fly also shows its energy and hunger as two bars (ADR 003 W1, FR-031) and the drives behind its action
+// (FR-034).
 import { setHidden, setText, textEl } from '../dom.js';
-
-const percent = (value) => `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
+import { barWidth } from '../model.js';
 
 function bar(label) {
   const row = document.createElement('div');
@@ -24,16 +24,22 @@ export const actionSection = {
     const meters = document.createElement('div');
     const energy = bar('Energy');
     const hunger = bar('Hunger');
+    const drives = textEl('p', '');
+    drives.className = 'drives';
     meters.append(energy.row, hunger.row);
-    body.append(label, meters);
+    body.append(label, meters, drives);
 
     const update = (m) => {
       setText(label, m.action ?? 'Waiting for the first tick');
       const forager = m.energy !== null && m.energy !== undefined;
       setHidden(meters, !forager);
+      setHidden(drives, !forager);
       if (!forager) return;
-      energy.fill.style.width = percent(m.energy);
-      hunger.fill.style.width = percent(m.hunger);
+      energy.fill.style.width = barWidth(m.energy);
+      hunger.fill.style.width = barWidth(m.hunger);
+      const d = m.diagnostic;
+      setText(drives, `Speed ${d.speed.toFixed(2)} tiles/s · Feed ${d.feed.toFixed(2)} · Forward ${d.forward.toFixed(2)}`
+        + ` · Backward ${d.backward.toFixed(2)} · ${d.eating ? 'Eating' : 'Not eating'}`);
     };
     update(model);
     return { update };

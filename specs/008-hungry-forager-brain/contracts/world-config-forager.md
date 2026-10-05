@@ -26,7 +26,7 @@ Existing `maxSpeed`, `turnRate`. New for `v1`:
 | Key | Default | Rule |
 |---|---|---|
 | `energy.initial` | 0.3 | Number in [0, 1]. |
-| `energy.metabolism` | 0.01 | Energy lost per second. ≥ 0. |
+| `energy.metabolism` | 0.005 | Energy lost per second (0.3 reaches 0 in about 60 s). ≥ 0. |
 | `energy.intake` | 0.2 | Energy gained per second while eating. ≥ 0. |
 
 ## `flies.food` (v1 only)
@@ -56,7 +56,7 @@ The defaults are starting values. Calibration (ADR 003 Q5) sets the final ones, 
 ```json
 "flies": {
   "count": 6, "mode": "toy", "tickHz": 20, "sprite": "fly", "baselineSprite": "fly-baseline",
-  "body": { "maxSpeed": 3, "turnRate": 4, "energy": { "initial": 0.3, "metabolism": 0.01, "intake": 0.2 } },
+  "body": { "maxSpeed": 3, "turnRate": 4, "energy": { "initial": 0.3, "metabolism": 0.005, "intake": 0.2 } },
   "food": { "eatSpeed": 0.5, "feedThreshold": 0.5, "stock": 1.0, "consumeRate": 0.2, "regrowth": 0.02, "sated": 0.9 },
   "stimulus": { "objects": ["flower"], "radius": 8, "gain": 1.0, "max": 1.0, "resting": 0.2, "antennaOffset": 0.5 },
   "brain": { "version": "v1", "snapshot": "brains/forager-brain.brain", "motorSmoothing": 0.05, "stepsPerTick": 5,

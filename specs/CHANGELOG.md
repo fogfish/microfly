@@ -26,6 +26,7 @@ The panel and channels visualization has to be extendible to the capabilities en
 
 /speckit-plan Write an utility to parse malecns dataset, extract the brain as defined by ADR 003-hungry-forager-brain.md Preserve compatibility of the simulator with previous versions allowing user to choose between mock, small brain v0 and the new brain v1 via config. The goal is comparision of various brain behaviours. 
 
+/speckit-bugfix-report The side panel does not show the hunger level for the fly (report it on side panel using the bars from 0 to 100%). Fly is never pauses at the food place, fly are only moving. Taste neurons does not show any activity. The poincloud of neuron's activity does not show too much activities to compare with simple brain. It is not clear if brain functioning correctly.   
 
 # 2026-10-04
 

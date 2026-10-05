@@ -4,7 +4,7 @@
 import { BRAIN_DEFAULTS } from '../brain/fly-brain.js';
 
 // Forager defaults (contracts/world-config-forager.md). The values are starting points until calibration (T096).
-export const ENERGY_DEFAULTS = Object.freeze({ initial: 0.3, metabolism: 0.01, intake: 0.2 });
+export const ENERGY_DEFAULTS = Object.freeze({ initial: 0.3, metabolism: 0.005, intake: 0.2 });
 export const FOOD_DEFAULTS = Object.freeze({
   eatSpeed: 0.5, feedThreshold: 0.5, stock: 1.0, consumeRate: 0.2, regrowth: 0.02, sated: 0.9,
 });

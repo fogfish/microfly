@@ -228,9 +228,15 @@ The plan is ordered so that each phase leaves v0 green. `tasks.md` (from `/speck
    **Bugfix**: 2026-10-05 — BUG-001 Updated from bugfix patch. The brain activity view (`neuron-map.js`) draws snapshot
    neurons that have a soma only, and states how many were left out (FR-030). Toy brains keep the seeded sphere
    (`layout.js`). Tasks T104–T107.
+   **Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch. The panel shows energy and hunger bars and a per-tick
+   diagnostic for the selected v1 fly (FR-031, FR-034). The activity view states the active count for comparison with
+   the simple brain (FR-033). Tasks T108, T109, T113–T115.
 7. **Experiment**: arms via `--brains`, held-out seeds, metrics (pure), run record. Gate C run.
 8. **Calibration and Gate B**: calibration on the calibration seeds (values recorded), browser timing harness, the
    recorded tick budget.
+   **Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch. Calibration must use an eating criterion (FR-032) and
+   search `eatSpeed`, `feedThreshold` and `consumeRate` as well (the calibration record listed them as not searched).
+   Before any re-calibration, the brake is diagnosed in the browser (T111). Tasks T108–T116.
 
 ## Risks
 
@@ -261,4 +267,5 @@ The plan is ordered so that each phase leaves v0 green. `tasks.md` (from `/speck
 | VII: a second worker protocol (version 3) | `sense` must carry a vector of inputs and a hunger state. Protocol 2 is a documented contract with tests. | Overloading protocol 2 would make every v0 message ambiguous. The version check in `worker-core` is one line. |
 | VII: container version 4 beside version 3 | The ADR 003 header carries pools, modulators and the weight rule, which version 3 cannot express. Both are read by the same section code. | Changing version 3 would invalidate the existing small brain files and their tests (spec SC-002). |
 | VII: a new eating and energy layer (`food.js`, `energy.js`) | ADR 003 W1–W2 make eating and hunger physics, which the world does not have. | Counting contacts (as v0 does) rewards spinning, which the spec rejects. |
+| BUG-002: calibration selects on an eating criterion, not on find rate alone | The shipped setting eats in only a few ticks per fly (`calibration.md`), so a find-rate choice would pass with no eating. The world does not hold the fly (FR-026), so the brake comes from the brain and must be checked. | Choosing the highest find rate fails the eating metric by construction (`calibration.md`, "Choice"). A hand-set brake in the world would break FR-026. |
 | VII: a second extraction format | The user requires the extractor to produce multiple formats. | A separate tool per format would duplicate the CLI, provenance and self-check. |

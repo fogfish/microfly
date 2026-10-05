@@ -59,3 +59,18 @@ test('the energy and hunger rows come from the last entry of a forager fly', () 
   assert.equal(model.hunger, 0.58);
   assert.equal(model.eating, true);
 });
+
+test('a forager fly shows the drives and the speed behind its action (FR-034)', () => {
+  const entry = {
+    tick: 5, inputs: Float32Array.of(0, 0, 0, 0), outputs: new Float32Array(5), spikes: new Uint32Array(0),
+    energy: 0.2, hunger: 0.8, eating: false, speed: 2.85,
+    drives: { turnLeft: 0, turnRight: 0, forward: 0.99, backward: 0, feed: 1 },
+  };
+  const model = buildStatusModel(record(entry), 0);
+  assert.deepEqual(model.diagnostic, { speed: 2.85, feed: 1, forward: 0.99, backward: 0, eating: false });
+});
+
+test('a v0 fly has no diagnostic', () => {
+  const model = buildStatusModel(record({ tick: 1, sensory: 0.5, left: 0.2, right: 0.1, outputs: Float32Array.of(0.2, 0.1), spikes: new Uint32Array(0) }), 0);
+  assert.equal(model.diagnostic, null);
+});

@@ -4,6 +4,11 @@
 import { actionLabel, forageAction } from '../../fly/action.js';
 import { activeCount, windowCounts } from './counts.js';
 
+// The width of a 0–100% bar for a value in [0, 1], as a CSS percentage (FR-031). Out-of-range values are clamped.
+export function barWidth(value) {
+  return `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
+}
+
 // Action, counts, brightness and channel values of the selected fly at time nowMs.
 export function buildStatusModel(record, nowMs) {
   const last = record.history.at(-1) ?? null;
@@ -24,6 +29,16 @@ export function buildStatusModel(record, nowMs) {
     energy: last?.energy ?? null,
     hunger: last?.hunger ?? null,
     eating: last?.eating ?? false,
+    // The drives behind the action, for a forager fly (FR-034): why it does or does not stop on food.
+    diagnostic: forager
+      ? {
+        speed: last.speed,
+        feed: last.drives.feed ?? 0,
+        forward: last.drives.forward ?? 0,
+        backward: last.drives.backward ?? 0,
+        eating: last.eating,
+      }
+      : null,
     neuronCount,
     capabilities: record.capabilities,
     activeCount: counts ? activeCount(counts) : 0,
