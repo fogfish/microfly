@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { OrbitControls } from '../../brains/vendor/three/OrbitControls.js';
 
 const BACKGROUND = 0x0e1016;
-const POINT_SIZE = 0.07;
-const DISTANCE = 4.5;
+const POINT_SIZE = 0.025;
+const DISTANCE = 2.2;
 
 // Point clouds whose WebGL context is alive (BUG-002, FR-020: at most one brain map). Safari allows few
 // live contexts per page and drops the oldest, so a cloud that is never disposed blanks the next one.
@@ -48,7 +48,10 @@ export function createPointCloud(canvas) {
     colours = new THREE.BufferAttribute(new Float32Array(positions.length), 3);
     geometry.setAttribute('color', colours);
     material = new THREE.PointsMaterial({ size: POINT_SIZE, vertexColors: true, sizeAttenuation: true });
-    scene.add(new THREE.Points(geometry, material));
+    const points = new THREE.Points(geometry, material);
+    points.rotation.x = Math.PI;
+    scene.add(points);
+    //scene.add(new THREE.Points(geometry, material));
     base = baseColour;
     draw();
   }

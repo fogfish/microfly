@@ -11,7 +11,10 @@ import { createPointCloud, livePointClouds } from '../../../viz/point-cloud.js';
 import { WINDOW_TICKS } from '../counts.js';
 import { setText } from '../dom.js';
 
-const BASE_COLOUR = [0.55, 0.8, 1];
+// const BASE_COLOUR = [0.55, 0.8, 1];
+// const BASE_COLOUR = [0.3, 0.9, 1];
+const BASE_COLOUR = [0.1, 0.4, 1];
+
 
 export const neuronMapSection = {
   id: 'neuron-map',
