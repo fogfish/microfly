@@ -67,7 +67,7 @@ The defaults are starting values. Calibration (ADR 003 Q5) sets the final ones, 
 
 The `experiment.seeds` here are the calibration seeds. Held-out seeds are in the experiment config
 ([experiment-metrics.md](experiment-metrics.md)). The `synapticScale`, `tauSyn`, `tauAdapt`, `adaptStep`,
-`thresholdJitter` and modulator gains above are placeholders until calibration.
+`thresholdJitter`, `outputScale` and modulator gains above are placeholders until calibration.
 
 ## Failure messages
 

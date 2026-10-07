@@ -17,6 +17,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   adaptStep: 0,           // adaptation increase per spike (L2)
   thresholdJitter: 0,     // fraction of threshold spread per neuron, in [0, 1) (L3)
   stepsPerTick: 1,        // LIF steps per world tick (L5); read by the runner, the core ignores it
+  outputScale: null,      // potential per unit of edge weight for output-pool edges; null is a no-op (L6)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -40,6 +41,16 @@ export function resolveParams(overrides = {}) {
   if (!(Number.isInteger(p.stepsPerTick) && p.stepsPerTick >= 1 && p.stepsPerTick <= 20)) {
     throw new Error('LIF parameter "stepsPerTick" must be an integer from 1 to 20');
   }
+  if (p.outputScale !== null && typeof p.outputScale === 'object' && !Array.isArray(p.outputScale)) {
+    // L6 (BUG-002): a per-channel map. Each entry is validated like any LIF number, naming the channel.
+    for (const [channel, value] of Object.entries(p.outputScale)) {
+      if (!(Number.isFinite(value) && value >= 0)) {
+        throw new Error(`LIF parameter "outputScale.${channel}" must be a number of 0 or more`);
+      }
+    }
+  } else if (!(p.outputScale === null || (Number.isFinite(p.outputScale) && p.outputScale >= 0))) {
+    throw new Error('LIF parameter "outputScale" must be null or a number of 0 or more');
+  }
   return Object.freeze(p);
 }
 
@@ -57,6 +68,36 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
       threshold[i] = params.vThreshold * (1 + params.thresholdJitter * (2 * rand() - 1));
     }
   }
+  // L6: per-neuron membership in the declared output set; absent/empty leaves every entry 0 (no-op).
+  const outputMask = new Uint8Array(n);
+  for (const neuron of graph.outputNeurons ?? []) outputMask[neuron] = 1;
+  // L6 (BUG-002): per-neuron resolved output scale, built once. outputOverride[i] = 1 means "use
+  // outputScaleOf[i] instead of synapticScale for edges targeting i"; outputScaleOf is meaningless otherwise.
+  const outputOverride = new Uint8Array(n);
+  const outputScaleOf = new Float64Array(n);
+  if (typeof params.outputScale === 'number') {
+    for (let i = 0; i < n; i++) {
+      if (outputMask[i]) {
+        outputOverride[i] = 1;
+        outputScaleOf[i] = params.outputScale;
+      }
+    }
+  } else if (params.outputScale !== null) {
+    const channels = graph.outputChannels ?? [];
+    const knownIds = new Set(channels.map((ch) => ch.id));
+    for (const id of Object.keys(params.outputScale)) {
+      if (!knownIds.has(id)) throw new Error(`LIF parameter "outputScale.${id}" names an unknown output channel`);
+    }
+    for (const channel of channels) {
+      if (!Object.hasOwn(params.outputScale, channel.id)) continue;
+      const scale = params.outputScale[channel.id];
+      for (const neuron of channel.neurons) {
+        if (outputOverride[neuron]) continue; // first-declared channel with an entry wins (FR-012)
+        outputOverride[neuron] = 1;
+        outputScaleOf[neuron] = scale;
+      }
+    }
+  }
   return {
     params, n,
     offsets: csr.offsets,
@@ -70,6 +111,9 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     syn: new Float64Array(n),     // synaptic current (L1), used only when tauSyn > 0
     adapt: new Float64Array(n),   // adaptation variable (L2), used only when tauAdapt > 0
     spare: new Float64Array(n),   // the buffer the next step's arrivals are written to (swapped, not reallocated)
+    outputMask,                   // per-neuron output-pool membership (L6), used only when outputScale is not null
+    outputOverride,                // per-neuron: use outputScaleOf instead of synapticScale (L6, BUG-002)
+    outputScaleOf,                 // per-neuron resolved output scale, meaningful only where outputOverride is set
   };
 }
 
@@ -92,7 +136,7 @@ function toCsr({ neuronCount: n, edges }) {
 // external: Float64Array(n) of drive for this step (zeros if none).
 // With tauSyn = 0 and tauAdapt = 0 the update is lif-v0's, in its order (the off path, G1).
 export function step(net, external) {
-  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt } = net;
+  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf } = net;
   const nextInput = net.spare;
   nextInput.fill(0);
   const delta = p.tauSyn > 0;
@@ -118,7 +162,11 @@ export function step(net, external) {
       spikes[i] = 1;
       if (adaptive) adapt[i] += p.adaptStep;
       for (let k = offsets[i]; k < offsets[i + 1]; k++) {
-        nextInput[targets[k]] += weights[k] * p.synapticScale;
+        // L6: output-targeted edges use their resolved outputScale instead of synapticScale (BUG-002: resolved
+        // once in createNetwork, scalar or per-channel alike, so this stays a single branch per edge).
+        const target = targets[k];
+        const scale = outputOverride[target] ? outputScaleOf[target] : p.synapticScale;
+        nextInput[target] += weights[k] * scale;
       }
     }
   }

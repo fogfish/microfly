@@ -23,7 +23,16 @@ export function createFlyBrain(brainConfig, seed) {
   checkBrainVersion('v1', snap.version, 'snapshot');
 
   const { neuronCount, offsets, targets, weights, capabilities } = snap;
-  const net = createNetwork({ neuronCount, offsets, targets, weights }, brainConfig.lif ?? {}, seed);
+  const net = createNetwork(
+    {
+      neuronCount, offsets, targets, weights,
+      outputNeurons: capabilities.channels.outputs.flatMap((ch) => ch.neurons),
+      // BUG-002: channel-grouped membership, so lif-v1.js can resolve a per-channel outputScale.
+      outputChannels: capabilities.channels.outputs.map((ch) => ({ id: ch.id, neurons: ch.neurons })),
+    },
+    brainConfig.lif ?? {},
+    seed,
+  );
   const stepsPerTick = brainConfig.stepsPerTick ?? 1;
   const motorSmoothing = brainConfig.motorSmoothing ?? 0.05;
   const inputs = capabilities.channels.inputs;

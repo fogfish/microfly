@@ -526,12 +526,27 @@ function validateFlyBrain(brain, err) {
     const defaults = version === 'v1' ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
     const entries = Object.entries(brain.lif);
     const unknown = entries.filter(([key]) => !Object.hasOwn(defaults, key));
-    const notNumbers = entries.filter(([key, value]) => Object.hasOwn(defaults, key) && !isNum(value));
     for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
+
+    // outputScale (BUG-002) may be a plain object keyed by output-channel id; every other key stays number-only.
+    let outputScaleShapeInvalid = false;
+    if (Object.hasOwn(brain.lif, 'outputScale') && isObject(brain.lif.outputScale)) {
+      for (const [channel, value] of Object.entries(brain.lif.outputScale)) {
+        if (!isNum(value)) {
+          err(`flies.brain.lif.outputScale.${channel}`, 'must be a number');
+          outputScaleShapeInvalid = true;
+        }
+      }
+    }
+    const notNumbers = entries.filter(([key, value]) => {
+      if (!Object.hasOwn(defaults, key)) return false;
+      if (key === 'outputScale' && isObject(value)) return false; // handled above
+      return !isNum(value);
+    });
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');
 
     // Range checks (dt > 0, vThreshold > vReset, ...) live in the engine (lif-v0.js, lif-v1.js), so they match it
-    if (unknown.length === 0 && notNumbers.length === 0) {
+    if (unknown.length === 0 && notNumbers.length === 0 && !outputScaleShapeInvalid) {
       try {
         if (version === 'v1') resolveParamsV1(brain.lif);
         else resolveParams(brain.lif);

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createNetwork as createV0, step as stepV0 } from '../public/js/brain/lif-v0.js';
-import { createNetwork as createV1, step as stepV1 } from '../public/js/brain/lif-v1.js';
+import { createNetwork as createV1, step as stepV1, resolveParams } from '../public/js/brain/lif-v1.js';
 import { randomGraph, addMotorDrive } from '../public/js/brain/graph.js';
 import { TOY_CAPABILITIES } from '../public/js/brain/capabilities.js';
 import { createPrng } from '../public/js/world/prng.js';
@@ -141,4 +141,139 @@ test('L5: the core takes one LIF step per call, whatever stepsPerTick is', () =>
     return Array.from({ length: 20 }, () => { stepV1(net, ext); return net.v[0]; });
   };
   assert.deepEqual(trace(1), trace(5));
+});
+
+// L6(a) (output no-op): outputScale defaults to null, so a network with outputNeurons declared behaves identically
+// to one with none at all — the mask exists but has no effect until outputScale is set.
+test('L6(a): outputNeurons present but outputScale null matches no outputNeurons at all', () => {
+  const graph = toyGraph();
+  const drive = sensoryDrive();
+  const withOutputs = createV1({ ...graph, outputNeurons: [1, 2, 3] }, { outputScale: null }, GOLDEN_SEED);
+  const without = createV1(graph, {}, GOLDEN_SEED);
+  const extA = new Float64Array(withOutputs.n);
+  const extB = new Float64Array(without.n);
+  drive.forEach((value, t) => {
+    extA[0] = value;
+    extB[0] = value;
+    stepV1(withOutputs, extA);
+    stepV1(without, extB);
+    for (let i = 0; i < without.n; i++) {
+      assert.equal(withOutputs.v[i], without.v[i], `potential of neuron ${i} differs at step ${t}`);
+      assert.equal(withOutputs.spikes[i], without.spikes[i], `spike of neuron ${i} differs at step ${t}`);
+    }
+  });
+});
+
+// L6(b) (output isolation): one driven presynaptic neuron feeds two equal-weight targets, one declared an output
+// neuron. A lower outputScale than synapticScale yields measurably fewer output-target spikes; outputScale: null
+// makes the two targets indistinguishable.
+test('L6(b): outputScale scales output-targeted edges independently of synapticScale', () => {
+  const graph = { neuronCount: 3, edges: [{ pre: 0, post: 1, weight: 0.1 }, { pre: 0, post: 2, weight: 0.1 }] };
+  const run = (overrides) => {
+    const net = createV1({ ...graph, outputNeurons: [1] }, overrides, 1);
+    const ext = new Float64Array(3);
+    let outCount = 0;
+    let otherCount = 0;
+    for (let t = 0; t < 300; t++) {
+      ext[0] = 2.0; // drives neuron 0 to spike every time its refractory period allows
+      stepV1(net, ext);
+      outCount += net.spikes[1];
+      otherCount += net.spikes[2];
+    }
+    return { outCount, otherCount };
+  };
+  const scaled = run({ synapticScale: 10, outputScale: 2 });
+  assert.ok(scaled.outCount < scaled.otherCount,
+    `output target spikes ${scaled.outCount} should be below non-output target spikes ${scaled.otherCount}`);
+  const unscaled = run({ synapticScale: 10, outputScale: null });
+  assert.equal(unscaled.outCount, unscaled.otherCount);
+});
+
+// L6(c) (validation): outputScale must be null or a finite number of 0 or more.
+test('L6(c): resolveParams rejects a negative or non-numeric outputScale', () => {
+  const message = 'LIF parameter "outputScale" must be null or a number of 0 or more';
+  assert.throws(() => resolveParams({ outputScale: -1 }), { message });
+  assert.throws(() => resolveParams({ outputScale: 'x' }), { message });
+});
+
+// L6(d) (per-channel isolation, BUG-002): one driven presynaptic neuron feeds three equal-weight targets, each in
+// a different declared output channel. A channel absent from the outputScale map falls back to synapticScale.
+test('L6(d): a per-channel outputScale isolates each channel, and an unlisted channel falls back to synapticScale', () => {
+  const graph = {
+    neuronCount: 4,
+    edges: [
+      { pre: 0, post: 1, weight: 0.1 },
+      { pre: 0, post: 2, weight: 0.1 },
+      { pre: 0, post: 3, weight: 0.1 },
+    ],
+    outputChannels: [
+      { id: 'a', neurons: [1] },
+      { id: 'b', neurons: [2] },
+      { id: 'c', neurons: [3] },
+    ],
+  };
+  const net = createV1(graph, { synapticScale: 10, outputScale: { a: 2, b: 8 } }, 1);
+  const ext = new Float64Array(4);
+  let countA = 0;
+  let countB = 0;
+  let countC = 0;
+  for (let t = 0; t < 300; t++) {
+    ext[0] = 2.0; // drives neuron 0 to spike every time its refractory period allows
+    stepV1(net, ext);
+    countA += net.spikes[1];
+    countB += net.spikes[2];
+    countC += net.spikes[3];
+  }
+  assert.ok(countA < countB, `channel a (${countA}) should fire less than channel b (${countB})`);
+  assert.ok(countB < countC, `channel b (${countB}) should fire less than unlisted channel c (${countC})`);
+
+  // c, unlisted in outputScale, must match a plain non-output target under the same synapticScale.
+  const baselineGraph = { neuronCount: 2, edges: [{ pre: 0, post: 1, weight: 0.1 }] };
+  const baseline = createV1(baselineGraph, { synapticScale: 10 }, 1);
+  const extBase = new Float64Array(2);
+  let baselineCount = 0;
+  for (let t = 0; t < 300; t++) {
+    extBase[0] = 2.0;
+    stepV1(baseline, extBase);
+    baselineCount += baseline.spikes[1];
+  }
+  assert.equal(countC, baselineCount, 'the unlisted channel must behave exactly like a non-output target');
+});
+
+// L6(e) (shared-neuron tie-break, BUG-002): a neuron in two output channels resolves to the first-declared
+// channel that carries an explicit entry, not simply the first- or last-declared channel.
+test('L6(e): a neuron shared between two output channels resolves to the first channel with an explicit entry', () => {
+  const graph = {
+    neuronCount: 2,
+    edges: [{ pre: 0, post: 1, weight: 0.1 }],
+    outputChannels: [
+      { id: 'x', neurons: [1] }, // declared first, no entry
+      { id: 'y', neurons: [1] }, // declared second, has an entry
+    ],
+  };
+  const net = createV1(graph, { synapticScale: 10, outputScale: { y: 2 } }, 1);
+  assert.equal(net.outputScaleOf[1], 2, 'falls through x (no entry) to y (has an entry)');
+
+  const graph2 = {
+    neuronCount: 2,
+    edges: [{ pre: 0, post: 1, weight: 0.1 }],
+    outputChannels: [
+      { id: 'p', neurons: [1] }, // declared first, has an entry
+      { id: 'q', neurons: [1] }, // declared second, also has an entry
+    ],
+  };
+  const net2 = createV1(graph2, { synapticScale: 10, outputScale: { p: 3, q: 7 } }, 1);
+  assert.equal(net2.outputScaleOf[1], 3, 'the first-declared channel with an entry wins, not the last');
+});
+
+// L6(f) (per-channel validation, BUG-002): per-channel entries are validated like any LIF number, and the
+// pre-existing scalar message (T004/G8) is unchanged for non-object invalid values.
+test('L6(f): resolveParams validates per-channel outputScale entries without changing the scalar message', () => {
+  const perChannelMessage = 'LIF parameter "outputScale.forward" must be a number of 0 or more';
+  assert.throws(() => resolveParams({ outputScale: { forward: -1 } }), { message: perChannelMessage });
+  assert.throws(() => resolveParams({ outputScale: { forward: 'x' } }), { message: perChannelMessage });
+
+  const scalarMessage = 'LIF parameter "outputScale" must be null or a number of 0 or more';
+  assert.throws(() => resolveParams({ outputScale: -1 }), { message: scalarMessage });
+  assert.throws(() => resolveParams({ outputScale: 'x' }), { message: scalarMessage });
 });

@@ -604,7 +604,14 @@
       "lif": {
         "synapticScale": 50,
         "tauAdapt": 20,
-        "adaptStep": 0.05
+        "adaptStep": 0.05,
+        "outputScale": {
+          "feed": 30,
+          "forward": 2,
+          "backward": 5,
+          "turn-left": 5,
+          "turn-right": 5
+        }
       }
     },
     "experiment": {

@@ -2,6 +2,12 @@
 
 # 2026-10-06
 
+/speckit-specify ADR 004-output-pool-synaptic-scale.md defines the solution to define own control knobs at LIF for un-pin `forward` and `feed` from the firing ceiling. Study it and create a specification.
+
+/speckit-plan Define own control knobs at LIF for un-pin `forward` and `feed` from the firing ceiling as designed by ADR 004-output-pool-synaptic-scale.md
+
+# 2026-10-06
+
 /speckit-specify World map requires recalibration:
 1. Only three edible (food) object, each cast odor on the distance proportional to its size. Odor is max at the edible (food) object position. Small food unit is `red_flower_plant`; Medium food unit is `jungle-plant-010`; Large food unit is `jungle-plant-015`. Food is distributed on the map so that there are still areas without odor but fly has a chance to move through the world following the odor.
 2. Odor is connected to food units and its size.

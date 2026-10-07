@@ -70,3 +70,45 @@ test('a tick runs stepsPerTick LIF steps', { skip: SKIP }, () => {
   const brain = createFlyBrain({ version: 'v1', snapshot: snapshot(), stepsPerTick: 3 }, 7);
   assert.equal(brain.step({ inputs: INPUTS, hunger: 0.4 }).steps, 3);
 });
+
+// L6: an outputScale lower than synapticScale lowers the forward/feed output channels' spike rate independently
+// of the rest of the network (ADR 004).
+test('outputScale lower than synapticScale lowers the mean spike rate on forward/feed', { skip: SKIP }, () => {
+  const run = (lif) => {
+    const brain = createFlyBrain({ version: 'v1', snapshot: snapshot(), stepsPerTick: 1, lif }, 7);
+    const outputs = brain.capabilities.channels.outputs;
+    const idx = outputs.flatMap((ch, k) => (ch.drive === 'forward' || ch.drive === 'feed') ? [k] : []);
+    let total = 0;
+    for (let t = 0; t < 200; t++) {
+      const out = brain.step({ inputs: INPUTS, hunger: 0.5 });
+      for (const k of idx) total += out.outputs[k];
+    }
+    return total / (200 * idx.length);
+  };
+  const scaled = run({ synapticScale: 50, outputScale: 5 });
+  const unscaled = run({ synapticScale: 50, outputScale: null });
+  assert.ok(scaled < unscaled,
+    `forward/feed mean rate with outputScale ${scaled} should be below outputScale: null ${unscaled}`);
+});
+
+// L6 per-channel (BUG-002): a per-channel outputScale raises feed's mean spike rate above the shared
+// outputScale: 5 baseline, while forward's mean spike rate stays comparably low in both runs — proving feed and
+// forward are now tunable independently.
+test('a per-channel outputScale raises feed independently of forward', { skip: SKIP }, () => {
+  const meanRate = (lif, drive) => {
+    const brain = createFlyBrain({ version: 'v1', snapshot: snapshot(), stepsPerTick: 1, lif }, 7);
+    const outputs = brain.capabilities.channels.outputs;
+    const k = outputs.findIndex((ch) => ch.drive === drive);
+    let total = 0;
+    for (let t = 0; t < 200; t++) total += brain.step({ inputs: INPUTS, hunger: 0.5 }).outputs[k];
+    return total / 200;
+  };
+  const sharedFeed = meanRate({ synapticScale: 50, outputScale: 5 }, 'feed');
+  const sharedForward = meanRate({ synapticScale: 50, outputScale: 5 }, 'forward');
+  const perChannelFeed = meanRate({ synapticScale: 50, outputScale: { feed: 30, forward: 5 } }, 'feed');
+  const perChannelForward = meanRate({ synapticScale: 50, outputScale: { feed: 30, forward: 5 } }, 'forward');
+  assert.ok(perChannelFeed > sharedFeed,
+    `feed's per-channel rate ${perChannelFeed} should be above the shared-scale rate ${sharedFeed}`);
+  assert.ok(Math.abs(perChannelForward - sharedForward) < 0.05,
+    `forward's rate should stay comparably low: shared ${sharedForward}, per-channel ${perChannelForward}`);
+});

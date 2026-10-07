@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { validateConfig } from '../public/js/world/validate.js';
 
 const load = () => JSON.parse(readFileSync(new URL('../public/world/world.json', import.meta.url), 'utf8'));
+const loadForager = () => JSON.parse(readFileSync(new URL('../public/world/world-forager.json', import.meta.url), 'utf8'));
 const paths = (errors) => errors.map((e) => e.path);
 
 test('the default world with flies validates with no errors', () => {
@@ -173,4 +174,40 @@ test('a negative stimulus gain is rejected', () => {
   const c = load();
   c.flies.stimulus.gain = -1;
   assert.deepEqual(paths(validateConfig(c)), ['flies.stimulus.gain']);
+});
+
+test('flies.brain.lif.outputScale set to a finite number >= 0 validates with no errors (version v1)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.outputScale = 5;
+  assert.deepEqual(validateConfig(c), []);
+});
+
+test('flies.brain.lif.outputScale: null (the literal JSON value) is rejected; a world file must omit the key', () => {
+  const c = loadForager();
+  c.flies.brain.lif.outputScale = null;
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.lif.outputScale']);
+  assert.equal(errors[0].message, 'must be a number');
+});
+
+test('an object-valued flies.brain.lif.outputScale with valid numeric entries validates with no errors (BUG-002)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.outputScale = { feed: 30, forward: 5 };
+  assert.deepEqual(validateConfig(c), []);
+});
+
+test('a non-numeric entry in an object-valued flies.brain.lif.outputScale is rejected, naming the channel (BUG-002)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.outputScale = { feed: 'x' };
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.lif.outputScale.feed']);
+  assert.equal(errors[0].message, 'must be a number');
+});
+
+test('a flies.brain.lif.outputScale that is neither a number nor an object is rejected (BUG-002)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.outputScale = 'nope';
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.lif.outputScale']);
+  assert.equal(errors[0].message, 'must be a number');
 });
