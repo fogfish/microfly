@@ -145,7 +145,7 @@ falls; a moving or unfed fly does not.
 - [X] T060 [US2] Extend `public/js/world/validate.js` with the same keys and their rules, using the failure messages of [world-config-forager.md](contracts/world-config-forager.md) (for example `flies.food.feedThreshold must be a number from 0 to 1`)
 - [X] T061 [US2] Update `public/js/fly/fly-world.js`: `buildWorld` creates the flower stock table with `createFood` from `stimulusCells`; the table is held by the host
 - [X] T062 [US2] Update `public/js/fly/forager-step.js`: each tick, speed = distance moved ÷ `dt`; `canEat` decides; when eating, `consume(cell, consumeRate × dt)` and `energy = eat(energy, dt, intake)`; always `metabolise` and `regrow`; `eating` is set on the fly; hunger is sent in `sense.state`
-- [ ] T063 [P] [US2] ⚠️ Reopened (reopened — BUG-002: bars not verified in the browser; FR-031, closes with T109). Add the energy and hunger rows to the Action section: `public/js/ui/panel/model.js` adds `energy` and `hunger`; `public/js/ui/panel/sections/action.js` shows two bars for v1 flies. Channel rows are unchanged. Add the cases to `tests/panel-inputs-v1.test.mjs`
+- [X] T063 [P] [US2] (closed by T109/T117 — BUG-003: the bars needed CSS, now added) Add the energy and hunger rows to the Action section: `public/js/ui/panel/model.js` adds `energy` and `hunger`; `public/js/ui/panel/sections/action.js` shows two bars for v1 flies. Channel rows are unchanged. Add the cases to `tests/panel-inputs-v1.test.mjs`
 
 **Checkpoint**: T056 passes. A fly on a flower, slow and fed by its feed output, gains energy and lowers the stock.
 
@@ -285,7 +285,7 @@ seed count and the verdict per metric.
 **Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch. The forager fly does not slow to eat in the shipped world, the panel bars are unverified, and the activity view has no comparison (FR-031–FR-034, SC-011–SC-013). T063, T096 and T100 are reopened. Tasks T108–T116 are new. T065 passes on its own fixture and is not reopened; it does not show that the shipped world eats.
 
 - [X] T108 [P] [US1] Write `tests/panel-bars-v1.test.mjs` (write first): `buildStatusModel` gives `energy` and `hunger` from the last entry of a v1 fly; the bar helper maps 0 to 0%, 1 to 100% and clamps values outside [0, 1]. FR-031, SC-013. *Write first*
-- [ ] T109 [US2] Browser check of the Action bars: open `public/world/world-forager.json` from a static server, select a v1 fly, confirm the energy and hunger bars show 0–100% and move as the fly lives; record the result in `specs/008-hungry-forager-brain/bugs/BUG-002.md`. Depends on T063 (reopened) and T108. Closes T063.
+- [X] T109 [US2] Browser check of the Action bars: open `public/world/world-forager.json` from a static server, select a v1 fly, confirm the energy and hunger bars show 0–100% and move as the fly lives; record the result in `specs/008-hungry-forager-brain/bugs/BUG-002.md`. Depends on T063 (reopened), T108 and T117 (BUG-003: the bars have no CSS, so this check will fail until T117 lands). Closes T063.
 - [X] T110 [P] [US2] Write `tests/slow/forager-brake.test.mjs` (run with `npm run test:slow`, about 3.5 minutes; kept out of `npm test`; both tests are marked `todo` until T112, and they fail as written: 3% of 76 flies that reached a flower ate, and a taste-0 eating tick exists) (write first, must fail on the current calibration): a headless run with `stepForagerFly` on `world-forager.json` over the held-out seeds. Asserts SC-011 (at least 50% of flies that reach a flower eat in at least one bout, each at speed below `eatSpeed`) and SC-012 (taste input above 0 on every eating tick). FR-032. *Write first*
 - [ ] T111 [US2] Diagnose the brake in the browser: for a v1 fly on a flower in `world-forager.json`, log per tick `speed`, `feed`, `forward`, `backward` and `eating`; record the numbers in `specs/008-hungry-forager-brain/bugs/BUG-002.md`. The result decides between T112 (a) and (b). No dependencies.
 - [ ] T112 [US2] Fix the brake: SKIPPED by the user (2026-10-05). The brake rule was built and tested, then reverted; it stopped all forward drive in the headless probe. Not in the repo. See `bugs/BUG-002.md`, "Fix Attempt and Wrap-Up". The original step text follows: using the T111 result:
@@ -293,6 +293,17 @@ seed count and the verdict per metric.
 - [ ] T114 [P] [US1] Write `tests/activity-counts.test.mjs` (v1 part passes; the v0 `smallest-functional-brain.brain` check is not written yet, so the task stays open) (write first): in a seeded headless run, the counts line for `forager-brain.brain` (v1) reports an active count in the window, and it is above 0 for at least one drawn neuron; the same check for `smallest-functional-brain.brain` (v0). FR-033. *Write first*
 - [ ] T115 [US1] Activity comparison in the browser: run `world-forager.json` (v1) and `world.json` or `world-connectome.json` (v0) on the same seed; record the counts line and the point cloud for both in `bugs/BUG-002.md`. Change `public/js/ui/panel/sections/neuron-map.js` only if the counts line cannot show the comparison. T114 passes. Depends on T107 (BUG-001) and T114.
 - [ ] T116 Re-run the calibration check: after T112, confirm `calibration.md` and `world-forager.json` match, the eating criterion and the eating bouts per setting are recorded, and T100 is ticked. Depends on T112.
+
+**Bugfix**: 2026-10-07 — BUG-003 Updated from bugfix patch. The energy/hunger bars (T063) were wired correctly and
+pass `tests/panel-bars-v1.test.mjs`, but `.meter` has no CSS, so no bar is visible in the browser — confirming the
+suspicion behind T063's reopening. T117 is new; T109 now also depends on it.
+
+- [X] T117 [US2] Add CSS for the Action section's energy and hunger bars: in `public/css/style.css`, add a `.meter`
+  track rule (height, border, background) and a fill rule for its `<i>` child (`display: block`, a height matching
+  the track, a `background` using a bar color token), following the `.channel-row`/`.channel-bar`/`.channel-fill`
+  pattern added for BUG-001. No change to `public/js/ui/panel/sections/action.js` or `model.js` — they already set
+  `fill.style.width` correctly; only the missing CSS makes it render. FR-031, SC-013, BUG-003. Depends on T063.
+  Blocks T109.
 
 ---
 

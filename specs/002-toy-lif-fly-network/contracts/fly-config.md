@@ -17,6 +17,9 @@
     "tickHz": 20,                        // optional, 1..60, default 20
     "sprite": "fly",                     // required, sprite id
     "baselineSprite": "fly-baseline",    // optional, sprite id, default same as sprite
+    "sex": ["female", "male"],           // optional, one entry per fly ("female" | "male"); when present,
+                                          // overrides sprite/baselineSprite per fly with fly-<sex>/fly-<sex>-baseline
+                                          // (spec 009 contracts/fly-sprite.md §2, BUG-002)
 
     "body": {
       "maxSpeed": 3,                     // required, tiles/s, > 0
@@ -65,7 +68,7 @@
 
 ## Sprites
 
-The `flies` section needs sprites in the existing `sprites` map, in the pixels form from the 001 contract. The default world adds `fly` and `fly-baseline` (8×8 pixels).
+The `flies` section needs sprites in the existing `sprites` map, in the pixels form from the 001 contract. The default world adds `fly-female`, `fly-female-baseline`, `fly-male` and `fly-male-baseline` (32×32 pixels, one map cell; spec 009 contracts/fly-sprite.md, BUG-002). The earlier 8×8, 22×22 and single-shape `fly`/`fly-baseline` sprites are superseded.
 
 ## Errors
 

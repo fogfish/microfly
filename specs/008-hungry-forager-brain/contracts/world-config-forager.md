@@ -47,7 +47,7 @@ The defaults are starting values. Calibration (ADR 003 Q5) sets the final ones, 
 | Key | Default | Rule |
 |---|---|---|
 | `antennaOffset` | 0.5 | Tiles from the fly's centre to each antenna, across the heading. ≥ 0. |
-| `radius` | 3 (v0) | For v1 worlds, 8 by default. Same meaning as v0: the falloff radius in tiles. |
+| `radius` | 3 (v0) | Version 2 worlds: the falloff radius in tiles. Version 3 (spec 009): reach **per tile of sprite size**; a food unit's reach is `radius × size` (6 in every shipped world). |
 
 `flies.stimulus.resting` is the odour resting level for v1 as for v0. Taste has no resting level (0).
 
@@ -58,7 +58,7 @@ The defaults are starting values. Calibration (ADR 003 Q5) sets the final ones, 
   "count": 6, "mode": "toy", "tickHz": 20, "sprite": "fly", "baselineSprite": "fly-baseline",
   "body": { "maxSpeed": 3, "turnRate": 4, "energy": { "initial": 0.3, "metabolism": 0.005, "intake": 0.2 } },
   "food": { "eatSpeed": 0.5, "feedThreshold": 0.5, "stock": 1.0, "consumeRate": 0.2, "regrowth": 0.02, "sated": 0.9 },
-  "stimulus": { "objects": ["flower"], "radius": 8, "gain": 1.0, "max": 1.0, "resting": 0.2, "antennaOffset": 0.5 },
+  "stimulus": { "objects": ["small", "medium", "large"], "radius": 6, "gain": 1.0, "max": 1.0, "resting": 0.2, "antennaOffset": 0.5 },
   "brain": { "version": "v1", "snapshot": "brains/forager-brain.brain", "motorSmoothing": 0.05, "stepsPerTick": 5,
              "lif": { "synapticScale": 0.2 } },
   "experiment": { "seeds": [6, 7, 8, 9, 10], "ticks": 3000 }

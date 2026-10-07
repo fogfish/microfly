@@ -27,17 +27,19 @@ test('outDegree equal to neuronCount is rejected with the contract message', () 
 
 test('apple is rejected as a stimulus: it is not an edible kind', () => {
   const c = load();
-  c.flies.stimulus.objects = ['flower', 'apple'];
+  c.flies.stimulus.objects = ['small', 'apple'];
   const errors = validateConfig(c);
   assert.deepEqual(paths(errors), ['flies.stimulus.objects[1]']);
   assert.equal(errors[0].message, '"apple" is not an edible kind');
 });
 
-test('flower is accepted as a stimulus kind and honey is not (BUG-001: honey removed)', () => {
+test('the three food kinds are accepted as stimulus kinds; flower and honey are not (spec 009 FR-018)', () => {
   const c = load();
-  c.flies.stimulus.objects = ['flower'];
+  c.flies.stimulus.objects = ['small', 'medium', 'large'];
   assert.deepEqual(validateConfig(c), []);
-  c.flies.stimulus.objects = ['honey', 'flower'];
+  c.flies.stimulus.objects = ['flower'];
+  assert.deepEqual(paths(validateConfig(c)), ['flies.stimulus.objects[0]']);
+  c.flies.stimulus.objects = ['honey', 'small'];
   assert.deepEqual(paths(validateConfig(c)), ['flies.stimulus.objects[0]']);
 });
 
@@ -45,6 +47,25 @@ test('an unknown sprite is rejected', () => {
   const c = load();
   c.flies.sprite = 'nope';
   assert.deepEqual(paths(validateConfig(c)), ['flies.sprite']);
+});
+
+test('flies.sex with the wrong length is rejected (BUG-002)', () => {
+  const c = load();
+  c.flies.sex = ['female', 'male'];
+  assert.deepEqual(paths(validateConfig(c)), ['flies.sex']);
+});
+
+test('flies.sex with an entry that is not "female" or "male" is rejected (BUG-002)', () => {
+  const c = load();
+  c.flies.sex = ['female', 'male', 'female', 'male', 'female', 'nonbinary-moth'];
+  assert.deepEqual(paths(validateConfig(c)), ['flies.sex[5]']);
+});
+
+test('flies.sex is rejected when it names a sex with no sprite pair (BUG-002)', () => {
+  const c = load();
+  delete c.sprites['fly-male'];
+  const errors = validateConfig(c);
+  assert.ok(errors.some((e) => e.path === 'flies.sex' && e.message.includes('fly-male')), JSON.stringify(errors));
 });
 
 test('an unknown mode is rejected', () => {
@@ -138,6 +159,7 @@ test('a zero maxSpeed is rejected', () => {
 test('count above 64 is rejected', () => {
   const c = load();
   c.flies.count = 65;
+  delete c.flies.sex; // unrelated to the count bound; flies.sex length is checked against count (BUG-002)
   assert.deepEqual(paths(validateConfig(c)), ['flies.count']);
 });
 

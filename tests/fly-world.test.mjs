@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { indexCatalog } from '../public/js/world/catalog.js';
-import { buildLogic, cellIndex } from '../public/js/world/layout.js';
+import { buildLogic, cellIndex, EDIBLE_KINDS } from '../public/js/world/layout.js';
 import { buildWorld, spawnFlies } from '../public/js/fly/fly-world.js';
 
 const config = JSON.parse(readFileSync(new URL('../public/world/world.json', import.meta.url), 'utf8'));
@@ -26,11 +26,18 @@ test('water and solid objects are blocked, and open grass is free', () => {
   assert.ok(water > 0 && free > 0, 'the shipped world should contain water and open grass');
 });
 
-test('stimulus cells are the honey and flower cells, not dangers', () => {
-  const expected = config.edibles.filter((e) => ['honey', 'flower'].includes(e.kind));
+test('stimulus cells are the food cells, not dangers, and each carries the reach of its unit (spec 009)', () => {
+  const expected = config.edibles.filter((e) => EDIBLE_KINDS.includes(e.kind));
   assert.equal(world.stimulusCells.size, expected.length);
   for (const d of config.dangers) {
     assert.equal(world.isStimulusCell(Math.floor(d.x), Math.floor(d.y)), false, `danger ${d.kind} must not be a stimulus`);
+  }
+  // reach = radius × sprite size in tiles, the size from the catalogue (contracts/odour-reach.md §1)
+  for (const e of expected) {
+    const { w, h } = catalog.lookup(e.sprite).sprite;
+    const idx = cellIndex(e.x, e.y, logic.cols);
+    const want = config.flies.stimulus.radius * (Math.max(w, h) / 32);
+    assert.ok(Math.abs(world.stimulusCells.get(idx).reach - want) < 1e-9, `${e.kind} reach`);
   }
 });
 
@@ -52,4 +59,22 @@ test('brain seeds are distinct per fly', () => {
 test('a world with no walkable cell throws the spawn error', () => {
   const blockedWorld = { ...world, walkable: () => false };
   assert.throws(() => spawnFlies(config, blockedWorld), { message: 'no walkable cell for fly 0' });
+});
+
+test('each fly draws the sprite for its declared sex, normal or baseline by mode (contracts/fly-sprite.md §2, BUG-002)', () => {
+  const toy = spawnFlies(config, world, 'toy');
+  const baseline = spawnFlies(config, world, 'baseline');
+  for (let i = 0; i < config.flies.sex.length; i++) {
+    const sex = config.flies.sex[i];
+    assert.equal(toy[i].sprite, `fly-${sex}`);
+    assert.equal(baseline[i].sprite, `fly-${sex}-baseline`);
+  }
+});
+
+test('a world without flies.sex falls back to flies.sprite/baselineSprite', () => {
+  const c = { ...config, flies: { ...config.flies, sex: undefined } };
+  const toy = spawnFlies(c, world, 'toy');
+  const baseline = spawnFlies(c, world, 'baseline');
+  assert.ok(toy.every((f) => f.sprite === config.flies.sprite));
+  assert.ok(baseline.every((f) => f.sprite === config.flies.baselineSprite));
 });

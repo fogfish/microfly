@@ -1,71 +1,183 @@
 {
   "format": "arcade-world",
-  "version": 2,
+  "version": 3,
   "name": "Pond Meadow (connectome)",
   "seed": 1990,
-  "grid": {"cols": 48, "rows": 32, "cellPx": 32},
-  "zoom": {"min": 1, "max": 4, "default": 2},
+  "grid": {
+    "cols": 48,
+    "rows": 32,
+    "cellPx": 32
+  },
+  "zoom": {
+    "min": 1,
+    "max": 4,
+    "default": 2
+  },
   "atlas": "assets/atlas/catalog.json",
   "ground": [
     {
       "id": "meadow-north",
       "kind": "meadow",
-      "outline": {"ellipse": {"cx": 12, "cy": 10, "rx": 8, "ry": 4}}
+      "outline": {
+        "ellipse": {
+          "cx": 12,
+          "cy": 10,
+          "rx": 8,
+          "ry": 4
+        }
+      }
     },
     {
       "id": "meadow-south",
       "kind": "meadow",
-      "outline": {"ellipse": {"cx": 34, "cy": 22, "rx": 8, "ry": 4}}
+      "outline": {
+        "ellipse": {
+          "cx": 34,
+          "cy": 22,
+          "rx": 8,
+          "ry": 4
+        }
+      }
     },
     {
       "id": "dark-east",
       "kind": "darkGrass",
-      "outline": {"ellipse": {"cx": 24, "cy": 6, "rx": 6, "ry": 3}}
+      "outline": {
+        "ellipse": {
+          "cx": 24,
+          "cy": 6,
+          "rx": 6,
+          "ry": 3
+        }
+      }
     },
     {
       "id": "dark-west",
       "kind": "darkGrass",
-      "outline": {"ellipse": {"cx": 8, "cy": 26, "rx": 6, "ry": 3}}
+      "outline": {
+        "ellipse": {
+          "cx": 8,
+          "cy": 26,
+          "rx": 6,
+          "ry": 3
+        }
+      }
     },
     {
       "id": "cobble-pond",
       "kind": "cobble",
-      "outline": {"ellipse": {"cx": 18, "cy": 12, "rx": 1.5, "ry": 1.5}}
+      "outline": {
+        "ellipse": {
+          "cx": 18,
+          "cy": 12,
+          "rx": 1.5,
+          "ry": 1.5
+        }
+      }
     },
     {
       "id": "gravel-south",
       "kind": "gravel",
-      "outline": {"ellipse": {"cx": 16, "cy": 26, "rx": 1.5, "ry": 1.5}}
+      "outline": {
+        "ellipse": {
+          "cx": 16,
+          "cy": 26,
+          "rx": 1.5,
+          "ry": 1.5
+        }
+      }
     }
   ],
   "waterBodies": [
     {
       "id": "lake-east",
-      "outline": {"blob": {"cx": 36, "cy": 8, "rx": 6.5, "ry": 3.9, "wobble": 0.18, "harmonics": 6}}
+      "outline": {
+        "blob": {
+          "cx": 36,
+          "cy": 8,
+          "rx": 6.5,
+          "ry": 3.9,
+          "wobble": 0.18,
+          "harmonics": 6
+        }
+      }
     },
     {
       "id": "pond-north",
       "outline": {
-        "blob": {"cx": 13, "cy": 9.5, "rx": 2.8, "ry": 2.0, "wobble": 0.11, "harmonics": 4}
+        "blob": {
+          "cx": 13,
+          "cy": 9.5,
+          "rx": 2.8,
+          "ry": 2,
+          "wobble": 0.11,
+          "harmonics": 4
+        }
       }
     },
     {
       "id": "pond-west",
       "outline": {
-        "blob": {"cx": 14.5, "cy": 19.5, "rx": 2.0, "ry": 1.4, "wobble": 0.12, "harmonics": 3}
+        "blob": {
+          "cx": 14.5,
+          "cy": 19.5,
+          "rx": 2,
+          "ry": 1.4,
+          "wobble": 0.12,
+          "harmonics": 3
+        }
       }
     },
     {
       "id": "pond-south",
-      "outline": {"blob": {"cx": 23, "cy": 23, "rx": 2.2, "ry": 1.6, "wobble": 0.1, "harmonics": 4}}
+      "outline": {
+        "blob": {
+          "cx": 23,
+          "cy": 23,
+          "rx": 2.2,
+          "ry": 1.6,
+          "wobble": 0.1,
+          "harmonics": 4
+        }
+      }
     }
   ],
   "objects": [
-    {"id": "oak-south-west", "sprite": "trees-tree-001", "x": 4.5, "y": 28.5, "solid": true},
-    {"id": "round-north-west", "sprite": "trees-tree-005", "x": 10.5, "y": 4.5, "solid": true},
-    {"id": "tiny-south", "sprite": "trees-tree-006", "x": 22.5, "y": 27.5, "solid": true},
-    {"id": "leafy-middle", "sprite": "beach-tree-008", "x": 30.5, "y": 13.5, "solid": true},
-    {"id": "oak-medium-east", "sprite": "trees-tree-002", "x": 44.5, "y": 19.5, "solid": true},
+    {
+      "id": "oak-south-west",
+      "sprite": "trees-tree-001",
+      "x": 4.5,
+      "y": 28.5,
+      "solid": true
+    },
+    {
+      "id": "round-north-west",
+      "sprite": "trees-tree-005",
+      "x": 10.5,
+      "y": 4.5,
+      "solid": true
+    },
+    {
+      "id": "tiny-south",
+      "sprite": "trees-tree-006",
+      "x": 22.5,
+      "y": 27.5,
+      "solid": true
+    },
+    {
+      "id": "leafy-middle",
+      "sprite": "beach-tree-008",
+      "x": 30.5,
+      "y": 13.5,
+      "solid": true
+    },
+    {
+      "id": "oak-medium-east",
+      "sprite": "trees-tree-002",
+      "x": 44.5,
+      "y": 19.5,
+      "solid": true
+    },
     {
       "id": "outcrop-lake-shore",
       "sprite": "outcrop_medium_grass",
@@ -77,36 +189,93 @@
   "groves": [
     {
       "id": "grove-west",
-      "centre": [7, 15],
+      "centre": [
+        7,
+        15
+      ],
       "trees": [
-        {"sprite": "trees-tree-006", "dx": -2.5, "dy": -1.0},
-        {"sprite": "beach-tree-008", "dx": -0.5, "dy": -2.0},
-        {"sprite": "trees-tree-005", "dx": 1.5, "dy": -0.5},
-        {"sprite": "trees-tree-006", "dx": -1.0, "dy": 1.0},
-        {"sprite": "trees-tree-005", "dx": 1.0, "dy": 2.0},
-        {"sprite": "beach-tree-008", "dx": -2.0, "dy": 2.5}
+        {
+          "sprite": "trees-tree-006",
+          "dx": -2.5,
+          "dy": -1
+        },
+        {
+          "sprite": "beach-tree-008",
+          "dx": -0.5,
+          "dy": -2
+        },
+        {
+          "sprite": "trees-tree-005",
+          "dx": 1.5,
+          "dy": -0.5
+        },
+        {
+          "sprite": "trees-tree-006",
+          "dx": -1,
+          "dy": 1
+        },
+        {
+          "sprite": "trees-tree-005",
+          "dx": 1,
+          "dy": 2
+        },
+        {
+          "sprite": "beach-tree-008",
+          "dx": -2,
+          "dy": 2.5
+        }
       ]
     },
     {
       "id": "grove-east",
-      "centre": [38, 17],
+      "centre": [
+        38,
+        17
+      ],
       "trees": [
-        {"sprite": "trees-tree-005", "dx": -1.5, "dy": 0.0},
-        {"sprite": "trees-tree-006", "dx": 0.5, "dy": -1.0},
-        {"sprite": "beach-tree-008", "dx": 1.0, "dy": 1.5},
-        {"sprite": "trees-tree-006", "dx": -0.5, "dy": 2.5},
-        {"sprite": "trees-tree-005", "dx": 2.0, "dy": -0.5}
+        {
+          "sprite": "trees-tree-005",
+          "dx": -1.5,
+          "dy": 0
+        },
+        {
+          "sprite": "trees-tree-006",
+          "dx": 0.5,
+          "dy": -1
+        },
+        {
+          "sprite": "beach-tree-008",
+          "dx": 1,
+          "dy": 1.5
+        },
+        {
+          "sprite": "trees-tree-006",
+          "dx": -0.5,
+          "dy": 2.5
+        },
+        {
+          "sprite": "trees-tree-005",
+          "dx": 2,
+          "dy": -0.5
+        }
       ]
     }
   ],
   "scatter": [
     {
       "id": "meadow-flowers",
-      "area": {"ellipse": {"cx": 20, "cy": 16, "rx": 9, "ry": 7}},
+      "area": {
+        "ellipse": {
+          "cx": 20,
+          "cy": 16,
+          "rx": 9,
+          "ry": 7
+        }
+      },
       "sprites": [
-        "trees-plant-005",
-        "jungle-plant-016",
-        "jungle-plant-017"
+        "trees-plant-001",
+        "trees-plant-002",
+        "trees-plant-003"
       ],
       "density": 0.4,
       "clearings": 0.3,
@@ -114,116 +283,321 @@
     },
     {
       "id": "fern-tufts",
-      "area": {"ellipse": {"cx": 6, "cy": 22, "rx": 5, "ry": 4}},
-      "sprites": ["trees-plant-008", "trees-plant-010", "jungle-plant-010", "jungle-plant-015"],
+      "area": {
+        "ellipse": {
+          "cx": 6,
+          "cy": 22,
+          "rx": 5,
+          "ry": 4
+        }
+      },
+      "sprites": [
+        "trees-plant-008",
+        "trees-plant-010"
+      ],
       "density": 0.3,
       "clearings": 0.25,
       "seed": 78
     },
     {
       "id": "bush-patch",
-      "area": {"ellipse": {"cx": 42, "cy": 27, "rx": 5, "ry": 3}},
-      "sprites": ["trees-bush-001", "trees-bush-002", "jungle-bush-008"],
+      "area": {
+        "ellipse": {
+          "cx": 42,
+          "cy": 27,
+          "rx": 5,
+          "ry": 3
+        }
+      },
+      "sprites": [
+        "trees-bush-001",
+        "trees-bush-002",
+        "jungle-bush-008"
+      ],
       "density": 0.12,
-      "clearings": 0.4,
-      "seed": 79
-    },
-    {
-      "id": "shrubs-south-east",
-      "area": {"ellipse": {"cx": 34, "cy": 24, "rx": 6, "ry": 4}},
-      "sprites": ["jungle-bush-018"],
-      "density": 0.25,
       "clearings": 0.4,
       "seed": 79
     }
   ],
   "edibles": [
-    {"kind": "flower", "x": 5.5, "y": 7.5},
-    {"kind": "flower", "x": 17.5, "y": 7.5},
-    {"kind": "flower", "x": 28.5, "y": 9.5},
-    {"kind": "flower", "x": 42.5, "y": 7.5},
-    {"kind": "flower", "x": 5.5, "y": 23.5},
-    {"kind": "flower", "x": 17.5, "y": 23.5},
-    {"kind": "flower", "x": 33.5, "y": 22.5},
-    {"kind": "flower", "x": 41.5, "y": 23.5}
+    {
+      "kind": "large",
+      "sprite": "jungle-plant-015",
+      "x": 10.5,
+      "y": 20.5
+    },
+    {
+      "kind": "medium",
+      "sprite": "jungle-plant-010",
+      "x": 32.5,
+      "y": 19.5
+    },
+    {
+      "kind": "small",
+      "sprite": "red_flower_plant",
+      "x": 21.5,
+      "y": 3.5
+    },
+    {
+      "kind": "small",
+      "sprite": "red_flower_plant",
+      "x": 4.5,
+      "y": 5.5
+    },
+    {
+      "kind": "medium",
+      "sprite": "jungle-plant-010",
+      "x": 42.5,
+      "y": 7.5
+    }
   ],
   "dangers": [
-    {"kind": "spider", "x": 10.5, "y": 12.5},
-    {"kind": "lantern", "x": 24.5, "y": 3.5},
-    {"kind": "spider", "x": 41.5, "y": 12.5},
-    {"kind": "lantern", "x": 11.5, "y": 29.5},
-    {"kind": "spider", "x": 25.5, "y": 26.5},
-    {"kind": "lantern", "x": 37.5, "y": 28.5}
+    {
+      "kind": "spider",
+      "x": 10.5,
+      "y": 12.5
+    },
+    {
+      "kind": "lantern",
+      "x": 24.5,
+      "y": 3.5
+    },
+    {
+      "kind": "spider",
+      "x": 41.5,
+      "y": 12.5
+    },
+    {
+      "kind": "lantern",
+      "x": 11.5,
+      "y": 29.5
+    },
+    {
+      "kind": "spider",
+      "x": 25.5,
+      "y": 26.5
+    },
+    {
+      "kind": "lantern",
+      "x": 37.5,
+      "y": 28.5
+    }
   ],
   "sprites": {
-    "fly": {
+    "fly-female": {
       "pixels": [
-        "......................",
-        "......................",
-        "..........kk..........",
-        ".........kkkk.........",
-        "...wwwwwekkkkewwwww...",
-        "..wwwwwwwkkkkwwwwwww..",
-        "..wwwwwwwwkkwwwwwwww..",
-        "..wwwwwwwkkkkwwwwwww..",
-        "..wwwwwwwkkkkwwwwwww..",
-        "...wwwwwkkkkkkwwwww...",
-        ".......kkkkkkkk.......",
-        ".....kkwwkkkkwwkk.....",
-        "....wwwwww..wwwwww....",
-        "....wwwkkwkkwkkwww....",
-        ".....kkwwkkkkwwkk.....",
-        "......ww.kkkk.ww......",
-        ".......kkkkkkkk.......",
-        ".....kk..kkkk..kk.....",
-        ".........kkkk.........",
-        ".........kkkk.........",
-        "..........kk..........",
-        "......................"
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "...........eeekkkkkeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        ".............kkkkkkk............",
+        "....wwwww....kkkkkkk....wwwww...",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwkkkwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "....wwwww...ttttttttt...wwwww...",
+        "............ttttttttt...........",
+        "..........kkkkkkkkkkkk..........",
+        ".........kkttttttttttkk.........",
+        "........kk.tttttttttttkk........",
+        "...........kkkkkkkkkkk..........",
+        "...........ttttttttttt..........",
+        "...........ttttttttttt..........",
+        "...........kkkkkkkkkkk..........",
+        "...........ttttttttttt..........",
+        "...........ttttttttttt..........",
+        "............kkkkkkkkk...........",
+        "............ttttttttt...........",
+        ".............ttttttt............",
+        ".............ttttttt............",
+        "..............ttttt.............",
+        "................t..............."
       ],
-      "palette": {"w": "#dfe9f5", "k": "#1b1b1b", "e": "#ff3b3b"}
+      "palette": {
+        "w": "#dfe9f5",
+        "k": "#1b1b1b",
+        "e": "#ff3b3b",
+        "t": "#d9a441"
+      }
     },
-    "fly-baseline": {
+    "fly-female-baseline": {
       "pixels": [
-        "......................",
-        "......................",
-        "..........kk..........",
-        ".........kkkk.........",
-        "...wwwwwekkkkewwwww...",
-        "..wwwwwwwkkkkwwwwwww..",
-        "..wwwwwwwwkkwwwwwwww..",
-        "..wwwwwwwkkkkwwwwwww..",
-        "..wwwwwwwkkkkwwwwwww..",
-        "...wwwwwkkkkkkwwwww...",
-        ".......kkkkkkkk.......",
-        ".....kkwwkkkkwwkk.....",
-        "....wwwwww..wwwwww....",
-        "....wwwkkwkkwkkwww....",
-        ".....kkwwkkkkwwkk.....",
-        "......ww.kkkk.ww......",
-        ".......kkkkkkkk.......",
-        ".....kk..kkkk..kk.....",
-        ".........kkkk.........",
-        ".........kkkk.........",
-        "..........kk..........",
-        "......................"
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "...........eeekkkkkeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        ".............kkkkkkk............",
+        "....wwwww....kkkkkkk....wwwww...",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwkkkwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "....wwwww...ttttttttt...wwwww...",
+        "............ttttttttt...........",
+        "..........kkkkkkkkkkkk..........",
+        ".........kkttttttttttkk.........",
+        "........kk.tttttttttttkk........",
+        "...........kkkkkkkkkkk..........",
+        "...........ttttttttttt..........",
+        "...........ttttttttttt..........",
+        "...........kkkkkkkkkkk..........",
+        "...........ttttttttttt..........",
+        "...........ttttttttttt..........",
+        "............kkkkkkkkk...........",
+        "............ttttttttt...........",
+        ".............ttttttt............",
+        ".............ttttttt............",
+        "..............ttttt.............",
+        "................t..............."
       ],
-      "palette": {"w": "#e6e6e6", "k": "#8ecae6", "e": "#ffb703"}
+      "palette": {
+        "w": "#c9d6e8",
+        "k": "#3a2f1b",
+        "e": "#ff8c3b",
+        "t": "#8c6a2f"
+      }
+    },
+    "fly-male": {
+      "pixels": [
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "...........eeekkkkkeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        ".............kkkkkkk............",
+        "....wwwww....kkkkkkk....wwwww...",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwkkkwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "....wwwww...ttttttttt...wwwww...",
+        "............ttttttttt...........",
+        "..........kkkkkkkkkkkk..........",
+        ".........kkttttttttttkk.........",
+        "........kk.tttttttttttkk........",
+        "............ttttttttt...........",
+        "............ttttktttt...........",
+        "............ttkkkkktt...........",
+        ".............kkkkkkk............",
+        ".............kkkkkkk............",
+        "..............kkkkk.............",
+        "................k...............",
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "................................"
+      ],
+      "palette": {
+        "w": "#dfe9f5",
+        "k": "#1b1b1b",
+        "e": "#ff3b3b",
+        "t": "#d9a441"
+      }
+    },
+    "fly-male-baseline": {
+      "pixels": [
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "...........eeekkkkkeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        "...........eeeekkkeeee..........",
+        ".............kkkkkkk............",
+        "....wwwww....kkkkkkk....wwwww...",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwkkkwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwwwtttwwwwwwwwwwwwww",
+        "wwwwwwwwwwwwwkkkkkkkwwwwwwwwwwww",
+        "....wwwww...ttttttttt...wwwww...",
+        "............ttttttttt...........",
+        "..........kkkkkkkkkkkk..........",
+        ".........kkttttttttttkk.........",
+        "........kk.tttttttttttkk........",
+        "............ttttttttt...........",
+        "............ttttktttt...........",
+        "............ttkkkkktt...........",
+        ".............kkkkkkk............",
+        ".............kkkkkkk............",
+        "..............kkkkk.............",
+        "................k...............",
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "................................"
+      ],
+      "palette": {
+        "w": "#c9d6e8",
+        "k": "#3a2f1b",
+        "e": "#ff8c3b",
+        "t": "#8c6a2f"
+      }
     }
   },
   "flies": {
     "count": 6,
     "mode": "toy",
     "tickHz": 20,
-    "sprite": "fly",
-    "baselineSprite": "fly-baseline",
-    "body": {"maxSpeed": 3, "turnRate": 4},
-    "stimulus": {"objects": ["flower"], "radius": 3, "gain": 1.0, "max": 1.0, "resting": 0.2},
+    "sprite": "fly-female",
+    "baselineSprite": "fly-female-baseline",
+    "sex": [
+      "female",
+      "male",
+      "female",
+      "male",
+      "female",
+      "male"
+    ],
+    "body": {
+      "maxSpeed": 3,
+      "turnRate": 4
+    },
+    "stimulus": {
+      "objects": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "radius": 6,
+      "gain": 1,
+      "max": 1,
+      "resting": 0.2
+    },
     "brain": {
       "snapshot": "brains/smallest-functional-brain.brain",
       "motorSmoothing": 0.05,
-      "lif": {"synapticScale": 0.85}
+      "lif": {
+        "synapticScale": 0.85
+      }
     },
-    "experiment": {"seeds": [1, 2, 3, 4, 5], "ticks": 3000}
+    "experiment": {
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "ticks": 3000
+    }
   }
 }

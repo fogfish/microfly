@@ -20,6 +20,9 @@ export function resolveFlies(config) {
     tickHz: f.tickHz ?? 20,
     sprite: f.sprite,
     baselineSprite: f.baselineSprite ?? f.sprite,
+    // Per-fly sex (contracts/fly-sprite.md §2, BUG-002): picks fly-female/fly-male (and baseline) per fly
+    // index. Falls back to the single sprite/baselineSprite above when a world does not declare it.
+    sex: f.sex,
     body: {
       maxSpeed: f.body.maxSpeed,
       turnRate: f.body.turnRate,

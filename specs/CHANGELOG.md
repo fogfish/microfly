@@ -1,5 +1,17 @@
 # Changelog
 
+# 2026-10-06
+
+/speckit-specify World map requires recalibration:
+1. Only three edible (food) object, each cast odor on the distance proportional to its size. Odor is max at the edible (food) object position. Small food unit is `red_flower_plant`; Medium food unit is `jungle-plant-010`; Large food unit is `jungle-plant-015`. Food is distributed on the map so that there are still areas without odor but fly has a chance to move through the world following the odor.
+2. Odor is connected to food units and its size.
+3. Remove following object from the map permanently: `jungle-plant-016`, `jungle-plant-017`, `jungle-bush-018`.
+4. Declassify following object, which are marked as edible toward decor:  `yellow_flower_single`, `yellow_flowers_trio`, `yellow_flowers_cluster`.
+5. Make the fly sprite 32x32 and make it look like a fruit fly.
+
+/speckit-plan Recalibrate all variants of the world map implemented by the app.
+
+
 # 2026-10-05
 
 /speckit-specify Split the view port into the world and right side panel that shows a status of fly. The fly status consits of

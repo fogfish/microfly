@@ -71,3 +71,29 @@ test('no sources, or max 0, gives an empty field', () => {
   const zero = odourField({ points, stimulus: { radius: 2, gain: 1, max: 0 }, ...grid });
   assert.ok(zero.values.every((v) => v === 0));
 });
+
+// Per-source reach (spec 009, contracts/odour-reach.md §4): each point uses its own reach, not the global radius.
+test('each point falls off over its own reach (parity with fruitIntensity, per point)', () => {
+  const sources = [
+    { x: 1.5, y: 1.5, reach: 1 },
+    { x: 4.5, y: 2.5, reach: 3 },
+  ];
+  const f = odourField({ points: sources, stimulus: { radius: 2, gain: 1, max: 1 }, ...grid });
+  for (let j = 0; j < f.height; j++) {
+    for (let i = 0; i < f.width; i++) {
+      const sx = centre(i, f.samplesPerCell);
+      const sy = centre(j, f.samplesPerCell);
+      const want = Math.min(1, fruitIntensity(sources, sx, sy, stimulus.radius));
+      assert.ok(Math.abs(at(f, i, j) - want) < 1e-6, `sample (${i}, ${j}): ${at(f, i, j)} != ${want}`);
+    }
+  }
+});
+
+test('a larger reach reaches a sample that a smaller reach does not', () => {
+  const far = { x: 0.5, y: 0.5 };
+  const small = odourField({ points: [{ ...far, reach: 1 }], stimulus, ...grid });
+  const large = odourField({ points: [{ ...far, reach: 2.5 }], stimulus, ...grid });
+  // Sample (6, 0) sits at (1.625, 0.125): 1.19 cells from the source, outside 1 and inside 2.5
+  assert.equal(at(small, 6, 0), 0);
+  assert.ok(at(large, 6, 0) > 0);
+});

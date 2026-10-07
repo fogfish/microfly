@@ -29,10 +29,13 @@ test('a bad outline shape is refused', () => {
   assert.deepEqual(validateConfig(c).map((e) => e.path), ['waterBodies[0].outline']);
 });
 
-test('an edible placed on water is refused', () => {
+// Only the spot errors: the one-unit-per-kind rule (spec 009 FR-001) also fires for an extra unit.
+const spotErrors = (c) => validateConfig(c).filter((e) => e.path.startsWith('edibles['));
+
+test('a food unit placed on water is refused', () => {
   const c = load();
-  c.edibles.push({ kind: 'flower', x: 13.5, y: 9.5 });
-  assert.deepEqual(validateConfig(c).map((e) => e.path), [`edibles[${c.edibles.length - 1}]`]);
+  c.edibles.push({ kind: 'small', sprite: 'red_flower_plant', x: 13.5, y: 9.5 });
+  assert.deepEqual(spotErrors(c).map((e) => e.path), [`edibles[${c.edibles.length - 1}]`]);
 });
 
 test('a danger placed on water is refused', () => {
@@ -49,8 +52,8 @@ test('a fire danger is refused: campfire logs are not a danger', () => {
 
 test('an unknown edible kind is refused', () => {
   const c = load();
-  c.edibles.push({ kind: 'apple', x: 2.5, y: 2.5 });
-  assert.deepEqual(validateConfig(c).map((e) => e.path), [`edibles[${c.edibles.length - 1}].kind`]);
+  c.edibles.push({ kind: 'apple', sprite: 'red_flower_plant', x: 2.5, y: 2.5 });
+  assert.deepEqual(spotErrors(c).map((e) => e.path), [`edibles[${c.edibles.length - 1}].kind`]);
 });
 
 test('a version of 1 is refused', () => {

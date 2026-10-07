@@ -5,16 +5,16 @@ import { validateConfig } from '../js/world/validate.js';
 
 const load = () => JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8'));
 
-test('accepts the shipped version 2 world', () => {
+test('accepts the shipped version 3 world', () => {
   assert.deepEqual(validateConfig(load()), []);
 });
 
-test('refuses version 1 with a message that names the version', () => {
+test('refuses version 2 with a message that names the version', () => {
   const c = load();
-  c.version = 1;
+  c.version = 2;
   const errors = validateConfig(c);
   assert.deepEqual(errors.map((e) => e.path), ['version']);
-  assert.match(errors[0].message, /unsupported version 1/);
+  assert.match(errors[0].message, /unsupported version 2; this app supports 3/);
 });
 
 test('refuses a non-integer zoom step', () => {

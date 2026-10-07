@@ -231,6 +231,10 @@ The plan is ordered so that each phase leaves v0 green. `tasks.md` (from `/speck
    **Bugfix**: 2026-10-05 — BUG-002 Updated from bugfix patch. The panel shows energy and hunger bars and a per-tick
    diagnostic for the selected v1 fly (FR-031, FR-034). The activity view states the active count for comparison with
    the simple brain (FR-033). Tasks T108, T109, T113–T115.
+   **Bugfix**: 2026-10-07 — BUG-003 Updated from bugfix patch. The `.meter` bar (energy and hunger rows) had no CSS in
+   `public/css/style.css`: an unstyled `<i>` is `display: inline`, so `style.width` never produces a visible bar. Needs
+   a rule matching `.channel-row`/`.channel-bar`/`.channel-fill` (explicit track height, border, background fill).
+   `action.js` and `model.js` need no change. Task T117.
 7. **Experiment**: arms via `--brains`, held-out seeds, metrics (pure), run record. Gate C run.
 8. **Calibration and Gate B**: calibration on the calibration seeds (values recorded), browser timing harness, the
    recorded tick budget.

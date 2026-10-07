@@ -1,4 +1,4 @@
-// Validates a parsed world.json (format version 2). Pure: no DOM, no fetch.
+// Validates a parsed world.json (format version 3, spec 009 contracts/world-format-v3.md). Pure: no DOM, no fetch.
 // validateConfig(config) checks structure and geometry. validateArt(config, catalog) checks sprite
 // references against the atlas catalogue. Both return an array of { path, message }; empty means valid.
 // Paths name the section and the entry, e.g. objects[3].
@@ -6,10 +6,10 @@
 import { resolveParams, LIF_DEFAULTS } from '../brain/lif-v0.js';
 import { resolveParams as resolveParamsV1, LIF_V1_DEFAULTS } from '../brain/lif-v1.js';
 import { validateCapabilities } from '../brain/capabilities.js';
-import { cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX } from './layout.js';
+import { cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX, FOOD_SPRITE_IDS, REMOVED_SPRITE_IDS } from './layout.js';
 import { buildWaterField, waterField, cellWater, bodyKind, BODY_RANGES } from './water.js';
 const FORMAT = 'arcade-world';
-const VERSION = 2;
+const VERSION = 3;
 const SURFACE_KINDS = ['meadow', 'darkGrass', 'cobble', 'gravel'];
 const GROVE_MIN = 4;
 const GROVE_MAX = 12;
@@ -123,9 +123,16 @@ export function validateConfig(config) {
     if (!isInt(s?.seed, 0, SEED_MAX)) err(`${path}.seed`, `must be an integer from 0 to ${SEED_MAX}`);
   });
 
-  validateList(config.edibles, 'edibles', err).forEach((e, i) => {
+  // Food is one or more units per size class, every class present (spec 009 FR-001, BUG-001). Each names its
+  // sprite (contract §2). Several units of the same kind MAY be placed near each other (FR-020).
+  const edibles = validateList(config.edibles, 'edibles', err);
+  edibles.forEach((e, i) => {
     validateSpot(e, `edibles[${i}]`, EDIBLE_KINDS, 'edible', inGrid, water, cols, err);
+    if (!isText(e?.sprite)) err(`edibles[${i}].sprite`, 'is required: the food sprite for this kind');
   });
+  if (!EDIBLE_KINDS.every((k) => edibles.some((e) => e?.kind === k))) {
+    err('edibles', `must hold at least one unit of each kind: ${EDIBLE_KINDS.join(', ')}`);
+  }
   validateList(config.dangers, 'dangers', err).forEach((d, i) => {
     validateSpot(d, `dangers[${i}]`, DANGER_KINDS, 'danger', inGrid, water, cols, err);
   });
@@ -146,7 +153,28 @@ export function validateArt(config, catalog) {
 
   (config.objects ?? []).forEach((o, i) => check(o?.sprite, `objects[${i}]`));
   (config.groves ?? []).forEach((g, i) => (g?.trees ?? []).forEach((t, j) => check(t?.sprite, `groves[${i}].trees[${j}]`)));
-  (config.scatter ?? []).forEach((s, i) => (s?.sprites ?? []).forEach((ref, j) => check(ref, `scatter[${i}].sprites[${j}]`)));
+  // Food sprites are for food only, and removed sprites are gone from every world (spec 009 FR-009, FR-019).
+  // Names and ids are both resolved through the catalogue, so a rule may name a sprite either way.
+  const food = new Set(Object.values(FOOD_SPRITE_IDS));
+  const checkScatter = (ref, path) => {
+    if (!isText(ref)) return;
+    const { sprite, error } = catalog.lookup(ref);
+    if (error) return errors.push({ path, message: error });
+    if (food.has(sprite.id)) errors.push({ path, message: `"${ref}" is a food sprite; food art is only where food is (FR-019)` });
+    if (REMOVED_SPRITE_IDS.includes(sprite.id)) errors.push({ path, message: `"${ref}" is a removed sprite (FR-009)` });
+  };
+
+  (config.edibles ?? []).forEach((e, i) => {
+    if (!isText(e?.sprite)) return;
+    const { sprite, error } = catalog.lookup(e.sprite);
+    const path = `edibles[${i}].sprite`;
+    if (error) return errors.push({ path, message: error });
+    const want = FOOD_SPRITE_IDS[e.kind];
+    if (want !== undefined && sprite.id !== want) {
+      errors.push({ path, message: `"${e.sprite}" is not the food sprite for kind "${e.kind}" (${want})` });
+    }
+  });
+  (config.scatter ?? []).forEach((s, i) => (s?.sprites ?? []).forEach((ref, j) => checkScatter(ref, `scatter[${i}].sprites[${j}]`)));
   return errors;
 }
 
@@ -279,7 +307,10 @@ function validateSpot(spot, path, kinds, role, inGrid, water, cols, err) {
     err(path, 'must be an object with kind, x and y');
     return;
   }
-  if (!kinds.includes(spot.kind)) err(`${path}.kind`, `must be ${kinds.map((k) => `"${k}"`).join(', ')}`);
+  if (!kinds.includes(spot.kind)) {
+    const article = /^[aeiou]/.test(role) ? 'an' : 'a';
+    err(`${path}.kind`, `"${spot.kind}" is not ${article} ${role} kind; must be ${kinds.map((k) => `"${k}"`).join(', ')}`);
+  }
   if (!inGrid(spot.x, spot.y)) {
     err(path, 'x and y must be numbers inside the grid');
     return;
@@ -313,6 +344,9 @@ function validateFlies(flies, config, err) {
   if (flies.baselineSprite !== undefined && !hasSprite(flies.baselineSprite)) {
     err('flies.baselineSprite', `unknown sprite "${flies.baselineSprite}"`);
   }
+  // Per-fly sex (contracts/fly-sprite.md §2, BUG-002): picks the fly-female/fly-male (and baseline) pair per
+  // fly instead of the one fly.sprite/baselineSprite pair. Declared in data (constitution VI), not chosen in code.
+  if (flies.sex !== undefined) validateFlySex(flies.sex, flies.count ?? 6, hasSprite, err);
 
   validateFlyBody(flies.body, err);
   validateFlyFood(flies.food, err);
@@ -322,6 +356,24 @@ function validateFlies(flies, config, err) {
   if ((flies.mode ?? 'toy') === 'toy') validateFlyBrain(flies.brain, err);
 
   validateFlyExperiment(flies.experiment, err);
+}
+
+const FLY_SEXES = ['female', 'male'];
+
+function validateFlySex(sex, count, hasSprite, err) {
+  if (!Array.isArray(sex) || sex.length !== count) {
+    err('flies.sex', `must be an array of ${count} entries ("female" or "male"), one per fly`);
+    return;
+  }
+  const used = new Set();
+  sex.forEach((s, i) => {
+    if (!FLY_SEXES.includes(s)) err(`flies.sex[${i}]`, 'must be "female" or "male"');
+    else used.add(s);
+  });
+  for (const s of used) {
+    if (!hasSprite(`fly-${s}`)) err('flies.sex', `sprite "fly-${s}" is not in sprites`);
+    if (!hasSprite(`fly-${s}-baseline`)) err('flies.sex', `sprite "fly-${s}-baseline" is not in sprites`);
+  }
 }
 
 function validateFlyBody(body, err) {

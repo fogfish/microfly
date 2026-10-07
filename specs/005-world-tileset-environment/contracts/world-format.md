@@ -1,14 +1,14 @@
 # Contract: World Definition, Format Version 2
 
 The file `public/world/world.json` is the only input that defines the map. Developers edit it
-by hand. The app validates it on load and refuses any version other than `2`.
+by hand. The app validates it on load and refuses any version other than `3` (version 2 was superseded by spec 009; see [spec 009 world-format-v3](../../009-food-odour-recalibration/contracts/world-format-v3.md)). Version 3 changes: edibles are `small`, `medium` or `large`, each with a `sprite`; `flower` is refused; scatter and shore decor never use food or removed sprites.
 
 ## Top-level keys
 
 ```json
 {
   "format": "arcade-world",
-  "version": 2,
+  "version": 3,
   "name": "Pond Meadow",
   "seed": 1990,
   "grid":  { "cols": 48, "rows": 32, "cellPx": 32 },

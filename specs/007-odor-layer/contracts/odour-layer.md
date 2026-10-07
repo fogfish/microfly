@@ -33,7 +33,7 @@ export function odourField({ points, stimulus, cols, rows, samplesPerCell })
 The function MUST satisfy these guarantees, each covered by `tests/odour-field.test.mjs`:
 - **Parity**: for any sample, `values[k]` equals `min(1, gain × fruitIntensity(points, sx, sy, radius) / max)`
   to within 1e-6 (FR-004, SC-003).
-- **Reach**: a sample farther than `radius` from every point is exactly 0 (FR-006, SC-004).
+- **Reach**: a sample farther than `radius` from every point is exactly 0 (FR-006, SC-004). Spec 009 (contracts/odour-reach.md §4): each point uses its own `reach` when it has one, so a sample is zero beyond that source's reach only.
 - **Overlap**: two points sum, so the value at the midpoint is greater than a single point's value
   at the same distance (spec US1 scenario 3).
 - **Cap**: no value exceeds 1 (FR-007).

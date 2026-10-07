@@ -297,7 +297,8 @@ metrics and the held-out seed count.
   left out. This supersedes the seeded sphere placement for snapshot brains in `006-fly-status-panel` (research R6).
   Toy brains, which have no soma positions at all, keep the seeded sphere.
 - **FR-031**: The panel MUST show a v1 fly's energy and hunger as two bars from 0% to 100%, updated on every tick. The
-  bars show the fly's own state, not the brain's outputs.
+  bars show the fly's own state, not the brain's outputs. A bar MUST be visibly rendered to the user — setting a DOM
+  style attribute on an element with no matching CSS rule does not satisfy this requirement (BUG-003).
 - **FR-032**: In the shipped `world-forager.json`, a hungry fly (energy 0.1) placed on a flower MUST slow below the eating
   speed and eat, using the trained brain's own drives, with no hold or stop in the world (FR-026). The calibration MUST
   choose its values by an eating criterion as well as the find rate, and the calibration record MUST state the eating
@@ -356,7 +357,14 @@ brain. The spec had no requirement for any of these.
   changed in `calibration.md` before the run.
 - **SC-012**: Every eating tick has taste input above 0 on both taste channels. A run that eats with taste at 0 fails.
 - **SC-013**: The Action section shows energy and hunger bars for a v1 fly, and they match the energy and hunger in the
-  last history entry on every tick (FR-031).
+  last history entry on every tick (FR-031). The bars MUST be visible in a real browser, confirmed by opening
+  `world-forager.json` from a static server and looking at the Action section, not only by a passing unit test on the
+  style value (BUG-003).
+
+**Bugfix**: 2026-10-07 — BUG-003 Clarified FR-031 and SC-013. The energy and hunger bars were wired correctly and
+passed `tests/panel-bars-v1.test.mjs`, but `.meter` (the bar row added for FR-031) had no CSS in
+`public/css/style.css`, so the `<i>` fill stayed `display: inline` and its `style.width` had no visible effect. No
+bar ever appeared in the browser. T109, the browser check that would have caught this, had never been run.
 
 ## Assumptions
 

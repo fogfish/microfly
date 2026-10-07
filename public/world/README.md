@@ -1,6 +1,6 @@
 # World definitions
 
-`world.json` is the map the app draws. It is format version 2 (`"version": 2`). The app refuses any
+`world.json` is the map the app draws. It is format version 3 (`"version": 3`). The app refuses any
 other version and names the version in the error panel.
 
 - Format, coordinates, outlines, groves, scatter, edibles and dangers:
@@ -9,9 +9,18 @@ other version and names the version in the error panel.
 - Water: one lake and 2 to 3 ponds, each a `blob` outline. Shores, bank faces and shore decor are
   drawn from the outline (grass shore style of the art pack's water spec). See "Water and shores"
   in the format contract.
-- Edibles and dangers: flowers are the only edible; dangers are `spider` and `lantern` (no `fire`).
-  They are spread over the whole map: every 16 × 16-cell region holds at least one flower and one
-  danger, and flowers are at least 6 cells apart (`public/tests/spread.test.js`).
+- Food: one or more edibles per size class, every class present (`small` `red_flower_plant`, `medium`
+  `jungle-plant-010`, `large` `jungle-plant-015`; BUG-001 — the shipped worlds carry 5: 2 small, 2 medium,
+  1 large). Each names its `sprite`. Odour reach is `flies.stimulus.radius` times the sprite size in tiles,
+  so a larger unit smells farther; the peak is the same for every unit, and several units of the same kind
+  MAY sit near each other so their odour adds, raising local coverage (spec 009, FR-020). Food sprites are
+  never used as decor, and yellow flowers (`trees-plant-001` to `003`) are decor only. The food rules are
+  checked in `tests/odour-food.test.mjs` and `public/tests/spread.test.js`.
+- Dangers: `spider` and `lantern` (no `fire`). They are spread over the whole map: every 16 × 16-cell
+  region holds at least one danger (`public/tests/spread.test.js`).
+- Fly sprites are 32 × 32 pixels (one map cell), drawn head-up. There is a female and a male variant
+  (`fly-female`, `fly-male`), each with its own baseline colour pair; `flies.sex` picks which pair each fly
+  uses (spec 009 contracts/fly-sprite.md, BUG-002).
 - Fly art and the `flies` section: [specs/002-toy-lif-fly-network/contracts/fly-config.md](../../specs/002-toy-lif-fly-network/contracts/fly-config.md)
 
 `world.v1.json` is the old format-1 map, kept only for comparison. The app does not load it.

@@ -256,6 +256,32 @@ body {
   text-align: right;
 }
 
+/* Energy and hunger bars (BUG-003, FR-031): the fill is the bare <i> action.js creates, with its width set
+   inline. Without display: block and a track size, an <i> (inline by default) ignores width and never renders. */
+.meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.meter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meter i {
+  display: block;
+  height: 8px;
+  min-width: 2px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: var(--bar-both);
+  font-style: normal;
+}
+
 /* Layers box (007): an arcade ON/OFF switch per layer and the odour legend */
 .layers .layer-row {
   display: flex;

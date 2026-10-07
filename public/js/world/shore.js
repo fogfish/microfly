@@ -22,7 +22,7 @@ export const GRASS_RULES = [
   { name: 'tufts', ids: ['trees-plant-006', 'trees-plant-007', 'jungle-plant-011', 'beach-plant-015'], t: [0, 1.3], per100: 3.6, spacing: 10, clear: 3 },
   { name: 'sprigs', ids: SPRIGS, t: [0.2, 1.8], per100: 3.0, spacing: 7 },
   { name: 'ferns', ids: ['trees-plant-008', 'jungle-bush-008'], t: [1.0, 2.6], per100: 0.35, spacing: 50, clear: 12 },
-  { name: 'wild flowers', ids: ['jungle-plant-016', 'jungle-plant-017', 'trees-plant-005'], t: [1.3, 3.5], per100: 0.7, spacing: 22 },
+  { name: 'wild flowers', ids: ['trees-plant-001', 'trees-plant-002', 'trees-plant-003'], t: [1.3, 3.5], per100: 0.7, spacing: 22 },
 ];
 
 // Shore decor for every water body. Returns

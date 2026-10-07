@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { indexCatalog } from '../js/world/catalog.js';
 import { BASE_TILES, PATCH_TILES } from '../js/world/ground.js';
 import { GRASS_RULES } from '../js/world/shore.js';
-import { EDIBLE_SPRITES } from '../js/world/layout.js';
+import { EDIBLE_KINDS } from '../js/world/layout.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const config = JSON.parse(read('../world/world.json'));
@@ -59,31 +59,32 @@ test('both world files have the same water (BUG-002, SC-011)', () => {
 });
 
 test('honey is not an edible kind, in code or in either world file (BUG-001)', () => {
-  assert.ok(!('honey' in EDIBLE_SPRITES));
+  assert.ok(!EDIBLE_KINDS.includes('honey'));
   assert.ok(!code.includes('jungle-prop-001'));
   for (const c of [config, connectome]) {
     assert.ok(!c.edibles.some((e) => e.kind === 'honey'));
-    assert.deepEqual(c.flies.stimulus.objects, ['flower']);
+    assert.deepEqual(c.flies.stimulus.objects, ['small', 'medium', 'large']);
   }
 });
 
-test('the fly sprites are 22 × 22 pixels (FR-026)', () => {
-  for (const name of ['fly', 'fly-baseline']) {
+test('the fly sprites are 32 × 32 pixels (spec 009 FR-013, FR-021; BUG-002)', () => {
+  for (const name of ['fly-female', 'fly-female-baseline', 'fly-male', 'fly-male-baseline']) {
     const { pixels } = config.sprites[name];
-    assert.equal(pixels.length, 22, `${name} rows`);
-    for (const row of pixels) assert.equal(row.length, 22, `${name} row`);
+    assert.equal(pixels.length, 32, `${name} rows`);
+    for (const row of pixels) assert.equal(row.length, 32, `${name} row`);
   }
 });
 
-test('the outcrop, the flowers and the bushes named in BUG-001 are used (FR-013, FR-024)', () => {
+test('the outcrop and the food sprites are used (FR-013, FR-024; spec 009 FR-001, FR-012)', () => {
   const ids = JSON.stringify(config);
   assert.ok(ids.includes('"outcrop_medium_grass"'));
-  for (const id of ['jungle-bush-018', 'jungle-plant-016', 'trees-plant-005', 'jungle-plant-010', 'jungle-plant-015']) {
+  // FR-012 withdraws jungle-bush-018 and jungle-plant-016 (removed by FR-009); the food sprites stay
+  for (const id of ['red_flower_plant', 'jungle-plant-010', 'jungle-plant-015']) {
     assert.ok(ids.includes(`"${id}"`), id);
   }
 });
 
-test('the connectome world uses the same catalogue and loads as version 2 (FR-027)', () => {
-  assert.equal(connectome.version, 2);
+test('the connectome world uses the same catalogue and loads as version 3 (FR-027)', () => {
+  assert.equal(connectome.version, 3);
   assert.equal(connectome.flies.brain.snapshot, 'brains/smallest-functional-brain.brain');
 });

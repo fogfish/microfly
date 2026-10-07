@@ -33,11 +33,12 @@ export function createFood(world, config) {
         stock.set(idx, clamp(value + regrowth * seconds, 0, full));
       }
     },
-    // The stimulus points for the odour sampler: cell centres in tiles, with their stock fraction.
+    // The stimulus points for the odour sampler: cell centres in tiles, with their reach and stock fraction.
     points() {
       return [...stock].map(([idx, value]) => ({
         x: (idx % world.width) + 0.5,
         y: Math.floor(idx / world.width) + 0.5,
+        reach: world.stimulusCells.get(idx)?.reach,
         fraction: value / full,
       }));
     },

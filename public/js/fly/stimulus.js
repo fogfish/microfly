@@ -5,11 +5,12 @@ export function falloff(d, radius) {
   return radius > 0 ? Math.max(0, 1 - d / radius) : 0;
 }
 
-// points: [{x, y}] cell centres in tiles. Sums the falloff of every point.
+// points: [{x, y, reach?}] cell centres in tiles. Sums the falloff of every point over its own reach (spec 009,
+// contracts/odour-reach.md §2); a point without reach uses the global radius.
 export function fruitIntensity(points, x, y, radius) {
   let sum = 0;
   for (const p of points) {
-    sum += falloff(Math.hypot(p.x - x, p.y - y), radius);
+    sum += falloff(Math.hypot(p.x - x, p.y - y), p.reach ?? radius);
   }
   return sum;
 }
@@ -48,7 +49,7 @@ export function senseBilateral(points, fly, stimulus) {
   const sample = (at) => {
     let sum = 0;
     for (const p of points) {
-      sum += falloff(Math.hypot(p.x - at.x, p.y - at.y), stimulus.radius) * (p.fraction ?? 1);
+      sum += falloff(Math.hypot(p.x - at.x, p.y - at.y), p.reach ?? stimulus.radius) * (p.fraction ?? 1);
     }
     return sensoryValue(sum, stimulus.gain, stimulus.max, stimulus.resting);
   };

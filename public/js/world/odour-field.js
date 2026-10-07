@@ -6,7 +6,8 @@
 
 import { falloff } from '../fly/stimulus.js';
 
-// points: [{x, y}] in cells. stimulus: { radius, gain, max } from flies.stimulus.
+// points: [{x, y, reach?}] in cells; reach is each source's own falloff distance (spec 009, contracts/odour-reach.md §4),
+// and a point without reach uses stimulus.radius. stimulus: { radius, gain, max } from flies.stimulus.
 // Returns { width, height, samplesPerCell, values } where values[k] is the intensity in [0, 1].
 export function odourField({ points, stimulus, cols, rows, samplesPerCell }) {
   const width = cols * samplesPerCell;
@@ -20,14 +21,15 @@ export function odourField({ points, stimulus, cols, rows, samplesPerCell }) {
   // Sample (i, j) sits at ((i + 0.5) / n, (j + 0.5) / n) in cells. Each point visits only its bounding box.
   const n = samplesPerCell;
   for (const p of points) {
-    const i0 = Math.max(0, Math.floor((p.x - radius) * n));
-    const i1 = Math.min(width - 1, Math.ceil((p.x + radius) * n));
-    const j0 = Math.max(0, Math.floor((p.y - radius) * n));
-    const j1 = Math.min(height - 1, Math.ceil((p.y + radius) * n));
+    const r = p.reach ?? radius;
+    const i0 = Math.max(0, Math.floor((p.x - r) * n));
+    const i1 = Math.min(width - 1, Math.ceil((p.x + r) * n));
+    const j0 = Math.max(0, Math.floor((p.y - r) * n));
+    const j1 = Math.min(height - 1, Math.ceil((p.y + r) * n));
     for (let j = j0; j <= j1; j++) {
       const dy = p.y - (j + 0.5) / n;
       for (let i = i0; i <= i1; i++) {
-        values[j * width + i] += falloff(Math.hypot(p.x - (i + 0.5) / n, dy), radius);
+        values[j * width + i] += falloff(Math.hypot(p.x - (i + 0.5) / n, dy), r);
       }
     }
   }

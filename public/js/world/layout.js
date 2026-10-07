@@ -12,16 +12,22 @@ export const CELL_PX = 32;
 // Scatter keeps out of the shore band, which has its own decor (shore.js, FR-030).
 export const SHORE_CLEARANCE_PX = 12;
 
-// Edibles are flowers only (BUG-001: honey removed). The sprite is picked per spot by position.
-export const EDIBLE_SPRITES = {
-  flower: ['trees-plant-001', 'trees-plant-002', 'trees-plant-003'],
+// Food: one or more units per size class, every class present (spec 009 FR-001, BUG-001). Each edible names its
+// sprite in the world file, so the art is data; this table is only the check that a sprite belongs to its kind
+// (validate.js, FR-019).
+export const FOOD_SPRITE_IDS = {
+  small: 'trees-plant-005',   // red_flower_plant
+  medium: 'jungle-plant-010',
+  large: 'jungle-plant-015',
 };
+// Sprites removed from every world (FR-009). No scatter or shore rule may place them.
+export const REMOVED_SPRITE_IDS = ['jungle-plant-016', 'jungle-plant-017', 'jungle-bush-018'];
 // Dangers are the spider stand-in and the lantern (BUG-003: campfire logs are not a danger).
 export const DANGER_SPRITES = {
   spider: 'jungle-prop-005',
   lantern: 'jungle-prop-006',
 };
-export const EDIBLE_KINDS = Object.keys(EDIBLE_SPRITES);
+export const EDIBLE_KINDS = Object.keys(FOOD_SPRITE_IDS);
 export const DANGER_KINDS = Object.keys(DANGER_SPRITES);
 
 function pointInPolygon(points, x, y) {
@@ -128,11 +134,9 @@ export function buildScene(config, catalog) {
     }
   }
 
-  (config.edibles ?? []).forEach((e) => {
-    const options = EDIBLE_SPRITES[e.kind];
-    const sprite = options[Math.floor(e.x * 7 + e.y * 13) % options.length];
-    objects.push({ sprite, x: e.x, y: e.y, solid: false, kind: e.kind });
-  });
+  for (const e of config.edibles ?? []) {
+    objects.push({ sprite: idOf(e.sprite), x: e.x, y: e.y, solid: false, kind: e.kind });
+  }
 
   for (const d of config.dangers ?? []) {
     objects.push({ sprite: DANGER_SPRITES[d.kind], x: d.x, y: d.y, solid: false, kind: d.kind });
@@ -142,7 +146,9 @@ export function buildScene(config, catalog) {
 }
 
 // The logic grid: water and solid objects block; edible and danger kinds per cell.
-// Returns { cols, rows, cellPx, water, blocked, edible, danger, objects }.
+// edibleSize holds, per cell, the food unit's sprite size in tiles: max(w, h) / CELL_PX (spec 009 research R1). Zero
+// where there is no edible. The odour reach of a unit is flies.stimulus.radius × this size (contracts/odour-reach §1).
+// Returns { cols, rows, cellPx, water, blocked, edible, edibleSize, danger, objects }.
 export function buildLogic(config, catalog) {
   const scene = buildScene(config, catalog);
   const { cols, rows, water, objects } = scene;
@@ -154,10 +160,16 @@ export function buildLogic(config, catalog) {
   }
 
   const edible = new Array(count).fill(null);
-  for (const e of config.edibles ?? []) edible[cellIndex(e.x, e.y, cols)] = e.kind;
+  const edibleSize = new Float32Array(count);
+  for (const e of config.edibles ?? []) {
+    const idx = cellIndex(e.x, e.y, cols);
+    edible[idx] = e.kind;
+    const { w, h } = catalog.lookup(e.sprite).sprite;
+    edibleSize[idx] = Math.max(w, h) / CELL_PX;
+  }
 
   const danger = new Array(count).fill(null);
   for (const d of config.dangers ?? []) danger[cellIndex(d.x, d.y, cols)] = d.kind;
 
-  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, danger, objects };
+  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, danger, objects };
 }

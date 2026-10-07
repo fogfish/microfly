@@ -11,16 +11,20 @@ const GOLDEN = 0x9e3779b1;
 const SPAWN_SALT = 0x51ed270b;
 
 // logic comes from buildLogic (world/layout.js). config must be validated.
-// Stimulus cells are the edible cells whose kind is named in flies.stimulus.objects.
+// Stimulus cells are the edible cells whose kind is named in flies.stimulus.objects. Each carries its odour reach:
+// reach = flies.stimulus.radius × the unit's sprite size in tiles (spec 009, contracts/odour-reach.md §1, §3).
 export function buildWorld(config, logic) {
   const { cols: width, rows: height } = logic;
-  const wanted = new Set(resolveFlies(config).stimulus.objects);
+  const stimulus = resolveFlies(config).stimulus;
+  const wanted = new Set(stimulus.objects);
 
   const blocked = logic.blocked;
   const stimulusCells = new Map();
   for (let idx = 0; idx < logic.edible.length; idx++) {
     const kind = logic.edible[idx];
-    if (kind !== null && wanted.has(kind)) stimulusCells.set(idx, kind);
+    if (kind !== null && wanted.has(kind)) {
+      stimulusCells.set(idx, { kind, reach: stimulus.radius * logic.edibleSize[idx] });
+    }
   }
 
   const walkable = (cx, cy) => blocked[cy * width + cx] === 0;
@@ -29,11 +33,12 @@ export function buildWorld(config, logic) {
   return { width, height, blocked, stimulusCells, walkable, isStimulusCell };
 }
 
-// The odour sources: [{x, y}] cell centres of the stimulus cells, in tiles.
+// The odour sources: [{x, y, reach}] cell centres of the stimulus cells, in tiles, with the reach in cells.
 export function stimulusPoints(world) {
-  return [...world.stimulusCells.keys()].map((idx) => ({
+  return [...world.stimulusCells].map(([idx, { reach }]) => ({
     x: (idx % world.width) + 0.5,
     y: Math.floor(idx / world.width) + 0.5,
+    reach,
   }));
 }
 
@@ -54,10 +59,14 @@ export function spawnFlies(config, world, mode = resolveFlies(config).mode) {
     if (cell === null) throw new Error(`no walkable cell for fly ${i}`);
 
     const heading = prng.next() * 2 * Math.PI;
+    const sex = f.sex?.[i];
+    const sprite = sex !== undefined
+      ? (mode === 'baseline' ? `fly-${sex}-baseline` : `fly-${sex}`)
+      : (mode === 'baseline' ? f.baselineSprite : f.sprite);
     out.push({
       id: i,
       mode,
-      sprite: mode === 'baseline' ? f.baselineSprite : f.sprite,
+      sprite,
       brainSeed: (f.seed + (i + 1) * GOLDEN) >>> 0,
       body: createBody({ x: cell.cx + 0.5, y: cell.cy + 0.5, heading }),
       motor: { left: 0, right: 0 },
