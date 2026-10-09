@@ -60,6 +60,17 @@ class ForagerDeterminismTest(unittest.TestCase):
             self.assertTrue(np.array_equal(one[name], two[name]), name)
         self.assertEqual(one["neurons"], two["neurons"])
 
+    def test_two_writes_with_a_declared_pathway_bias_differ_only_in_created_at(self):
+        data = load()
+        data["config"]["pathwayBias"] = [{"id": "taste-forward-brake", "pathway": "taste", "intoOutput": "forward"}]
+        with tempfile.TemporaryDirectory() as directory:
+            first = os.path.join(directory, "a.brain")
+            second = os.path.join(directory, "b.brain")
+            write_once(data, first, "2026-01-01T00:00:00Z")
+            write_once(data, second, "2026-06-06T06:06:06Z")
+            with open(first, "rb") as a, open(second, "rb") as b:
+                self.assertEqual(without_created_at(a.read()), without_created_at(b.read()))
+
     def test_output_with_unmapped_transmitter_is_admitted_with_sign_zero_and_no_outgoing_edge(self):
         data = load()
         config = data["config"]

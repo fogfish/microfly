@@ -38,14 +38,30 @@ Any other pair stops with `E-CONFIG` naming the key, and writes no file.
 | `expectedNeuronCount` | integer or null | Exact count, or null. |
 | `neuronCountRange` | `[min, max]` | Default `[2000, 6000]`. Out of range is `E-NODE-RANGE`. |
 | `outputAdmission` | `"low-confidence-sign-zero"` | Required value (ADR 003 D2). |
+| `pathwayBias` | list of objects | Required (ADR 003 D3′). Each object: `id` (string, `[a-z][a-z0-9-]*`, unique within the list), `pathway` (must be a key of `pathways`), `intoOutput` (must be a key of `outputs`). Default `[]`, meaning no rule declared. |
 
 **C1**: each input and output id in `capabilities` is a key in `inputs` or `outputs`, with the same drive; each key in
 `inputs` or `outputs` appears in `capabilities`. A mismatch is `E-CONFIG`.
 
+**D3′** (ADR 003 D3, amended): for each declared `pathwayBias` rule, "inhibitory in-edge into `intoOutput`" means an
+edge whose presynaptic body's dataset-resolved `sign` (the same field `transmitterSign`/`minConfidence` already
+resolve for every admitted body) is `-1`, and whose postsynaptic body is a member of the `intoOutput` pool. The
+rule's backward flow is seeded only from that set and combined with the pathway's plain backward flow by elementwise
+maximum — so a rule can only raise, never lower, a candidate's ranking score (a candidate with zero forward
+reachability from `pathway`'s own seeds stays unadmissible regardless). `pathwayBias` must not change `budget`,
+`weightRule`, `transmitterSign`, or `outputAdmission` behaviour, and must not change the number of interneurons
+admitted per pathway budget — only which bodies occupy the ranked slots. An empty `pathwayBias` list must produce
+selection output byte-identical (apart from `provenance.createdAt`) to this feature's own pre-existence behaviour.
+`pathway` or `intoOutput` naming an id absent from the config's own `pathways`/`outputs` keys is `E-CONFIG`, naming
+the offending id — the same failure code `pathways.{pathway}` and `modulators[*].targets` already use for this class
+of error, not a new code.
+
 ## Output (per run)
 
 The extractor prints a report with, per pool and per output: count, side balance (odour), edges into each output, weight
-min and max, and the self-check result. Written as `extract/configs/`'s report style (ADR 002).
+min and max, and the self-check result. Written as `extract/configs/`'s report style (ADR 002). It gains one line per
+declared `pathwayBias` rule: how many admitted interneurons it boosted, and how many of those would not have been
+admitted by plain reachability alone.
 
 ## Failure codes
 
@@ -66,6 +82,8 @@ ADR 002's `E-SIGN`, `E-OVERFLOW` and `E-NO-PATH` apply where they make sense for
 ## Shipped configs
 
 - `extract/configs/forager-brain.json`: the ADR 003 D6 config for MaleCNS v1.0. Its output is
-  `public/brains/forager-brain.brain`.
+  `public/brains/forager-brain.brain`. Declares one `pathwayBias` rule: `{"id": "taste-forward-brake", "pathway":
+  "taste", "intoOutput": "forward"}` — the taste-to-forward inhibitory brake (ADR 003 D3′; the "slow down and eat"
+  circuit flagged as open future work in `010-output-pool-synaptic-scale`'s spec and ADR 004's open questions).
 - The existing `smallest-functional-brain.json` and `antennal-lobe-brain.json` keep producing version 3 files
-  byte-identically (spec SC-002).
+  byte-identically (spec SC-002). They are format 2, so `pathwayBias` does not apply to them.

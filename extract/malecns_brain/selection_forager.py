@@ -10,6 +10,11 @@ Choices the ADR leaves open, recorded here and in the run report:
   - A body needs a positive flow score to be an interneuron candidate. A body with no path has no reason to be chosen.
   - The sensory exclusion (D3 step 4) is applied to the top-budget union after ranking, so the budget counts those
     bodies and the exclusion removes them (the Annex A counts were measured this way).
+
+ADR 003 D3′ (contracts/extract-config-forager.md P1–P5): each declared `pathwayBias` rule computes a second
+backward flow seeded only from the admitted bodies with dataset-resolved sign -1 that have an edge into the rule's
+output pool, and combines it with the plain backward flow by elementwise maximum, per pathway — raising a
+candidate's score, never lowering it, and never admitting a candidate with zero forward reachability.
 """
 
 import numpy as np
@@ -179,15 +184,68 @@ def select_forager(config, bodies, edges):
     f_odour = _flow(pre_i, post_i, syn, n, odour_seeds, steps)
     f_taste = _flow(pre_i, post_i, syn, n, taste_seeds, steps)
     b_flow = _flow(post_i, pre_i, syn, n, output_seeds, steps)
-    score_odour = np.sqrt(f_odour * b_flow)
-    score_taste = np.sqrt(f_taste * b_flow)
+
+    # D3′: a declared pathwayBias rule's own backward flow, seeded only at the admitted bodies with sign -1 that
+    # have an edge into the rule's output pool (P2) — the same restricted pre_i/post_i as b_flow, since the
+    # output-outgoing-edge drop above never removes an edge *into* an output (P2/P3).
+    sign_of_dense = np.array([bodies[int(b)]["sign"] for b in ids], dtype=np.int64)
+    rule_flows = {}
+    pathway_rule_ids = {}
+    for rule in config["pathwayBias"]:
+        into = dense(outputs[rule["intoOutput"]])
+        seeds = np.unique(pre_i[np.isin(post_i, into) & (sign_of_dense[pre_i] == -1)])
+        rule_flows[rule["id"]] = _flow(post_i, pre_i, syn, n, seeds, steps)
+        pathway_rule_ids.setdefault(rule["pathway"], []).append(rule["id"])
+
+    pathway_backward = {}
+    for pathway in ("odour", "taste"):
+        effective = b_flow
+        for rule_id in pathway_rule_ids.get(pathway, []):
+            effective = np.maximum(effective, rule_flows[rule_id])
+        pathway_backward[pathway] = effective
+
+    score_odour = np.sqrt(f_odour * pathway_backward["odour"])
+    score_taste = np.sqrt(f_taste * pathway_backward["taste"])
 
     # D3 steps 3–4: the budgets, the union, and the exclusion of sensory bodies (interneurons only).
     budget = config["budget"]
     odour_scores = {int(ids[i]): float(score_odour[i]) for i in range(n) if int(ids[i]) not in pool_bodies}
     taste_scores = {int(ids[i]): float(score_taste[i]) for i in range(n) if int(ids[i]) not in pool_bodies}
-    chosen = set(top_by_score(odour_scores, budget["odour"])) | set(top_by_score(taste_scores, budget["taste"]))
+    odour_admitted = set(top_by_score(odour_scores, budget["odour"]))
+    taste_admitted = set(top_by_score(taste_scores, budget["taste"]))
+    chosen = odour_admitted | taste_admitted
     interneurons = sorted(b for b in chosen if not _excluded(bodies[b], config))
+
+    # D3′ report data (data-model.md's per-rule report addition): for each declared rule, how many admitted
+    # interneurons it boosted (its own flow, not the plain b_flow, is why their effective backward flow is what it
+    # is), and of those, how many fall outside the top-budget set plain b_flow alone would have produced.
+    pathway_admitted = {"odour": odour_admitted, "taste": taste_admitted}
+    plain_score_odour = np.sqrt(f_odour * b_flow)
+    plain_score_taste = np.sqrt(f_taste * b_flow)
+    plain_scores = {"odour": plain_score_odour, "taste": plain_score_taste}
+    plain_admitted = {
+        pathway: set(top_by_score(
+            {int(ids[i]): float(plain_scores[pathway][i]) for i in range(n) if int(ids[i]) not in pool_bodies},
+            budget[pathway],
+        ))
+        for pathway in ("odour", "taste")
+    }
+    interneuron_set = set(interneurons)
+    pathway_bias_report = []
+    for rule in config["pathwayBias"]:
+        pathway = rule["pathway"]
+        rflow = rule_flows[rule["id"]]
+        boosted = [
+            int(ids[i]) for i in range(n)
+            if int(ids[i]) in pathway_admitted[pathway] and int(ids[i]) in interneuron_set
+            and rflow[i] > b_flow[i]
+        ]
+        admitted_only_by_rule = [b for b in boosted if b not in plain_admitted[pathway]]
+        pathway_bias_report.append({
+            "id": rule["id"],
+            "boosted": len(boosted),
+            "admittedOnlyByRule": len(admitted_only_by_rule),
+        })
 
     # Neuron order (W5): input pools in channel order, output pools in declaration order, interneurons by bodyId.
     order = []
@@ -272,4 +330,9 @@ def select_forager(config, bodies, edges):
         "synapses": raw.astype(np.uint16),
         "edgeCount": int(src.size),
         "pools": pools,
+        "pathwayBias": pathway_bias_report,
+        "pathwayBiasFlow": {
+            rule_id: {int(ids[i]): float(flow[i]) for i in range(n)}
+            for rule_id, flow in rule_flows.items()
+        },
     }

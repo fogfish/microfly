@@ -125,6 +125,13 @@
   "excludeInterneuronSuperclassSuffix": "_sensory",
   "weightRule": "postFractionAbsolute",
   "outputAdmission": "low-confidence-sign-zero",
+  "pathwayBias": [
+    {
+      "id": "taste-forward-brake",
+      "pathway": "taste",
+      "intoOutput": "forward"
+    }
+  ],
   "modulators": [
     {
       "id": "hunger",

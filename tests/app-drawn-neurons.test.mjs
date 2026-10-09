@@ -13,13 +13,13 @@ function loadForager() {
   return parseSnapshot(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
-test('the app draws exactly the neurons with a soma position in forager-brain.brain (2,444 of 3,408)', () => {
+test('the app draws exactly the neurons with a soma position in forager-brain.brain (2,361 of 3,320)', () => {
   const snapshot = loadForager();
   const neurons = snapshot.manifest.neurons.map((n) => ({ soma: n.soma ?? null }));
   const drawn = drawnNeurons(neurons);
-  assert.equal(snapshot.neuronCount, 3408);
-  assert.equal(drawn.length, 2444);
-  assert.equal(neurons.length - drawn.length, 964);
+  assert.equal(snapshot.neuronCount, 3320);
+  assert.equal(drawn.length, 2361);
+  assert.equal(neurons.length - drawn.length, 959);
   for (const i of drawn) assert.ok(neurons[i].soma !== null, `neuron ${i} is drawn without a soma`);
 });
 

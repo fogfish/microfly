@@ -11,6 +11,12 @@ check the rules by hand:
   inter  501, 502, 503, 504 (traced, mapped transmitters), 506 (no path to any output), 505 (visual sensory)
   other  507 (status Orphan, so not admitted; its edge is ignored)
 
+  pathwayBias fixture (012-pathway-aware-selection, ADR 003 D3'): 301 (taste-left) -> 509 -> 508 -> 405 (forward),
+  508 also fans most of its output into 506 (the existing no-path body) so plain backward flow -- seeded at 405
+  itself -- dilutes to a small fraction at 508/509, while a pathwayBias rule seeded directly at 508 (sign -1, an
+  edge into forward) does not. 510 -> 508 has no inflow of its own (zero forward flow from either pathway), so it
+  stays unadmitted under the rule however strong its rule-seeded backward flow is (FR-004).
+
 Run from extract/:  python tests/make_forager_fixture.py
 """
 
@@ -61,6 +67,7 @@ def config():
         "excludeInterneuronSuperclassSuffix": "_sensory",
         "weightRule": "postFraction",
         "outputAdmission": "low-confidence-sign-zero",
+        "pathwayBias": [],
         "modulators": [
             {"id": "hunger", "label": "Hunger", "range": [0, 1], "gain": [0.5, 1.5],
              "targets": ["odour-left", "odour-right"]},
@@ -116,6 +123,9 @@ BODIES = [
     (505, "visual", "visual_sensory", None, "Traced", "VIS_1", None, None, None, "acetylcholine", 0.9),
     (506, "intrinsic", "central", None, "Traced", "INT_E", None, None, None, "acetylcholine", 0.9),
     (507, "intrinsic", "central", None, "Orphan", "INT_F", None, None, None, "acetylcholine", 0.9),
+    (508, "intrinsic", "central", None, "Traced", "INT_BRAKE", None, None, None, "gaba", 0.9),
+    (509, "intrinsic", "central", None, "Traced", "INT_UP", None, None, None, "acetylcholine", 0.9),
+    (510, "intrinsic", "central", None, "Traced", "INT_ZERO", None, None, None, "acetylcholine", 0.9),
 ]
 
 # (pre, post, synapses)
@@ -126,6 +136,9 @@ EDGES = [
     (501, 401, 4), (502, 403, 3), (503, 402, 4), (504, 404, 3), (501, 405, 2), (503, 406, 2), (504, 407, 1),
     (401, 501, 1), (407, 504, 2),
     (101, 507, 2),
+    # pathwayBias fixture (ADR 003 D3'): 301 (taste-left) -> 509 -> 508 -> 405 (forward's own body), 508's output
+    # mostly dumped into the no-path body 506 to dilute plain backward flow; 510 -> 508 has no inflow of its own.
+    (301, 509, 4), (509, 508, 1), (508, 405, 1), (508, 506, 19), (510, 508, 1),
 ]
 
 
@@ -141,7 +154,9 @@ def build():
         transmitters.append({"body": body, "predicted_nt": nt, "predicted_nt_confidence": confidence})
     return {
         "synthetic": True,
-        "note": "Hand-built forager fixture (Constitution III). Not connectome data. See make_forager_fixture.py.",
+        "note": "Hand-built forager fixture (Constitution III). Not connectome data. See make_forager_fixture.py. "
+                "Extended for 012-pathway-aware-selection: bodies 508-510 and their edges exercise the "
+                "pathwayBias rule (ADR 003 D3').",
         "config": config(),
         "annotations": annotations,
         "transmitters": transmitters,

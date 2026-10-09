@@ -133,11 +133,12 @@ FORAGER_KEYS = {
     "formatVersion", "kind", "datasetRelease", "edgeVariant", "expect", "transmitterSign", "minConfidence",
     "synapseCap", "inputs", "sideMatch", "outputs", "pathways", "flowSteps", "budget",
     "excludeInterneuronClasses", "excludeInterneuronSuperclassSuffix", "weightRule", "outputAdmission",
-    "modulators", "capabilities", "expectedNeuronCount", "neuronCountRange",
+    "modulators", "pathwayBias", "capabilities", "expectedNeuronCount", "neuronCountRange",
 }
 INPUT_KEYS = {"class", "rootSide", "types", "subclasses", "typePrefixes"}
 OUTPUT_KEYS = {"types", "somaSide", "drive"}
 MODULATOR_ID = re.compile(r"[a-z][a-z0-9-]*")
+PATHWAY_BIAS_KEYS = {"id", "pathway", "intoOutput"}
 
 
 def _is_str_list(value, allow_empty=False):
@@ -179,6 +180,32 @@ def _check_modulators(modulators, inputs, path="modulators"):
         if has_source and mod["source"] not in earlier:
             _modulator(f"modulator {mid} source {mod['source']} is not an earlier modulator")
         earlier.add(mid)
+
+
+def _check_pathway_bias(rules, pathways, outputs):
+    """P1-P5 of contracts/extract-config-forager.md (ADR 003 D3'), checked at config validation (E-CONFIG)."""
+    if not isinstance(rules, list):
+        _fail("pathwayBias must be a list")
+    seen = set()
+    for index, rule in enumerate(rules):
+        if not isinstance(rule, dict):
+            _fail(f"pathwayBias[{index}] must be an object")
+        unknown = sorted(set(rule) - PATHWAY_BIAS_KEYS)
+        if unknown:
+            _fail(f"unknown key in pathwayBias[{index}]: {unknown[0]}")
+        missing = sorted(PATHWAY_BIAS_KEYS - set(rule))
+        if missing:
+            _fail(f"missing key in pathwayBias[{index}]: {missing[0]}")
+        rid = rule["id"]
+        if not (isinstance(rid, str) and MODULATOR_ID.fullmatch(rid)):
+            _fail(f"pathwayBias[{index}] has a malformed id")
+        if rid in seen:
+            _fail(f"pathwayBias id {rid} is duplicated")
+        seen.add(rid)
+        if rule["pathway"] not in pathways:
+            _fail(f"pathwayBias {rid} names an undeclared pathway {rule['pathway']}")
+        if rule["intoOutput"] not in outputs:
+            _fail(f"pathwayBias {rid} names an undeclared output {rule['intoOutput']}")
 
 
 def _check_forager_capabilities(decl, inputs, outputs):
@@ -326,6 +353,7 @@ def validate_forager(config):
         _fail('outputAdmission must be "low-confidence-sign-zero"')
 
     _check_modulators(config["modulators"], inputs)
+    _check_pathway_bias(config["pathwayBias"], pathways, outputs)
 
     expected = config["expectedNeuronCount"]
     if expected is not None and (not _is_int(expected) or expected < 3):

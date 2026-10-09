@@ -4,6 +4,13 @@
 
 Apply the dynamical-regime improvements: per-role noise (L7′ `noiseBulkScale`), inhibitory gain (L8 `inhibitoryScale`), regime gates as a calibration stage before world runs, `tauSyn` and `motorSmoothing` on the calibration grid. Keep the best candidate even if it never brakes; the next brain iteration adds brake neurons and changes the path selection.
 
+--
+
+/speckit-specify **Make interneuron selection pathway-aware, not just reachability-aware.** Add a scoring term to the extractor (a versioned change to `extract/configs/forager-brain.json`'s schema + the selection code it drives) that boosts flow score for candidates lying on a path from one declared pathway's inputs (taste/feed) into another output pool's *inhibitory* in-edges (forward). Weight and sign still come entirely from the dataset — this only changes which real, traced neurons get admitted under the existing budget. Needs a contract update (`contracts/extract-config-forager.md`), extractor tests, and a fresh Gate A/B/C.
+
+/speckit-plan 
+
+
 # 2026-10-08
 
 /speckit-specify the brain requires dynamical regime. All four MUST be implemented in one step.  Changing only one of these will look like a regression.

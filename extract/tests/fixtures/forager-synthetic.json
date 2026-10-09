@@ -275,6 +275,42 @@
       "subclass": null,
       "superclass": "central",
       "type": "INT_F"
+    },
+    {
+      "bodyId": 508,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_BRAKE"
+    },
+    {
+      "bodyId": 509,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_UP"
+    },
+    {
+      "bodyId": 510,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_ZERO"
     }
   ],
   "config": {
@@ -509,6 +545,7 @@
         ]
       }
     },
+    "pathwayBias": [],
     "pathways": {
       "odour": [
         "odour-left",
@@ -556,7 +593,12 @@
       407,
       501,
       504,
-      507
+      507,
+      509,
+      508,
+      405,
+      506,
+      508
     ],
     "pre": [
       101,
@@ -582,7 +624,12 @@
       504,
       401,
       407,
-      101
+      101,
+      301,
+      509,
+      508,
+      508,
+      510
     ],
     "synapses": [
       3,
@@ -608,10 +655,15 @@
       1,
       1,
       2,
-      2
+      2,
+      4,
+      1,
+      1,
+      19,
+      1
     ]
   },
-  "note": "Hand-built forager fixture (Constitution III). Not connectome data. See make_forager_fixture.py.",
+  "note": "Hand-built forager fixture (Constitution III). Not connectome data. See make_forager_fixture.py. Extended for 012-pathway-aware-selection: bodies 508-510 and their edges exercise the pathwayBias rule (ADR 003 D3').",
   "synthetic": true,
   "transmitters": [
     {
@@ -726,6 +778,21 @@
     },
     {
       "body": 507,
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9
+    },
+    {
+      "body": 508,
+      "predicted_nt": "gaba",
+      "predicted_nt_confidence": 0.9
+    },
+    {
+      "body": 509,
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9
+    },
+    {
+      "body": 510,
       "predicted_nt": "acetylcholine",
       "predicted_nt_confidence": 0.9
     }

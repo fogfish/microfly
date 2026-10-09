@@ -205,5 +205,81 @@ class WeightRuleAbsoluteTest(unittest.TestCase):
             self.assertTrue(np.all(inflow <= 1.0 + 1e-6))
 
 
+class PathwayBiasTest(unittest.TestCase):
+    """ADR 003 D3' (contracts/extract-config-forager.md P1-P5), on the fixture's own pathwayBias bodies:
+    508 (sign -1, edge into forward's body 405), 509 (upstream of 508, reachable from taste), 510 (upstream of 508,
+    no forward reachability from either pathway). budget.taste is overridden to 2 (a small, deliberate budget; the
+    fixture's own shipped config.budget is left untouched, so SelectionTest's assertions are unaffected)."""
+
+    RULE = {"id": "taste-forward-brake", "pathway": "taste", "intoOutput": "forward"}
+
+    def setUp(self):
+        self.data = load()
+
+    def small_budget_config(self, pathway_bias):
+        config = copy.deepcopy(self.data["config"])
+        config["budget"] = {"odour": 3, "taste": 2}
+        config["pathwayBias"] = pathway_bias
+        return config
+
+    def test_empty_pathway_bias_leaves_every_existing_assertion_unchanged(self):
+        config = copy.deepcopy(self.data["config"])
+        config["pathwayBias"] = []
+        brain = run(self.data, config)
+        baseline = run(self.data)
+        self.assertEqual(brain["neurons"], baseline["neurons"])
+        for name in ("offsets", "targets", "weights", "synapses"):
+            self.assertEqual(brain[name].tobytes(), baseline[name].tobytes())
+
+    def test_new_bodies_are_not_admitted_under_a_small_budget_without_the_rule(self):
+        brain = run(self.data, self.small_budget_config([]))
+        interneurons = {n["bodyId"] for n in brain["neurons"] if n["role"] == "interneuron"}
+        self.assertFalse(interneurons & {508, 509, 510})
+
+    def test_upstream_body_is_admitted_once_the_rule_is_declared(self):
+        without_rule = run(self.data, self.small_budget_config([]))
+        with_rule = run(self.data, self.small_budget_config([self.RULE]))
+        self.assertNotIn(509, {n["bodyId"] for n in without_rule["neurons"] if n["role"] == "interneuron"})
+        interneurons_with_rule = {n["bodyId"] for n in with_rule["neurons"] if n["role"] == "interneuron"}
+        self.assertIn(509, interneurons_with_rule)
+
+    def test_taste_budget_admission_count_is_unchanged_by_the_rule(self):
+        without_rule = run(self.data, self.small_budget_config([]))
+        with_rule = run(self.data, self.small_budget_config([self.RULE]))
+        pools_without = without_rule["pools"]["taste-left"] + without_rule["pools"]["taste-right"]
+        pools_with = with_rule["pools"]["taste-left"] + with_rule["pools"]["taste-right"]
+        self.assertEqual(len(pools_without), len(pools_with))
+        report = with_rule["pathwayBias"][0]
+        self.assertEqual(report["id"], self.RULE["id"])
+        self.assertEqual(report["boosted"], 1)
+        self.assertEqual(report["admittedOnlyByRule"], 1)
+
+    def test_an_output_pool_with_no_inhibitory_in_edge_boosts_nothing_and_raises_no_error(self):
+        rule = {"id": "feed-rule", "pathway": "taste", "intoOutput": "feed"}
+        brain = run(self.data, self.small_budget_config([rule]))
+        self.assertEqual(brain["pathwayBias"], [{"id": "feed-rule", "boosted": 0, "admittedOnlyByRule": 0}])
+        without_rule = run(self.data, self.small_budget_config([]))
+        self.assertEqual(
+            {n["bodyId"] for n in brain["neurons"] if n["role"] == "interneuron"},
+            {n["bodyId"] for n in without_rule["neurons"] if n["role"] == "interneuron"},
+        )
+
+    def test_zero_forward_flow_body_stays_unadmitted_despite_strong_rule_seeded_backward_flow(self):
+        brain = run(self.data, self.small_budget_config([self.RULE]))
+        interneurons = {n["bodyId"] for n in brain["neurons"] if n["role"] == "interneuron"}
+        self.assertNotIn(510, interneurons)
+        self.assertGreater(brain["pathwayBiasFlow"][self.RULE["id"]][510], 0.0)
+
+    def test_weights_and_signs_still_trace_to_the_dataset_with_the_rule_declared(self):
+        brain = run(self.data, self.small_budget_config([self.RULE]))
+        inflow = np.zeros(len(brain["neurons"]))
+        np.add.at(inflow, brain["targets"].astype(np.int64), np.abs(brain["weights"]).astype(np.float64))
+        self.assertTrue(np.all(inflow <= 1.0 + 1e-6))
+        offsets, weights, neurons = brain["offsets"], brain["weights"], brain["neurons"]
+        for pre in range(len(neurons)):
+            for k in range(offsets[pre], offsets[pre + 1]):
+                self.assertEqual(math.copysign(1, float(weights[k])), neurons[pre]["sign"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,151 @@
+{
+  "world": {
+    "file": "world/world-forager.json",
+    "sha256": "ca86e02674571a413858232d6db74d31eec26e9eea562a1c41e492a756261e52"
+  },
+  "snapshot": {
+    "path": "brains/forager-brain.brain",
+    "configHash": "sha256:d68826f2b3e290e432f7ab590978c482bc5e2663d6954977d76e468dffbec7d9",
+    "version": 4
+  },
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "ticks": 3000,
+  "arms": [
+    "v1",
+    "random-matched",
+    "mock",
+    "baseline"
+  ],
+  "lif": {
+    "synapticScale": 50,
+    "tauAdapt": 20,
+    "adaptStep": 0.05,
+    "inhibitoryScale": 1,
+    "noiseAmplitude": 0.08,
+    "noiseBulkScale": 0,
+    "outputScale": {
+      "feed": 8,
+      "forward": 32,
+      "backward": 512,
+      "turn-left": 128,
+      "turn-right": 128
+    }
+  },
+  "metrics": {
+    "v1": {
+      "find": {
+        "rate": 0.005555555555555556,
+        "found": 1,
+        "count": 180
+      },
+      "findCI": [
+        0,
+        0.016666666666666666
+      ],
+      "approach": {
+        "median": null,
+        "included": 0,
+        "excluded": 118
+      },
+      "eatHungry": null,
+      "eatSated": null,
+      "walked": 0,
+      "hungerDependence": 0,
+      "contacts": 0
+    },
+    "random-matched": {
+      "find": {
+        "rate": 0.1111111111111111,
+        "found": 20,
+        "count": 180
+      },
+      "findCI": [
+        0.06666666666666667,
+        0.16111111111111112
+      ],
+      "approach": {
+        "median": 927,
+        "included": 12,
+        "excluded": 106
+      },
+      "eatHungry": 1,
+      "eatSated": null,
+      "walked": 0.9487179487179487,
+      "hungerDependence": 0.022222222222222227,
+      "contacts": 35
+    },
+    "mock": {
+      "find": {
+        "rate": 0.022222222222222223,
+        "found": 4,
+        "count": 180
+      },
+      "findCI": [
+        0.005555555555555556,
+        0.044444444444444446
+      ],
+      "approach": {
+        "median": null,
+        "included": 0,
+        "excluded": 118
+      },
+      "eatHungry": null,
+      "eatSated": null,
+      "walked": 0,
+      "hungerDependence": null,
+      "contacts": 0
+    },
+    "baseline": {
+      "find": {
+        "rate": 0.23333333333333334,
+        "found": 42,
+        "count": 180
+      },
+      "findCI": [
+        0.16666666666666666,
+        0.29444444444444445
+      ],
+      "approach": {
+        "median": 928,
+        "included": 25,
+        "excluded": 93
+      },
+      "eatHungry": null,
+      "eatSated": null,
+      "walked": 0,
+      "hungerDependence": null,
+      "contacts": 0
+    }
+  }
+}

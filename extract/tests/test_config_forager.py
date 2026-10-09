@@ -56,6 +56,7 @@ def base():
         "excludeInterneuronSuperclassSuffix": "_sensory",
         "weightRule": "postFraction",
         "outputAdmission": "low-confidence-sign-zero",
+        "pathwayBias": [],
         "modulators": [
             {"id": "hunger", "label": "Hunger", "range": [0, 1], "gain": [0.5, 1.5],
              "targets": ["odour-left", "odour-right"]},
@@ -178,6 +179,45 @@ class ConfigForagerTest(unittest.TestCase):
     def test_shipped_small_config_still_dispatches_to_small(self):
         config = load_config(os.path.join(CONFIGS, "smallest-functional-brain.json"))
         self.assertEqual(format_of(config), "small")
+
+    def test_pathway_bias_empty_validates_as_a_no_op(self):
+        config = base()
+        config["pathwayBias"] = []
+        validate_forager(config)  # must not raise (contract P1)
+
+    def test_pathway_bias_rejects_an_undeclared_pathway(self):
+        config = base()
+        config["pathwayBias"] = [{"id": "x", "pathway": "smell", "intoOutput": "forward"}]
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("smell", caught.exception.message)
+
+    def test_pathway_bias_rejects_an_undeclared_output(self):
+        config = base()
+        config["pathwayBias"] = [{"id": "x", "pathway": "taste", "intoOutput": "nope"}]
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("nope", caught.exception.message)
+
+    def test_pathway_bias_rejects_a_malformed_id(self):
+        config = base()
+        config["pathwayBias"] = [{"id": "Taste-Brake", "pathway": "taste", "intoOutput": "forward"}]
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+
+    def test_pathway_bias_rejects_a_duplicate_id(self):
+        config = base()
+        config["pathwayBias"] = [
+            {"id": "taste-forward-brake", "pathway": "taste", "intoOutput": "forward"},
+            {"id": "taste-forward-brake", "pathway": "odour", "intoOutput": "backward"},
+        ]
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("duplicated", caught.exception.message)
 
 
 if __name__ == "__main__":

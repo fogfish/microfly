@@ -132,6 +132,10 @@ def report_forager(config, brain, output, size, self_check):
     lines.append(f"edges into outputs: " + ", ".join(
         f"{cid} {int(sum(incoming[pools[cid]]))}" for cid in config["outputs"]))
     lines.append(f"feed (MN9) edges {int(sum(incoming[feed]))} from {len(feed)} neuron(s)")
+    for rule_report in brain["pathwayBias"]:
+        lines.append(
+            f"pathwayBias {rule_report['id']:<20} boosted {rule_report['boosted']:>4}, "
+            f"admittedOnlyByRule {rule_report['admittedOnlyByRule']:>4}")
     weights = brain["weights"]
     synapses = brain["synapses"]
     lines += [
