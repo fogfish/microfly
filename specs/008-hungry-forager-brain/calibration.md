@@ -26,257 +26,73 @@
 | 50 | 5 | 0 | 0 | 7/30 | 23.3 % | 0 | 0 |
 | 50 | 5 | 20 | 0.05 | 9/30 | 30.0 % | 0 | 0 |
 
-## Choice
+## Interim choice: silent at rest (held-out PASS, then rejected)
 
-`synapticScale` 50, `tauSyn` 0, `tauAdapt` 20, `adaptStep` 0.05 (the only setting with eating).
+`synapticScale` 50, `inhibitoryScale` 1, `noiseAmplitude` 0, `tauSyn` 0, `tauAdapt` 20, `adaptStep` 0.05,
+`outputScale` {feed 8, forward 32, backward 512, turn-left 128, turn-right 128}, `motorSmoothing` 0.02,
+`stimulus.resting` 0.02, `stimulus.gain` 1. It tied for the best calibration find (43.3 %) with a passing hunger
+dependence and the most consistent regime (all four readout variants beat the random walk). `backward` 512 and
+`turn-*` 128 are where the A2 fit stopped short of its target (those pools are nearly silent at mid odour).
 
-**Reason.** The criterion was: the fly finds food and eats. Every setting finds food at some rate, but only one setting
-eats (348 bouts, 447 eating ticks across 30 flies). It has a 50 % find rate. The highest find rates (83–87 % at scale 20–30)
-never eat, so the fly walks through flowers without stopping. Choosing them would fail the Eat metric by construction.
+Held-out (`compare-baseline.mjs --seeds=held-out`, 30 seeds): v1 find **35.6 %** [28.9 %, 42.2 %], random-matched
+2.2 % [0.6 %, 4.4 %], random walk 23.3 % [16.7 %, 29.4 %], mock 2.2 %; hunger dependence +0.6 % (PASS); eat FAIL.
 
-## Not searched (recorded as out of scope for this pass)
+**Rejected** after `tests/activity-counts.test.mjs` failed on it: with noise off and a sub-threshold floor, the brain is
+exactly silent with no odour, so forward is 0 and a fly spawned out of odour range never moves, and the activity view
+is blank there (BUG-002's activity requirement). A silent brain is not a resting fly.
 
-- `thresholdJitter`, `stepsPerTick` (kept at 5), `consumeRate`, `regrowth`, `eatSpeed`, `antennaOffset`, the odour `gain`
-  and `resting`, and the modulator gains. They keep their starting values in `world/world-forager.json`.
-- The grid is coarse: four scales, two `tauSyn` values, two adaptation settings. Eating appears only at scale 50 with
-  adaptation, so a finer search around 40–70 might find a setting with more eating and a higher find rate.
+## Spontaneous-activity gates (runs 3–5)
 
-## Diagnosis that led to the grid
+Two gates were added to A1: activity at rest ≥ 0.002 (`silent`) and raw forward input at rest > 0 (`still`). The rest
+ceiling was raised from 0.05 to 0.1 (about 2 % of neurons per LIF step), because every spontaneously active point
+failed 0.05 while the odour-gain gate already keeps rest well under the odour response. Spontaneous activity comes
+from L7′: noise on the input pools only (`noiseBulkScale` 0).
 
-- Output drives were silent at the first placeholder scale (0.2). `postFraction` weights are about 1/in-degree, so a single
-  spike contributes about 0.01 × scale. Readouts fire only at much larger scales.
-- The runner did not scale output rates by the ceiling 1/(refractorySteps+1) (ADR 003 W4). That is fixed: with it, feed
-  can reach its 0.5 threshold.
-- The LIF core allocated an array on every step. That is removed, and G1 (bit-exact with defaults) still passes.
-
-# 2026-10-07 — BUG-002: per-channel `outputScale.feed` sweep (ADR 004's Recalibration protocol, steps 2–5)
-
-- **Date:** 2026-10-07
-- **Seeds:** `experiment.seeds` = 6, 7, 8, 9, 10 (calibration). Held-out seeds were **not used** — see Verdict below.
-- **Runs:** the main cohort of the v1 arm (6 flies per seed, 3,000 ticks), a one-off script adapted from
-  `scripts/calibrate-forager.mjs`, not committed (ad hoc, kept for reproducibility: see the per-run parameters below).
-- **Grid:** `outputScale.feed` ∈ {5, 10, 20, 30, 40}, holding `outputScale.forward` = `outputScale.backward` =
-  `outputScale['turn-left']` = `outputScale['turn-right']` = 5 (the value already live in `world-forager.json`
-  for navigation) and every other `brain.lif` value at the world file's own (`synapticScale` 50, `tauAdapt` 20,
-  `adaptStep` 0.05).
-
-## Result
-
-| outputScale.feed | flies found | find | eat bouts | eat ticks | far-forward | far-feed |
-|---|---|---|---|---|---|---|
-| 5 (shipped, shared) | 16/30 | 53.3 % | 0 | 0 | 0.6923 | 0.3748 |
-| 10 | 16/30 | 53.3 % | 0 | 0 | 0.6923 | 0.7710 |
-| 20 | 16/30 | 53.3 % | 0 | 0 | 0.6923 | 0.9742 |
-| 30 | 16/30 | 53.3 % | 0 | 0 | 0.6923 | 0.9855 |
-| 40 | 16/30 | 53.3 % | 0 | 0 | 0.6923 | 0.9862 |
-
-`far-forward`/`far-feed`: mean drive value sampled only on ticks where the fly is off every food source's
-declared reach (ADR 004 Annex A.2's own diagnostic). Zero eating bouts at every tested value — the per-channel
-mechanism itself works (`far-forward` stays exactly 0.6923 throughout, confirming `feed`'s scale no longer drags
-`forward` with it), but `feed`-crossing alone never produces eating.
-
-**Near-food diagnostic** (same seeds/ticks, sampled only on ticks where the fly stands on a stocked food cell;
-`eatSpeed` = `feedThreshold` = 0.5, `maxSpeed` = 3):
-
-| outputScale.feed | near-food ticks | mean forward | mean feed | mean speed | % speed < eatSpeed | % feed > feedThreshold | % both (= eating) |
-|---|---|---|---|---|---|---|---|
-| 5 | 352 | 0.6861 | 0.3660 | 2.0110 | 0.00 % | 3.98 % | 0.00 % |
-| 10 | 352 | 0.6861 | 0.7808 | 2.0110 | 0.00 % | 91.76 % | 0.00 % |
-| 20 | 352 | 0.6861 | 0.9791 | 2.0110 | 0.00 % | 100.00 % | 0.00 % |
-
-## Verdict: no candidate passes the calibration-seed screen — held-out seeds were not used
-
-Per ADR 004's Recalibration protocol step 4 ("validate every candidate on held-out seeds before adopting it"),
-held-out validation is for a candidate that already passed calibration-seed screening. None did here — eating
-requires `speed < eatSpeed` **and** `feed > feedThreshold` simultaneously (`energy.js`'s `canEat`), and `% speed <
-eatSpeed` is 0.00 % near food at *every* tested `outputScale.feed`, so `% both` (the only column that matters for
-eating) is 0.00 % throughout. Raising `feed` only ever moves the `% feed > feedThreshold` column — by `feed =
-10` it is already at 91.76 %, recreating a feed-side saturation problem of its own (feed crosses its threshold
-almost everywhere near food, not gradedly) — while the binding constraint, `speed`, never moves at all, because
-`outputScale.forward` was (correctly, per this sweep's own design) held fixed at the value already validated for
-navigation.
-
-**Root cause**: `mean speed` near food is 2.011, independent of `outputScale.feed`, because `speed = maxSpeed ×
-forward` (`body.js`) and `mean forward` near food (0.6861) is unaffected by `feed`'s scale — exactly the
-per-channel isolation this feature was built to guarantee (BUG-002's own fix), confirmed working correctly. But
-it also means **this feature's mechanism cannot by itself close BUG-002's original "never slows down to eat"
-gap**: `forward` would need to drop under `eatSpeed / maxSpeed` ≈ 0.167 near food for eating to become reachable
-at all, a roughly 4× cut from its current 0.69 — `outputScale.forward = 5` was validated only for *un-pinning*
-`forward` from the pre-feature ~0.98 ceiling (ADR 004's own navigation goal), never for enabling eating. Lowering
-`outputScale.forward` further is a real, additional trade-off against the find rate (53.3 % here) that this sweep
-did not explore, since it was scoped to hold `forward` fixed — exactly the "joint sweep" ADR 004's own "Open
-questions" section anticipated might be needed, and the fallback it names ("a smaller follow-on") if `feed`
-cannot be satisfied independently of `forward`.
-
-**Decision**: `world-forager.json`'s `flies.brain.lif.outputScale` is **not** changed by this sweep — it stays
-the scalar `5` already shipped. Per this feature's Phase 5 (BUG-002) checkpoint ("if a held-out-valid value is
-found, fixed" — none was), updating it would be tuning without a passing candidate, which this record exists to
-avoid. A follow-on joint `(outputScale.forward, outputScale.feed)` sweep — or the separate connectome-search
-"brake" question ADR 004 and `specs/008-hungry-forager-brain/bugs/BUG-002.md` both already flag as out of scope
-here — is the next step, not a further `feed`-only search.
-
-# 2026-10-09 — ADR 005 recalibration pass (`postFractionAbsolute`, `noiseAmplitude`, sensory resting): no candidate passes held-out
-
-- **Date:** 2026-10-09
-- **Seeds:** `experiment.seeds` = 6, 7, 8, 9, 10 (calibration, every sweep below). Held-out seeds (101–130) used
-  **only** for the two final validation runs named below — never for grid search.
-- **Runs:** `scripts/calibrate-forager.mjs` (extended with the `far-forward`/`far-feed`/`near-forward`/`near-feed`
-  saturation columns, ADR 005 step 2(a); `{lif, stimulus}` overrides for the new `outputScale`/`noiseAmplitude`/
-  `resting` dimensions) for every grid below; `scripts/dynamical-diagnostics.mjs` (new; pool-synchrony and
-  sensory-gradient diagnostics, ADR 005 steps 2(b)/2(c)) for the diagnostics; `scripts/compare-baseline.mjs
-  --seeds=held-out` for the two held-out validations.
-- **Prerequisite (protocol step 1):** `forager-brain.brain` re-extracted under `weightRule: "postFractionAbsolute"`
-  (`extract/configs/forager-brain.json`), confirmed byte-identical across two runs apart from `provenance.createdAt`,
-  same neuron/edge counts as before (3408 neurons, 205129 edges — selection is untouched, only weight values moved).
-  Mean per-neuron absolute inflow dropped from ≈1.0 (pinned near the budget ceiling under `postFraction`) to a
-  **mean 0.478, median 0.460, p10 0.146 – p90 0.902** under `postFractionAbsolute` — confirming D4′'s predicted
-  effect (truncated neurons' weights are no longer rescaled up) and that the drop is heterogeneous, not a uniform
-  scale factor.
-
-## "Before" measurement (protocol step 2, T034): the current, not-yet-recalibrated world on the new brain
-
-Running the shipped `world-forager.json` values (`synapticScale: 50`, `outputScale` `{feed:30, forward:2,
-backward:5, turn-left:5, turn-right:5}`, `resting: 0.2`, no `noiseAmplitude`) against the **re-extracted**
-(`postFractionAbsolute`) brain, unchanged from their `postFraction`-tuned values:
-
-| find | far-forward | far-feed | near-forward | near-feed |
+| run | grid | pass | robust | outcome |
 |---|---|---|---|---|
-| 0.0 % (0/30) | 0.029 | 0.339 | n/a (never near food) | n/a |
+| 3 | scale {50…200}, input noise {0.1, 0.2, 0.3} | 0 | 0 | input noise ≥ 0.1 ignites the network: rest 0.11–0.48, as high as odour |
+| 4 | scale {10…50}, input noise {0.1, 0.2, 0.3}, readout up to 8192 | 11 | 1 | graded regime exists at scale 10–20 (rest 0.06–0.08, odour 0.13–0.18, lateral 0.28–0.91), but the raw input to the DN pools is ≈1e-4: A2 saturated at 8192 on every channel, world find 6.7–10 % |
+| 5 | scale {40, 50, 60} × inh {1, 1.5}, input noise {0.06…0.09} | 0 | 0 | a sharp ignition threshold between 0.07 (rest 0.000) and 0.08 (rest 0.12–0.27) |
 
-The weight-rule change alone, with no recalibration, breaks foraging completely — confirming the ADR's own
-expectation that the shipped numbers are stale under the new weight distribution, and giving the sweep below a
-"zero" to improve on. `dynamical-diagnostics.mjs --channel=odour-left` on this same world: pool-synchrony 0.0 %
-lockstep even at `noiseAmplitude: 0` (the real connectome's own recurrent heterogeneity already desynchronizes
-this pool — see "Pool-synchrony finding" below); sensory-gradient at `hunger: 0.5` collapses to ≈0.30–0.33
-spikes/step/neuron for every intensity above zero (ADR 004's saturation pattern, reproduced).
+**Finding.** In this subgraph, the recurrent gain needed to carry odour to the descending neurons makes the network
+bistable: silent, or ignited by any sustained ORN activity. There is no spontaneously-active-but-quiet state at a
+gain that also drives the DNs, so "quiet at rest" and "walks and steers" cannot both hold here. The trade-off was
+put to the user, who chose the walking fly.
 
-## Sweep 1 (protocol step 3): `synapticScale` × `outputScale` (uniform multiplier) × `noiseAmplitude` × `resting`
+Ignited variant on calibration seeds (the interim choice + input noise 0.08, `noiseBulkScale` 0): find **56.7 %**
+[40.0 %, 73.3 %] vs random walk 23.3 %; hunger dependence −6.7 % (FAIL); A1 rest 0.219, odour 0.330, lateral 0.093,
+raw forward at rest +0.0048.
 
-**Coarse grid** (24 points, 3000 ticks): `synapticScale` ∈ {50, 100, 200} × `outputScale` multiplier ∈ {1, 3}
-(scaling the shipped per-channel map `{feed:30, forward:2, backward:5, turn-left:5, turn-right:5}` uniformly) ×
-`noiseAmplitude` ∈ {0, 0.2} × `resting` ∈ {0.05, 0.2}. Full table in `/tmp/sweep-coarse.json` (not committed — ad
-hoc run). Finding: `synapticScale: 50` × multiplier `3` is the only region with substantial eating (49–97 bouts);
-`synapticScale ≥ 100` saturates `far-feed` to ≈0.98 and eating collapses to near zero.
+## Final choice (user decision): ignited rest
 
-**Refinement** (54 points, 3000 ticks): `synapticScale` ∈ {40, 50, 60} × multiplier ∈ {2, 3, 4} × `noiseAmplitude`
-∈ {0, 0.05, 0.1, 0.15, 0.2, 0.3} × `resting: 0.05`. Full table in `/tmp/sweep-refine.json`. Best-looking point:
-`synapticScale: 50`, multiplier `3` (→ `outputScale` `{feed:90, forward:6, backward:15, turn-left:15,
-turn-right:15}`), `noiseAmplitude: 0.2`, `resting: 0.05`: 57 bouts, 186 eat ticks, `far-forward` 0.145, `far-feed`
-0.348, `near-feed` 0.734 — real headroom on both saturation columns, feed clearly separated near food.
+`synapticScale` 50, `inhibitoryScale` 1, `noiseAmplitude` 0.08, `noiseBulkScale` 0, `tauSyn` 0, `tauAdapt` 20,
+`adaptStep` 0.05, `outputScale` {feed 8, forward 32, backward 512, turn-left 128, turn-right 128},
+`motorSmoothing` 0.02, `stimulus.resting` 0.02, `stimulus.gain` 1.
 
-**Held-out validation #1 — FAILED.** Written to `world-forager.json`, run with `compare-baseline.mjs
---seeds=held-out`:
+**Reason.** The fly walks with no odour (spontaneous ORN firing via L7′ keeps forward above 0), steers on odour, and
+the activity view is live everywhere. It costs a quiet rest (≈22 % of neurons active per tick without odour) and
+calibration-seed hunger dependence. It does not eat, as accepted: the brake belongs to the next brain generation.
 
-| | v1 | baseline (random walk) |
-|---|---|---|
-| find | 14.4 % | **23.3 %** |
-| eat (hungry/sated median) | 1 / 1 ticks — **FAIL** | n/a |
-| hunger dependence | −2.8 % — **FAIL** | n/a |
+## Held-out validation of the final choice
 
-`v1`'s find rate did not exceed the random walk, and both hunger-linked gates reversed. Reverted immediately
-(`git checkout -- public/world/world-forager.json`), per ADR 004 Annex A.3's own precedent: a calibration-seed
-win does not by itself justify shipping.
+`compare-baseline.mjs --seeds=held-out` (30 seeds, 6 flies per cohort, 3000 ticks):
 
-## Sweep 2: `synapticScale` × `outputScale.forward` alone (feed/backward/turn held at their original absolute values)
-
-Sweep 1's uniform multiplier scaled `outputScale.feed` up alongside `forward`, but `far-feed` was already ≈0.985
-under the **original**, pre-ADR-005 shipped settings (`specs/008-hungry-forager-brain/calibration.md`'s own
-2026-10-07 entry, `outputScale.feed: 30` → `far-feed: 0.9855`) — `feed`'s saturation near 1.0 predates this
-feature and is arguably the intended behaviour for a 2-neuron, concentrated-fan-in readout (ADR 004's own framing:
-`feed` is *supposed* to reliably cross threshold near food). The real, ADR-005-relevant headroom target is
-`forward` (the principal, larger navigation pathway) — so this sweep holds `feed`/`backward`/`turn-*` at their
-original absolute values (BUG-002's per-channel independence) and varies `synapticScale` and `outputScale.forward`
-alone.
-
-**Targeted** (25 points, 1500 ticks for speed): `synapticScale` ∈ {100, 150, 200, 250, 300} × `forward` ∈
-{1, 2, 3, 4, 6}, `noiseAmplitude: 0.2`, `resting: 0.05`. Full table in `/tmp/sweep-targeted.json`. `forward: 4` at
-`synapticScale: 150` stood out: 48 bouts, 96 eat ticks, `far-forward` 0.178.
-
-**Refinement** (9 points, 3000 ticks): `synapticScale` ∈ {125, 150, 175} × `forward` ∈ {3, 4, 5}. Full table in
-`/tmp/sweep-refine2.json`. Best point: `synapticScale: 150`, `forward: 4`, `noiseAmplitude: 0.2`, `resting: 0.05`:
-**106 bouts, 218 eat ticks, find 30.0 %, far-forward 0.176** (real headroom), `far-feed` 0.985 (saturated, same as
-the pre-existing shipped behaviour — accepted, see above).
-
-**Held-out validation #2 — FAILED.** Written to `world-forager.json`, run with `compare-baseline.mjs
---seeds=held-out`:
-
-| | v1 | baseline (random walk) |
-|---|---|---|
-| find | 18.3 % | **23.3 %** |
-| eat (hungry/sated median) | 1 / 1 ticks — **FAIL** | n/a |
-| hunger dependence | −2.2 % — **FAIL** | n/a |
-
-Better than #1 (18.3 % vs 14.4 %) but still below the random-walk baseline, and the eat/hunger-dependence gates
-still fail. Reverted (`git checkout -- public/world/world-forager.json`).
-
-## Diagnosis: short, flickering eat bouts — not caused by `noiseAmplitude`
-
-Both held-out failures share the same symptom: `eat` bouts exist in large numbers on calibration seeds (up to 106)
-but are very short (106 bouts / 218 ticks ≈ **2.1 ticks per bout**), giving a trivial held-out median of 1 tick for
-both hungry and sated cohorts — too short and too similar to pass either eat-linked gate. A dedicated sweep at the
-best point (`synapticScale: 150`, `forward: 4`, `resting: 0.05`, 3000 ticks) isolated the cause:
-
-| noiseAmplitude | bouts | eat ticks | ticks/bout |
+| arm | find [95 % CI] | hunger dependence | eat hungry/sated (median ticks) |
 |---|---|---|---|
-| 0 | 78 | 105 | 1.35 |
-| 0.05 | 43 | 51 | 1.19 |
-| 0.1 | 57 | 68 | 1.19 |
-| 0.15 | 74 | 101 | 1.36 |
-| 0.2 | 106 | 218 | **2.06** |
+| v1 | **51.7 %** [44.4 %, 58.9 %] | +2.2 % | n/a / 1 |
+| random-matched | 3.3 % [1.1 %, 6.1 %] | −0.6 % | n/a |
+| baseline (random walk) | 23.3 % [16.7 %, 29.4 %] | n/a | n/a |
+| mock | 2.2 % [0.6 %, 4.4 %] | n/a | n/a |
 
-Bout length is short **even at `noiseAmplitude: 0`** — L7 noise is not the destabiliser; if anything, the highest
-tested amplitude gave the longest average bout. The flickering tracks `postFractionAbsolute`'s own structural
-effect instead: weights are no longer rescaled to a uniform ≈1 per neuron (mean dropped to 0.478, heterogeneous
-from 0.146 to 0.902 — see above), so moment-to-moment network activity is itself more variable than under the old,
-artificially-uniform weight regime, and `forward` does not stay below `eatSpeed` for many consecutive ticks the
-way it used to. A quick `tauSyn` probe (synaptic low-pass filtering, already an existing L1 mechanism) at the same
-point found `tauSyn: 3` improved ticks/bout to 2.73 but dropped find to 20.0 % — a real lead, but not pursued to a
-third held-out validation within this pass's time budget.
+PASS find (51.7 % > 23.3 %, the intervals do not overlap), PASS hunger dependence (+2.2 %), FAIL eat (no hungry
+bout, one 1-tick sated bout), as accepted. Median approach 1604 ticks (42 flies included). The size-matched random
+graph finds 3.3 %, so the find rate comes from the connectome's wiring. Better on held-out than the silent interim
+choice (35.6 %): a fly that walks without odour reaches odour more often. Adopted: `public/world/world-forager.json`
+carries the values above.
 
-## Pool-synchrony finding: the real connectome pool was never in perfect lockstep
+## Not searched
 
-`dynamical-diagnostics.mjs --channel=odour-left`, both before and after this sweep: the pool-synchrony fraction is
-0.0 % at `noiseAmplitude: 0` on the **real, re-extracted brain** — the hypothesised failure mode (an
-identically-driven, identically-initialized pool spiking in perfect lockstep every time) does not manifest on this
-particular channel, because the real connectome's recurrent connectivity is already heterogeneous enough to
-desynchronize it, independent of `postFractionAbsolute` or `noiseAmplitude`. This does **not** mean L7 is
-unnecessary: `tests/lif-v1.test.mjs`'s L7(c) confirms the mechanism itself works correctly on a true synthetic
-lockstep pool (no recurrent connections, identical drive) — `noiseAmplitude: 0.3` measurably desynchronizes it
-where `0` does not. The real forager brain's `odour-left` channel simply was not exhibiting the hypothesised
-failure mode in isolation; L7 remains available (and independently verified) for whichever population, if any,
-does.
-
-## Sensory-gradient finding: `resting: 0.05` meets D6's floor target cleanly, at `hunger: 0`
-
-`dynamical-diagnostics.mjs --channel=odour-left --resting=0.05 --hunger=0`: **0, 0.216, 0.297, 0.332**
-spikes/step/neuron at intensity none/low/mid/high — a clean, monotonic, four-level response with a genuinely
-quiet floor (ADR 005 D6's target: `τ·resting·g0 ≤ vThreshold`, i.e. `20 × 0.05 × 0.5 = 0.5 ≤ 1`). At `hunger: 1`
-(the hungriest a fly gets), the floor itself clears threshold (`20 × 0.05 × 1.5 = 1.5 > 1`) and the "none" level
-saturates to the ceiling rate — matching D6's own stated target exactly (the formula is for `hunger: 0`, "the
-lowest reachable drive," not every hunger level) but leaving the graded response confined to low-hunger flies,
-an ADR-005-anticipated limitation ("Open questions": whether the hunger modulator's own `gain: [g0, g1]` needs to
-move too).
-
-## Verdict: no candidate passes held-out — `world-forager.json` and `extract/configs/forager-brain.json` are unchanged by this sweep
-
-Per ADR 005's own protocol step 5 ("validate every candidate on held-out seeds... non-negotiable") and step 6
-("only on a held-out pass, update `world-forager.json`'s values"), neither candidate is adopted. `extract/configs/
-forager-brain.json`'s `weightRule: "postFractionAbsolute"` and the re-extracted `public/brains/forager-brain.brain`
-**are** kept (User Story 2's own checkpoint — the weight-rule mechanism is correct, tested, and independent of
-whether a recalibration is found), but **this leaves the shipped `world-forager.json` mismatched with the shipped
-brain**: its `flies.brain.lif`/`flies.stimulus` values were tuned for `postFraction`'s now-superseded weight
-distribution and, as the "before" measurement above shows, give 0 % find rate against the new brain — worse than
-`specs/011-dynamical-regime/tasks.md`'s own anticipated "exactly as saturated as today" fallback. This mismatch is
-a known, explicitly recorded consequence of shipping User Story 2 without a successful recalibration, not an
-oversight; resolving it is the next recalibration pass's job (continuing from `tauSyn: 3`'s lead above, or
-revisiting `tauAdapt`/`adaptStep`, both left at their shipped values throughout this pass per protocol step 3).
-
-## Not searched (recorded as out of scope for this pass)
-
-- `tauAdapt`/`adaptStep` (held at the shipped 20/0.05 throughout, per protocol step 3's "unless the saturation
-  diagnostic shows they are still needed" — it did not clearly show this, though the short-bout finding above may
-  implicate them too).
-- A `tauSyn > 0` sweep combined with the `synapticScale`/`outputScale.forward` region (the one lead this pass
-  found but did not validate on held-out seeds).
-- A non-uniform hunger modulator `gain: [g0, g1]` (would require re-extracting the snapshot's `modulators` section,
-  not just a world-config change).
+- A brake: the connectome subgraph has no taste → forward inhibition at any tested point (next brain generation).
+- `stimulus.gain` below 1 reached A1 but not the robust top points; `tauSyn` 2 likewise.
+- Input noise between 0.07 and 0.08, and `thresholdJitter` as a second source of spontaneous firing.
+- `stepsPerTick` (held at 5): noise is drawn per LIF step, so its effect scales with `stepsPerTick`.

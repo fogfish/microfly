@@ -29,6 +29,8 @@ export function createFlyBrain(brainConfig, seed) {
       outputNeurons: capabilities.channels.outputs.flatMap((ch) => ch.neurons),
       // BUG-002: channel-grouped membership, so lif-v1.js can resolve a per-channel outputScale.
       outputChannels: capabilities.channels.outputs.map((ch) => ({ id: ch.id, neurons: ch.neurons })),
+      // L7′ (ADR 005 Annex B): the sensory pools, so noise can be confined to them (noiseBulkScale).
+      inputNeurons: capabilities.channels.inputs.flatMap((ch) => ch.neurons),
     },
     brainConfig.lif ?? {},
     seed,

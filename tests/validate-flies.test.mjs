@@ -211,3 +211,18 @@ test('a flies.brain.lif.outputScale that is neither a number nor an object is re
   assert.deepEqual(paths(errors), ['flies.brain.lif.outputScale']);
   assert.equal(errors[0].message, 'must be a number');
 });
+
+test('flies.brain.lif.noiseBulkScale and inhibitoryScale validate as numbers >= 0 (version v1, ADR 005 Annex B)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.noiseBulkScale = 0;
+  c.flies.brain.lif.inhibitoryScale = 2;
+  assert.deepEqual(validateConfig(c), []);
+});
+
+test('a negative flies.brain.lif.inhibitoryScale is rejected with the engine message (ADR 005 Annex B)', () => {
+  const c = loadForager();
+  c.flies.brain.lif.inhibitoryScale = -1;
+  const errors = validateConfig(c);
+  assert.deepEqual(paths(errors), ['flies.brain.lif']);
+  assert.equal(errors[0].message, 'LIF parameter "inhibitoryScale" must be 0 or more');
+});

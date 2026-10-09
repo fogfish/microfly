@@ -133,3 +133,14 @@ test('noiseAmplitude desynchronizes a declared input channel\'s pool', { skip: S
   const noisy = lockstepFraction(0.3);
   assert.ok(noisy <= still, `noiseAmplitude 0.3 (${noisy}) should not be more synchronized than noiseAmplitude 0 (${still})`);
 });
+
+// L7′ (ADR 005 Annex B): the runner declares every input pool neuron to the core, so noiseBulkScale 0 leaves noise
+// on the sensory pools only.
+test('noiseBulkScale 0 keeps noise on every declared input neuron and removes it from the rest', { skip: SKIP }, () => {
+  const snap = snapshot();
+  const brain = createFlyBrain({ version: 'v1', snapshot: snap, lif: { noiseAmplitude: 0.1, noiseBulkScale: 0 } }, 7);
+  const inputs = new Set(snap.capabilities.channels.inputs.flatMap((ch) => ch.neurons));
+  for (let i = 0; i < snap.neuronCount; i++) {
+    assert.equal(brain.net.noiseOf[i], inputs.has(i) ? 0.1 : 0, `noise half-width of neuron ${i}`);
+  }
+});

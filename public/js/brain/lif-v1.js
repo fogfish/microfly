@@ -1,4 +1,5 @@
-// Leaky integrate-and-fire core, version 1 (contracts/lif-v1.md; ADR 003 L1–L5). No DOM, no workers.
+// Leaky integrate-and-fire core, version 1 (contracts/lif-v1.md; ADR 003 L1–L5, ADR 004 L6, ADR 005 L7–L8). No DOM,
+// no workers.
 // Pure: the same graph, parameters, drive and seed give the same spike train. With the default parameters
 // the update is exactly lif-v0.js (guarantee G1), so every mechanism below is off unless a config sets it.
 
@@ -19,6 +20,8 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   stepsPerTick: 1,        // LIF steps per world tick (L5); read by the runner, the core ignores it
   outputScale: null,      // potential per unit of edge weight for output-pool edges; null is a no-op (L6)
   noiseAmplitude: 0,      // half-width of a per-neuron, per-step uniform membrane noise term; 0 is a no-op (L7)
+  noiseBulkScale: 1,      // noise multiplier for neurons outside the declared input pools; 1 is uniform noise (L7′)
+  inhibitoryScale: 1,     // multiplier of every negative edge weight; 1 is a no-op (L8)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -54,6 +57,12 @@ export function resolveParams(overrides = {}) {
   }
   if (!(Number.isFinite(p.noiseAmplitude) && p.noiseAmplitude >= 0)) {
     throw new Error('LIF parameter "noiseAmplitude" must be 0 or more');
+  }
+  if (!(Number.isFinite(p.noiseBulkScale) && p.noiseBulkScale >= 0)) {
+    throw new Error('LIF parameter "noiseBulkScale" must be 0 or more');
+  }
+  if (!(Number.isFinite(p.inhibitoryScale) && p.inhibitoryScale >= 0)) {
+    throw new Error('LIF parameter "inhibitoryScale" must be 0 or more');
   }
   return Object.freeze(p);
 }
@@ -105,11 +114,25 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
   // L7: a second, independent PRNG stream from the jitter one, consumed once per neuron every step; built only
   // when noiseAmplitude > 0, so the off case makes no draw and allocates nothing extra.
   const noiseRand = params.noiseAmplitude > 0 ? createPrng(seed).next : undefined;
+  // L7′ (ADR 005 Annex B): per-neuron noise half-width. The recurrent bulk amplifies membrane noise into activity
+  // that drowns the senses, so noise can be confined to the declared input pools (graph.inputNeurons). Built only
+  // when noise is on; the draw is still made for every neuron, so the stream position never depends on the scale.
+  let noiseOf;
+  if (noiseRand !== undefined) {
+    noiseOf = new Float64Array(n).fill(params.noiseAmplitude * params.noiseBulkScale);
+    for (const neuron of graph.inputNeurons ?? []) noiseOf[neuron] = params.noiseAmplitude;
+  }
+  // L8 (ADR 005 Annex B): a gain on inhibitory (negative) edges, applied once to a copy of the weights so the step
+  // loop is unchanged. At 1 the snapshot's own array is used, so G1 holds bit for bit.
+  let weights = csr.weights;
+  if (params.inhibitoryScale !== 1) {
+    weights = Float64Array.from(csr.weights, (w) => (w < 0 ? w * params.inhibitoryScale : w));
+  }
   return {
     params, n,
     offsets: csr.offsets,
     targets: csr.targets,
-    weights: csr.weights,
+    weights,
     v: new Float64Array(n).fill(params.vRest),
     refractory: new Int32Array(n),
     input: new Float64Array(n),   // synaptic input delivered on the next step (the arrivals of the last step)
@@ -122,6 +145,7 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     outputOverride,                // per-neuron: use outputScaleOf instead of synapticScale (L6, BUG-002)
     outputScaleOf,                 // per-neuron resolved output scale, meaningful only where outputOverride is set
     noiseRand,                     // L7: next() of the dedicated noise stream; undefined when noiseAmplitude is 0
+    noiseOf,                       // L7′: per-neuron noise half-width; undefined when noiseAmplitude is 0
   };
 }
 
@@ -144,7 +168,7 @@ function toCsr({ neuronCount: n, edges }) {
 // external: Float64Array(n) of drive for this step (zeros if none).
 // With tauSyn = 0 and tauAdapt = 0 the update is lif-v0's, in its order (the off path, G1).
 export function step(net, external) {
-  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf, noiseRand } = net;
+  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf, noiseRand, noiseOf } = net;
   const nextInput = net.spare;
   nextInput.fill(0);
   const delta = p.tauSyn > 0;
@@ -163,7 +187,7 @@ export function step(net, external) {
     if (adaptive) adapt[i] *= decayAdapt;
     // L7: drawn for every neuron, every step, before the refractory check — so the stream's position never
     // depends on which neurons happened to be refractory (keeps two differing-refractorySteps runs comparable).
-    const noise = noisy ? p.noiseAmplitude * (2 * noiseRand() - 1) : 0;
+    const noise = noisy ? noiseOf[i] * (2 * noiseRand() - 1) : 0;
 
     if (refractory[i] > 0) { refractory[i]--; continue; }
     const leak = (p.dt / p.tau) * (p.vRest - v[i]);

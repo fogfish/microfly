@@ -23,6 +23,8 @@ reference for the bit-exact check below.
 | `stepsPerTick` | 1 | LIF steps per world tick (L5). Read by the runner; the core ignores it. Integer in [1, 20]. |
 | `outputScale` | `null` | Potential per unit of edge weight, for edges whose target is a declared output neuron (L6). `null` is a no-op: such edges use `synapticScale`, identical to every other edge. **(BUG-002)** May also be a plain object keyed by output-channel id (e.g. `{feed: 30, forward: 5}`), scaling each channel's edges independently; a channel absent from the object falls back to `synapticScale`. |
 | `noiseAmplitude` | 0 | Half-width of a per-neuron, per-step uniform noise term added to the membrane update (L7). `0` is a no-op: no draw is made, every potential is identical to `noiseAmplitude` absent entirely. |
+| `noiseBulkScale` | 1 | Multiplier of `noiseAmplitude` for neurons **not** in `graph.inputNeurons` (L7′, ADR 005 Annex B). `1` is a no-op (uniform noise, as L7); `0` confines noise to the declared input pools. Ignored when `noiseAmplitude` is 0. |
+| `inhibitoryScale` | 1 | Multiplier of every negative edge weight (L8, ADR 005 Annex B). `1` is a no-op: the graph's own weight array is used unchanged. Applied before `synapticScale`/`outputScale`, so it composes with both. |
 
 `resolveParams(overrides)` throws naming the parameter for: an unknown key, `dt ≤ 0`, `tau ≤ 0`, `refractorySteps`
 not a non-negative integer, `vThreshold ≤ vReset`, `tauSyn < 0`, `tauAdapt < 0`, `adaptStep < 0`, `thresholdJitter`
@@ -30,8 +32,10 @@ outside [0, 1), `stepsPerTick` not an integer in [1, 20], `outputScale` not `nul
 not a plain object of finite numbers ≥ 0, each named by its channel key
 (`'LIF parameter "outputScale" must be null or a number of 0 or more'` for the scalar/shape case,
 `` `LIF parameter "outputScale.${channel}" must be a number of 0 or more` `` for a bad per-channel entry — the
-object form does not change the scalar message, BUG-002), and `noiseAmplitude` not a finite number ≥ 0
-(`'LIF parameter "noiseAmplitude" must be 0 or more'`, L7).
+object form does not change the scalar message, BUG-002), `noiseAmplitude` not a finite number ≥ 0
+(`'LIF parameter "noiseAmplitude" must be 0 or more'`, L7), `noiseBulkScale` not a finite number ≥ 0
+(`'LIF parameter "noiseBulkScale" must be 0 or more'`, L7′), and `inhibitoryScale` not a finite number ≥ 0
+(`'LIF parameter "inhibitoryScale" must be 0 or more'`, L8).
 
 ## Create
 
@@ -72,6 +76,17 @@ own setting. Unlike `thresholdJitter`'s one-time, per-neuron draw at `createNetw
 every step, once per neuron, in index order — the one piece of state that persists and advances across calls to
 `step`.
 
+**(L7′)** When `noiseAmplitude > 0`, `createNetwork` also builds `noiseOf` (`Float64Array(n)`), the per-neuron noise
+half-width: `noiseAmplitude` for every index in `graph.inputNeurons` (an array of neuron indices; absent or empty
+means no input neurons, trusted like `outputNeurons`), `noiseAmplitude × noiseBulkScale` for every other neuron.
+With `noiseBulkScale = 1` every entry equals `noiseAmplitude` exactly, so the noise term is bit-identical to L7's.
+The runner (`fly-brain-v1.js`) passes every neuron of every declared input channel as `inputNeurons`.
+
+**(L8)** When `inhibitoryScale ≠ 1`, `createNetwork` copies `graph.weights` once, multiplying each negative weight
+by `inhibitoryScale`, and the network uses the copy; the graph's own array is never modified. With
+`inhibitoryScale = 1` no copy is made and `net.weights` is the graph's array (G18). Signs never change, and no
+edge is added or removed: the gain scales the dataset's own inhibitory edges, as `synapticScale` scales all of them.
+
 ## Step
 
 `step(net, external)` runs one LIF step. The update order for the **off** case is exactly v0's:
@@ -99,7 +114,10 @@ For `noiseAmplitude > 0` (L7): `noise[i] = noiseAmplitude × (2 × noiseRand() �
 on every step, in index order, before the refractory check — regardless of whether `i` is in its refractory
 period, so the stream's position after a step never depends on which neurons happened to be refractory. `noise[i]`
 is added to the membrane update alongside `drive` and `external[i]`. With `noiseAmplitude === 0` this line is
-skipped entirely (no draw, `noise[i]` implicitly 0), so the off-case update order is exactly v0's.
+skipped entirely (no draw, `noise[i]` implicitly 0), so the off-case update order is exactly v0's. **(L7′)** The
+half-width is `noiseOf[i]` instead of `noiseAmplitude`: `noise[i] = noiseOf[i] × (2 × noiseRand() − 1)`. The draw is
+still made for every neuron, including those whose `noiseOf[i]` is 0, so the stream position never depends on
+`noiseBulkScale` or on which neurons are inputs.
 
 ## Guarantees and tests
 
@@ -148,5 +166,19 @@ skipped entirely (no draw, `noise[i]` implicitly 0), so the off-case update orde
   network is built or any step runs, naming the parameter, exactly as every other `lif-v1.js` parameter already
   does.
 
-These are the unit tests named in the plan (`tests/lif-v1.test.mjs`); G1 is also the golden test for v1; G11 is
-also a golden-adjacent test for v1 (alongside G1/G6, the other declared no-ops).
+- **G16 noise-target no-op (L7′)**: with `noiseAmplitude > 0` and `noiseBulkScale: 1` (the default), every potential
+  is identical (`===`) to the same network run with `noiseBulkScale` absent.
+- **G17 noise target (L7′)**: with `noiseBulkScale: 0` and no other drive, every neuron outside `inputNeurons` stays
+  at `vRest`, and every input neuron's potential is identical to the same network run at `noiseBulkScale: 1` (the
+  draw sequence is unchanged).
+- **G18 inhibitory no-op (L8)**: with `inhibitoryScale: 1` (the default), `net.weights` is the graph's own array and
+  every potential is identical (`===`) to the same network run with `inhibitoryScale` absent. This composes with G1.
+- **G19 inhibitory gain (L8)**: with `inhibitoryScale: k`, each negative weight is multiplied by `k` and each
+  positive weight is unchanged, and a spike delivers `weight × k × scale` along a negative edge.
+- **G20 validation (L7′, L8)**: `resolveParams` rejects a negative, non-numeric, or non-finite `noiseBulkScale` or
+  `inhibitoryScale`, naming the parameter.
+
+These are the unit tests named in the plan (`tests/lif-v1.test.mjs`); G1 is also the golden test for v1; G11, G16 and
+G18 are golden-adjacent tests for v1 (alongside G1/G6, the other declared no-ops). The runner test in
+`tests/fly-brain-v1.test.mjs` checks that every declared input neuron, and no other, keeps its noise at
+`noiseBulkScale: 0`.

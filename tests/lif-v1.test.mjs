@@ -361,3 +361,69 @@ test('L7(e): resolveParams rejects a negative or non-numeric noiseAmplitude', ()
   assert.throws(() => resolveParams({ noiseAmplitude: -1 }), { message });
   assert.throws(() => resolveParams({ noiseAmplitude: 'x' }), { message });
 });
+
+// L7′(a) (G16): noiseBulkScale 1 is a no-op — identical to it being absent, with noise on.
+test('L7′(a): noiseBulkScale 1 gives identical spike trains and potentials to it being absent', () => {
+  const graph = { ...toyGraph(), inputNeurons: [0] };
+  const one = createV1(graph, { noiseAmplitude: 0.2, noiseBulkScale: 1 }, GOLDEN_SEED);
+  const absent = createV1(graph, { noiseAmplitude: 0.2 }, GOLDEN_SEED);
+  const ext = new Float64Array(one.n);
+  sensoryDrive().forEach((value, t) => {
+    ext[0] = value;
+    stepV1(one, ext);
+    stepV1(absent, ext);
+    for (let i = 0; i < one.n; i++) {
+      assert.equal(one.v[i], absent.v[i], `potential of neuron ${i} differs at step ${t}`);
+    }
+  });
+});
+
+// L7′(b) (G17): noiseBulkScale 0 confines noise to the declared input neurons, and the stream is drawn for every
+// neuron regardless, so an input neuron sees the same noise at any noiseBulkScale.
+test('L7′(b): noiseBulkScale 0 confines noise to the input neurons without moving the stream', () => {
+  const graph = { neuronCount: 4, edges: [], inputNeurons: [1] };
+  const confined = createV1(graph, { noiseAmplitude: 0.3, noiseBulkScale: 0, refractorySteps: 0 }, 9);
+  const uniform = createV1(graph, { noiseAmplitude: 0.3, refractorySteps: 0 }, 9);
+  const ext = new Float64Array(4);
+  for (let t = 0; t < 50; t++) {
+    stepV1(confined, ext);
+    stepV1(uniform, ext);
+    for (const i of [0, 2, 3]) assert.equal(confined.v[i], 0, `bulk neuron ${i} must stay at rest at step ${t}`);
+    assert.equal(confined.v[1], uniform.v[1], `the input neuron's noise must not depend on noiseBulkScale (step ${t})`);
+  }
+});
+
+// L8(a) (G18): inhibitoryScale 1 is a no-op — the snapshot's own weight array, potentials identical.
+test('L8(a): inhibitoryScale 1 uses the graph weights unchanged and matches it being absent', () => {
+  const graph = snapshotGraph();
+  const one = createV1(graph, { inhibitoryScale: 1 });
+  assert.equal(one.weights, graph.weights, 'inhibitoryScale 1 must not copy the weights');
+  const absent = createV1(graph, {});
+  const ext = new Float64Array(one.n).fill(0.08);
+  for (let t = 0; t < 100; t++) {
+    stepV1(one, ext);
+    stepV1(absent, ext);
+    for (let i = 0; i < one.n; i++) assert.equal(one.v[i], absent.v[i], `potential of neuron ${i} differs at step ${t}`);
+  }
+});
+
+// L8(b) (G19): inhibitoryScale multiplies negative weights only, leaving the graph's own array untouched.
+test('L8(b): inhibitoryScale scales negative edges only', () => {
+  const graph = { neuronCount: 3, edges: [{ pre: 0, post: 1, weight: 0.5 }, { pre: 0, post: 2, weight: -0.5 }] };
+  const net = createV1(graph, { inhibitoryScale: 3, synapticScale: 1 });
+  assert.deepEqual(Array.from(net.weights), [0.5, -1.5]);
+  const ext = Float64Array.of(2, 0, 0);
+  stepV1(net, ext);
+  stepV1(net, new Float64Array(3));
+  assert.equal(net.v[1], 0.5);
+  assert.equal(net.v[2], -1.5);
+});
+
+// L7′/L8 validation (G20): both reject a negative or non-numeric value, naming the parameter.
+test('L7′/L8: resolveParams rejects a negative or non-numeric noiseBulkScale or inhibitoryScale', () => {
+  for (const key of ['noiseBulkScale', 'inhibitoryScale']) {
+    const message = `LIF parameter "${key}" must be 0 or more`;
+    assert.throws(() => resolveParams({ [key]: -1 }), { message });
+    assert.throws(() => resolveParams({ [key]: 'x' }), { message });
+  }
+});

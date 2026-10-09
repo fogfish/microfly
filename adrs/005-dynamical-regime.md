@@ -5,7 +5,8 @@
 - **Supersedes:** [ADR 003](003-hungry-forager-brain.md) D4 (the `postFraction` weight rule, which this ADR amends
   with a new value rather than redefining the existing one in place).
 - **Extends:** ADR 003's LIF-core numbering (L1–L5) and [ADR 004](004-output-pool-synaptic-scale.md)'s L6
-  (`outputScale`). This ADR's mechanism is **L7**, the next slot.
+  (`outputScale`). This ADR's mechanism is **L7**, the next slot; Annex B adds **L7′** (`noiseBulkScale`) and **L8**
+  (`inhibitoryScale`).
 - **Inputs:** `specs/011-dynamical-regime/spec.md`; `specs/008-hungry-forager-brain/calibration.md` (the
   `synapticScale`/`forward`/`feed` saturation this ADR fixes at its root, rather than by picking a different point
   on the same, structurally saturating curve); ADR 004 Annex A (the 0.985/0.986 ceiling measurements); this
@@ -291,3 +292,76 @@ measurement shows gives **0 % find rate** against the new brain, a more severe m
 today" is true of the snapshot *format*, but the shipped *world config*'s numbers no longer match the shipped
 brain's weight distribution). Resolving this mismatch — continuing from the `tauSyn` lead, or revisiting
 `tauAdapt`/`adaptStep` — is the immediate next step for whoever picks up this ADR's open recalibration.
+
+## Annex B: regime-gated recalibration, L7′ and L8 (2026-10-09, second pass)
+
+Annex A's diagnosis ("weight heterogeneity makes activity flicker") did not survive direct measurement. This Annex
+records what did, the two LIF mechanisms added because of it, and the calibration protocol that replaces step 3–4
+of the one above. Full tables: `specs/008-hungry-forager-brain/calibration.md`, 2026-10-09 second-pass entry.
+Contract: `specs/011-dynamical-regime/contracts/lif-v1-regime.md`, folded into the canonical `lif-v1.md`.
+
+### B.1 What the first pass's best candidate actually did
+
+Measured at `synapticScale` 150, `outputScale.forward` 4, `noiseAmplitude` 0.2, `resting` 0.05:
+
+1. **No brake, a degenerate eat.** Net forward 0.175 far from food and 0.161 on food, against an eat threshold of
+   `eatSpeed / maxSpeed` = 0.167; the fly sat under the threshold 42 % of all ticks, anywhere. Eating happened when
+   readout noise (s.d. 0.045 on a 2-neuron DNp09 pool) dipped forward below threshold on a flower — hence ≈2-tick
+   bouts and a find rate below the random walk (the fly was slow everywhere).
+2. **Saturation that ignores input.** 55–66 % of the 3,408 neurons spiked every tick whatever the input; feed read
+   ≈0.985 with no taste; taste moved forward by −0.015 to +0.01.
+3. **Noise as the dominant input.** With no sensory input, `noiseAmplitude` 0.2 alone drove 15–55 % activity at
+   scales ≥ 20 (0 % without noise), and erased the lateral steering signal (at scale 80: left-vs-right turn
+   contrast 0.235 without noise, 0.011 with it).
+4. **The `tauSyn` stall.** DNp09 is fluctuation-driven (mean input below threshold). L1's low-pass filter removes the
+   fluctuations: at scale 40, `tauSyn` 3, odour-only forward fell from 0.205 to 0.004 — the stalled fly.
+5. **The real driver: the sensory floor.** With `resting` 0.05 the no-odour floor reaches threshold from hunger 0.5
+   up (τ · resting · gain(h) = 20 × 0.05 × 1.0 = 1.0). D6 was derived at hunger 0 only. The ORNs fire at rest, and
+   the network amplifies that into the same activity it shows with odour.
+
+### B.2 Decisions
+
+- **L7′ `noiseBulkScale`** (default 1, a no-op). Noise for neurons outside the declared input pools is
+  `noiseAmplitude × noiseBulkScale`; at 0, noise stays on the sensory pools, L7's own target. Answers this ADR's open
+  question: one network-wide scalar is not enough, because the recurrent bulk amplifies it (B.1.3).
+- **L8 `inhibitoryScale`** (default 1, a no-op). Multiplies every negative edge weight once at `createNetwork`. In a
+  brain-only probe it was the strongest single lever found (×2 at scale 150: activity 0.58 → 0.30, first
+  correct-sign brake, food-gated feed, lateral contrast 0.55). It scales the dataset's own inhibitory edges and adds
+  or removes none (Principle III).
+- **D6 corrected:** the floor must be sub-threshold at **every** hunger: τ · resting · g1 < vThreshold, i.e.
+  `resting` < 1 / (20 × 1.5) ≈ 0.033 for the shipped modulator. `resting` 0.02 is adopted.
+- **Calibration in stages** (`scripts/calibrate-forager.mjs`): **A1** brain-only regime gates (quiet at rest,
+  responsive to odour, not saturated, lateralized raw input toward the odour side, positive raw forward drive) with
+  a robustness rule (half of the grid neighbours must pass too); **A2** per-channel `outputScale` fitted to a target
+  operating point — valid separately because output neurons have no outgoing edges (ADR 003 D3), so `outputScale`
+  never changes the network; **B** world runs on calibration seeds for the robust top points only. `tauSyn` and
+  `motorSmoothing` are swept as part of the grid, never alone (B.1.4). Brake and feed contrast are reported, not
+  gated.
+
+### B.3 Result: the subgraph is bistable, and the shipped point walks rather than rests quietly
+
+- A1 passed 0 of 200 points at the shipped `resting` 0.05, and 74 of 360 with `resting` 0.02. The best of those
+  (`synapticScale` 50, `inhibitoryScale` 1, noise off) **passed held-out find** (35.6 % vs random walk 23.3 %,
+  size-matched random graph 2.2 %), but was exactly silent with no odour. Forward was 0, so a fly out of odour range
+  never moved, and the activity view was blank (`tests/activity-counts.test.mjs`).
+- Two gates were added, as spontaneous activity at rest: rest activity ≥ 0.002 and positive raw forward input at
+  rest. The rest ceiling was relaxed to 0.1.
+- Input-only noise (L7′) at any gain that drives the descending neurons **ignites** the network: rest jumps from
+  0.000 at input noise 0.07 to 0.12–0.27 at 0.08. A graded, spontaneously active regime exists only at
+  `synapticScale` 10–20, where the input reaching the 2-neuron DN pools (≈1e-4) is too small for any readout gain
+  (world find 6.7–10 %).
+
+**Consequence.** In this brain, "quiet at rest" and "walks and steers" cannot both hold. The user chose the walking
+fly: the held-out candidate plus `noiseAmplitude` 0.08, `noiseBulkScale` 0 (calibration find 56.7 %; **held-out find 51.7 %** [44.4, 58.9] vs random walk 23.3 %, hunger dependence
++2.2 %, eat FAIL). L7′ is in use; L8 stayed at 1 for the shipped point, though it was decisive for the A1 pass set at
+higher scales. A quiet, reactive rest likely needs more of the real circuit (for example, the inhibitory local interneurons that
+stabilize the antennal lobe, if the current selection under-represents them; not checked here), which is the same
+pathway-aware selection question the brake raises.
+
+### B.4 Still open: the brake is structural
+
+Across every tested point the best raw brake was a 10–15 % cut in forward input, and at most points taste *raises*
+forward. Eating needs forward below 0.167 on a flower, roughly an 80 % cut. No LIF parameter creates a missing
+taste → stop pathway; it needs the selection to include brake neurons (BUG-002's candidates, pathway-aware
+selection). That is the next brain generation's job; this calibration accepts a brain that finds food and does not
+stop to eat.

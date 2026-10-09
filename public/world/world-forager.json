@@ -593,24 +593,27 @@
       "radius": 6,
       "gain": 1,
       "max": 1,
-      "resting": 0.2,
+      "resting": 0.02,
       "antennaOffset": 0.5
     },
     "brain": {
       "version": "v1",
       "snapshot": "brains/forager-brain.brain",
-      "motorSmoothing": 0.05,
+      "motorSmoothing": 0.02,
       "stepsPerTick": 5,
       "lif": {
         "synapticScale": 50,
         "tauAdapt": 20,
         "adaptStep": 0.05,
+        "inhibitoryScale": 1,
+        "noiseAmplitude": 0.08,
+        "noiseBulkScale": 0,
         "outputScale": {
-          "feed": 30,
-          "forward": 20,
-          "backward": 10,
-          "turn-left": 10,
-          "turn-right": 10
+          "feed": 8,
+          "forward": 32,
+          "backward": 512,
+          "turn-left": 128,
+          "turn-right": 128
         }
       }
     },

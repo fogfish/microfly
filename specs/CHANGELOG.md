@@ -1,5 +1,9 @@
 # Changelog
 
+# 2026-10-09
+
+Apply the dynamical-regime improvements: per-role noise (L7′ `noiseBulkScale`), inhibitory gain (L8 `inhibitoryScale`), regime gates as a calibration stage before world runs, `tauSyn` and `motorSmoothing` on the calibration grid. Keep the best candidate even if it never brakes; the next brain iteration adds brake neurons and changes the path selection.
+
 # 2026-10-08
 
 /speckit-specify the brain requires dynamical regime. All four MUST be implemented in one step.  Changing only one of these will look like a regression.
@@ -108,4 +112,3 @@ About your decision:
 /speckit-bugfix-report The world still fails to render the water ponds and lakes. Use the patterns as defined by /Users/kolesnik/devel/go/src/github.com/fogfish/zrpg-art/examples (check WATER-SPEC.md) to render one medium size lake and few small ponds in the world. Do not use a water animation.
 
 /speckit-bugfix-report Spread the flowers and danger objects around the world. Remove `jungle-prop-002` as danger object. 
-

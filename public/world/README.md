@@ -58,10 +58,15 @@ Its experiment has two seed sets:
   the world validator checks it. Run the comparison on them with
   `node scripts/compare-baseline.mjs --world=world/world-forager.json --seeds=held-out`.
 
-**Calibration.** `brain.lif.synapticScale` (50), `brain.lif.tauAdapt` (20) and `brain.lif.adaptStep` (0.05) were set on the
-calibration seeds. The choice and the grid are in `specs/008-hungry-forager-brain/calibration.md`.
+**Calibration.** `brain.lif.synapticScale` (50), `brain.lif.inhibitoryScale` (1), `brain.lif.noiseAmplitude` (0.08)
+with `brain.lif.noiseBulkScale` (0: noise on the odour and taste pools only), `brain.lif.outputScale` (per channel),
+`brain.motorSmoothing` (0.02) and `stimulus.resting` (0.02) were set on the calibration seeds with the staged,
+regime-gated protocol of ADR 005 Annex B (`scripts/calibrate-forager.mjs`), and passed the held-out find gate (51.7 %
+vs the random walk's 23.3 %). The forager walks with no odour, steers on odour, and does not brake to eat; the brake is
+left to the next brain generation. `brain.lif.tauAdapt` (20) and `adaptStep` (0.05) were held from the first
+calibration. The choices and grids are in `specs/008-hungry-forager-brain/calibration.md`.
 
 **Starting values, not calibrated.** These keep the values they were written with. Changing them is a recorded config
 change: `brain.stepsPerTick` (5), `body.energy`, `food` (`consumeRate`, `regrowth`, `eatSpeed`, `feedThreshold`, `sated`),
-`stimulus.antennaOffset`, `brain.lif.tauSyn` (0) and `thresholdJitter` (0). The modulator gains in the snapshot are fixed by
+`stimulus.antennaOffset` and `thresholdJitter` (0). `brain.lif.tauSyn` (0) was on the regime grid and stays 0. The modulator gains in the snapshot are fixed by
 ADR 003 D5.
