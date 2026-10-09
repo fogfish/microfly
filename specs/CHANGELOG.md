@@ -1,5 +1,23 @@
 # Changelog
 
+# 2026-10-08
+
+/speckit-specify the brain requires dynamical regime. All four MUST be implemented in one step.  Changing only one of these will look like a regression.
+
+1. Weights are scaled far above threshold. With postFraction weights × 50, each edge behaves like an OR gate: activity spreads down every excitatory path until refractoriness caps it. That is the documented saturation, with forward/feed at about 0.985 of the rate ceiling. The calibration finding that only synapticScale=50 finds food fits this: below 50, signals die out within the 3–5 synapses from odour to the descending neurons; at 50, everything saturates. Without noise and a baseline, there is no in-between setting.
+
+2. Normalising over the selected subgraph inflates truncated neurons. A neuron with 1,000 real input synapses, 20 of them from selected neurons, gets those 20 rescaled to the full input weight of 1. Leaving neurons out of the selection makes the remaining edges stronger instead of weaker. With absolute weights, missing inputs just mean less drive.
+
+3. There is no noise and no heterogeneity, so pools fire in lockstep. Every neuron in a pool gets identical drive from an identical start state, so the 131 ORNs on one side fire on the same step, and each pool acts like one huge neuron. Combined with issue 1, the network is effectively a deterministic binary cascade, which also helps explain why calibration-seed wins don't hold on held-out seeds.
+
+4. Sensory coding saturates. The input pools get resting 0.2 × hunger gain [0.5, 1.5] = 0.1–0.3 per step. With V∞ = τ·I = 2–6, ORNs fire tonically even with no fruit around. The firing rate reaches the 1/3 ceiling at I ≈ 1, so the whole odour gradient is squeezed into roughly three rate levels: about 0.19 at I=0.1, 0.5 at 0.3, and 1.0 at 1. In reallity, no odour means a noise-driven state below threshold, and odour raises it in a graded way.
+
+/speckit-plan Implement the dynamical regime across all system components so that defined issues are solved:
+1. Weights are scaled far above threshold.
+2. Normalising over the selected subgraph inflates truncated neurons.
+3. There is no noise and no heterogeneity, so pools fire in lockstep.
+4. Sensory coding saturates.
+
 # 2026-10-06
 
 /speckit-specify ADR 004-output-pool-synaptic-scale.md defines the solution to define own control knobs at LIF for un-pin `forward` and `feed` from the firing ceiling. Study it and create a specification.

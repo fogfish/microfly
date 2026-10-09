@@ -80,6 +80,15 @@ class ContainerV4RoundTripTest(unittest.TestCase):
         self.assertTrue(np.array_equal(result["targets"], self.brain["targets"]))
         self.assertTrue(np.array_equal(result["weights"], self.brain["weights"]))
 
+    def test_round_trip_keeps_post_fraction_absolute_weight_rule(self):
+        config = copy.deepcopy(self.data["config"])
+        config["weightRule"] = "postFractionAbsolute"
+        brain = run(self.data, config)
+        header = build_header_forager(config, brain, "2026-01-01T00:00:00Z")
+        write_container(self.path, header, brain["offsets"], brain["targets"], brain["weights"], brain["synapses"])
+        result = self.read()
+        self.assertEqual(result["header"]["weightRule"], "postFractionAbsolute")
+
     def test_version_word_and_layout(self):
         self.write()
         with open(self.path, "rb") as handle:

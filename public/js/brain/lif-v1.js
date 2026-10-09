@@ -18,6 +18,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   thresholdJitter: 0,     // fraction of threshold spread per neuron, in [0, 1) (L3)
   stepsPerTick: 1,        // LIF steps per world tick (L5); read by the runner, the core ignores it
   outputScale: null,      // potential per unit of edge weight for output-pool edges; null is a no-op (L6)
+  noiseAmplitude: 0,      // half-width of a per-neuron, per-step uniform membrane noise term; 0 is a no-op (L7)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -50,6 +51,9 @@ export function resolveParams(overrides = {}) {
     }
   } else if (!(p.outputScale === null || (Number.isFinite(p.outputScale) && p.outputScale >= 0))) {
     throw new Error('LIF parameter "outputScale" must be null or a number of 0 or more');
+  }
+  if (!(Number.isFinite(p.noiseAmplitude) && p.noiseAmplitude >= 0)) {
+    throw new Error('LIF parameter "noiseAmplitude" must be 0 or more');
   }
   return Object.freeze(p);
 }
@@ -98,6 +102,9 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
       }
     }
   }
+  // L7: a second, independent PRNG stream from the jitter one, consumed once per neuron every step; built only
+  // when noiseAmplitude > 0, so the off case makes no draw and allocates nothing extra.
+  const noiseRand = params.noiseAmplitude > 0 ? createPrng(seed).next : undefined;
   return {
     params, n,
     offsets: csr.offsets,
@@ -114,6 +121,7 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     outputMask,                   // per-neuron output-pool membership (L6), used only when outputScale is not null
     outputOverride,                // per-neuron: use outputScaleOf instead of synapticScale (L6, BUG-002)
     outputScaleOf,                 // per-neuron resolved output scale, meaningful only where outputOverride is set
+    noiseRand,                     // L7: next() of the dedicated noise stream; undefined when noiseAmplitude is 0
   };
 }
 
@@ -136,11 +144,12 @@ function toCsr({ neuronCount: n, edges }) {
 // external: Float64Array(n) of drive for this step (zeros if none).
 // With tauSyn = 0 and tauAdapt = 0 the update is lif-v0's, in its order (the off path, G1).
 export function step(net, external) {
-  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf } = net;
+  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf, noiseRand } = net;
   const nextInput = net.spare;
   nextInput.fill(0);
   const delta = p.tauSyn > 0;
   const adaptive = p.tauAdapt > 0;
+  const noisy = p.noiseAmplitude > 0;
   const decaySyn = delta ? Math.exp(-p.dt / p.tauSyn) : 0;
   const decayAdapt = adaptive ? Math.exp(-p.dt / p.tauAdapt) : 0;
   spikes.fill(0);
@@ -152,10 +161,13 @@ export function step(net, external) {
       drive = syn[i];
     }
     if (adaptive) adapt[i] *= decayAdapt;
+    // L7: drawn for every neuron, every step, before the refractory check — so the stream's position never
+    // depends on which neurons happened to be refractory (keeps two differing-refractorySteps runs comparable).
+    const noise = noisy ? p.noiseAmplitude * (2 * noiseRand() - 1) : 0;
 
     if (refractory[i] > 0) { refractory[i]--; continue; }
     const leak = (p.dt / p.tau) * (p.vRest - v[i]);
-    v[i] += adaptive ? leak + drive + external[i] - adapt[i] : leak + drive + external[i];
+    v[i] += adaptive ? leak + drive + external[i] - adapt[i] + noise : leak + drive + external[i] + noise;
     if (v[i] >= threshold[i]) {
       v[i] = p.vReset;
       refractory[i] = p.refractorySteps;

@@ -277,3 +277,87 @@ test('L6(f): resolveParams validates per-channel outputScale entries without cha
   assert.throws(() => resolveParams({ outputScale: -1 }), { message: scalarMessage });
   assert.throws(() => resolveParams({ outputScale: 'x' }), { message: scalarMessage });
 });
+
+// L7(a) (noise no-op, G11): noiseAmplitude: 0 is identical to it being absent entirely.
+test('L7(a): noiseAmplitude 0 gives identical spike trains and potentials to it being absent', () => {
+  const graph = toyGraph();
+  const drive = sensoryDrive();
+  const zero = createV1(graph, { noiseAmplitude: 0 }, GOLDEN_SEED);
+  const absent = createV1(graph, {}, GOLDEN_SEED);
+  const extZero = new Float64Array(zero.n);
+  const extAbsent = new Float64Array(absent.n);
+  drive.forEach((value, t) => {
+    extZero[0] = value;
+    extAbsent[0] = value;
+    stepV1(zero, extZero);
+    stepV1(absent, extAbsent);
+    for (let i = 0; i < zero.n; i++) {
+      assert.equal(zero.v[i], absent.v[i], `potential of neuron ${i} differs at step ${t}`);
+      assert.equal(zero.spikes[i], absent.spikes[i], `spike of neuron ${i} differs at step ${t}`);
+    }
+  });
+});
+
+// L7(b) (reproducibility, G12): the same seed, graph and noiseAmplitude > 0 give the same spike sequence.
+test('L7(b): the same seed and noiseAmplitude > 0 give the same spike sequence across runs', () => {
+  const run = () => {
+    const net = createV1(toyGraph(), { noiseAmplitude: 0.1 }, GOLDEN_SEED);
+    const ext = new Float64Array(net.n);
+    const train = [];
+    for (const value of sensoryDrive()) {
+      ext[0] = value;
+      stepV1(net, ext);
+      train.push(Array.from(net.spikes));
+    }
+    return train;
+  };
+  const a = run();
+  assert.deepEqual(run(), a);
+});
+
+// L7(c) (pool desynchrony, G13): a pool of identically-driven, identically-initialized neurons with no recurrent
+// connections spikes in lockstep at noiseAmplitude: 0, and measurably less so at noiseAmplitude: 0.3.
+test('L7(c): noiseAmplitude desynchronizes an identically-driven pool', () => {
+  const N = 20;
+  // refractorySteps: 0 and a drive just above threshold so, without noise, every reset neuron spikes again on
+  // the very next step (vReset=0, so v = drive each step) — every neuron in lockstep, every step.
+  const graph = { neuronCount: N, edges: [] };
+  const lockstepFraction = (noiseAmplitude) => {
+    const net = createV1(graph, { noiseAmplitude, refractorySteps: 0 }, 7);
+    const ext = new Float64Array(N).fill(1.05);
+    let together = 0;
+    let steps = 0;
+    for (let t = 0; t < 500; t++) {
+      stepV1(net, ext);
+      steps++;
+      if (net.spikes.every((s) => s === 1)) together++;
+    }
+    return together / steps;
+  };
+  const still = lockstepFraction(0);
+  const noisy = lockstepFraction(0.3);
+  assert.ok(still > 0.9, `at noiseAmplitude 0 the pool should spike together almost every step (${still})`);
+  assert.ok(noisy < still - 0.1, `noiseAmplitude 0.3 (${noisy}) should desynchronize well below the no-noise case (${still})`);
+});
+
+// L7(d) (noise/jitter independence, G14): the two mechanisms' PRNG streams never interact.
+test('L7(d): noiseAmplitude and thresholdJitter draw from independent PRNG streams', () => {
+  const graph = { neuronCount: 10, edges: [] };
+  const withoutJitter = createV1(graph, { noiseAmplitude: 0.5, thresholdJitter: 0 }, 42);
+  const withJitter = createV1(graph, { noiseAmplitude: 0.5, thresholdJitter: 0.3 }, 42);
+  const drawsA = Array.from({ length: 10 }, () => withoutJitter.noiseRand());
+  const drawsB = Array.from({ length: 10 }, () => withJitter.noiseRand());
+  assert.deepEqual(drawsA, drawsB, 'the noise draw sequence must not depend on thresholdJitter');
+
+  const noNoise = createV1(graph, { thresholdJitter: 0.3, noiseAmplitude: 0 }, 42);
+  const withNoise = createV1(graph, { thresholdJitter: 0.3, noiseAmplitude: 0.5 }, 42);
+  assert.deepEqual(Array.from(noNoise.threshold), Array.from(withNoise.threshold),
+    'the per-neuron thresholds must not depend on noiseAmplitude');
+});
+
+// L7(e) (validation, G15): resolveParams rejects a negative or non-numeric noiseAmplitude.
+test('L7(e): resolveParams rejects a negative or non-numeric noiseAmplitude', () => {
+  const message = 'LIF parameter "noiseAmplitude" must be 0 or more';
+  assert.throws(() => resolveParams({ noiseAmplitude: -1 }), { message });
+  assert.throws(() => resolveParams({ noiseAmplitude: 'x' }), { message });
+});

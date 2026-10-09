@@ -123,7 +123,7 @@
     "gustatory"
   ],
   "excludeInterneuronSuperclassSuffix": "_sensory",
-  "weightRule": "postFraction",
+  "weightRule": "postFractionAbsolute",
   "outputAdmission": "low-confidence-sign-zero",
   "modulators": [
     {

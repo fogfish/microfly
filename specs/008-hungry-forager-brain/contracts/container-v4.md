@@ -18,7 +18,7 @@ section's `byteOffset` and `byteLength`, and the file ends after the last sectio
 | `provenance` | yes | `datasetRelease`, `edgeVariant`, `minConfidence`, `configHash` (sha256 of canonical config JSON), `toolVersion`, `createdAt`, `positionSource`. |
 | `kind` | yes | `"forager"`. Any other value is rejected with `snapshot kind ... is not supported`. |
 | `synapseCap` | yes | Integer 1–65535, recorded for reference. |
-| `weightRule` | yes | `"postFraction"`. |
+| `weightRule` | yes | `"postFraction"` or `"postFractionAbsolute"` (ADR 005 D4′, a backward-compatible addition). |
 | `neuronCount`, `edgeCount` | yes | Equal to the array lengths. |
 | `neurons` | yes | `neuronCount` entries, rule N1–N4 below. |
 | `capabilities` | yes | Channel declaration v4 ([channel-declaration-v4.md](channel-declaration-v4.md)). |
@@ -46,8 +46,10 @@ section's `byteOffset` and `byteLength`, and the file ends after the last sectio
 ## Sections and CSR rules
 
 As v3: offsets start at 0, do not decrease, end at `edgeCount`; every target below `neuronCount`; every synapse count ≥ 1;
-every weight finite. For version 4 the weights are `sign(pre) × synapses / Σ synapses(into post)` (ADR 003 D4), so the
-absolute sum of input weights of a neuron is at most 1.
+every weight finite. For version 4 the weights are, under `"postFraction"`, `sign(pre) × synapses / Σ synapses(into
+post, over **selected** presynaptic neurons)` (ADR 003 D4); under `"postFractionAbsolute"`, `sign(pre) × synapses /
+Σ synapses(into post, over every **admitted** presynaptic neuron with a real edge into it, selected or not)` (ADR 005
+D4′). Under either rule, the absolute sum of input weights of a neuron is at most 1.
 
 ## Error messages
 

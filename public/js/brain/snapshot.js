@@ -127,7 +127,9 @@ function checkModulators(modulators, inputIds) {
 // Version 4 header rules: kind, weight rule, synapse cap, roles, the forager declaration and modulators.
 function checkForager(manifest, neuronCount) {
   if (manifest.kind !== 'forager') reject(`snapshot kind "${manifest.kind}" is not supported`);
-  if (manifest.weightRule !== 'postFraction') reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
+  if (!['postFraction', 'postFractionAbsolute'].includes(manifest.weightRule)) {
+    reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
+  }
   if (!(Number.isInteger(manifest.synapseCap) && manifest.synapseCap >= 1 && manifest.synapseCap <= 65535)) {
     reject('snapshot synapseCap must be an integer from 1 to 65535');
   }

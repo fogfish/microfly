@@ -320,8 +320,8 @@ def validate_forager(config):
     if not isinstance(config["excludeInterneuronSuperclassSuffix"], str):
         _fail("excludeInterneuronSuperclassSuffix must be a string")
 
-    if config["weightRule"] != "postFraction":
-        _fail('weightRule must be "postFraction"')
+    if config["weightRule"] not in ("postFraction", "postFractionAbsolute"):
+        _fail('weightRule must be "postFraction" or "postFractionAbsolute"')
     if config["outputAdmission"] != "low-confidence-sign-zero":
         _fail('outputAdmission must be "low-confidence-sign-zero"')
 

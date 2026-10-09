@@ -165,6 +165,9 @@ def select_forager(config, bodies, edges):
 
     pre_i = np.searchsorted(ids, pre)
     post_i = np.searchsorted(ids, post)
+    # D4' (ADR 005): every real, admitted presynaptic edge into each body, selected or not — the denominator
+    # postFractionAbsolute normalises over, instead of postFraction's selected-only total_in (below).
+    total_in_full = np.bincount(post_i, weights=syn, minlength=n)
 
     def dense(members):
         return np.searchsorted(ids, np.array(members, dtype=np.int64))
@@ -242,10 +245,15 @@ def select_forager(config, bodies, edges):
         _fail("E-OVERFLOW", f"a synapse count of {int(raw.max())} exceeds {UINT16_MAX}")
 
     sorting = np.lexsort((dst, src))
+    denom_absolute = total_in_full[post_i[inside]][sorting]
     src, dst, raw = src[sorting], dst[sorting], raw[sorting]
     total_in = np.bincount(dst, weights=raw, minlength=count)
+    # D4' (ADR 005): postFractionAbsolute normalises over every real admitted input; postFraction (legacy) keeps
+    # normalising over the selected-only total. Either way the selected total is at most the real total, so
+    # _check_inflow's "≤ 1" invariant holds under both rules.
+    denom = denom_absolute if config["weightRule"] == "postFractionAbsolute" else total_in[dst]
     sign_of = np.array([nr["sign"] for nr in neurons], dtype=np.float64)
-    weights = (sign_of[src] * raw / total_in[dst]).astype(np.float32)
+    weights = (sign_of[src] * raw / denom).astype(np.float32)
 
     offsets = np.zeros(count + 1, dtype=np.uint32)
     offsets[1:] = np.cumsum(np.bincount(src, minlength=count))

@@ -182,7 +182,7 @@ def _check_forager(header, neuron_count):
     modulators (M1–M3). The messages match public/js/brain/snapshot.js."""
     if header.get("kind") != "forager":
         _reject(f'snapshot kind "{header.get("kind")}" is not supported')
-    if header.get("weightRule") != "postFraction":
+    if header.get("weightRule") not in ("postFraction", "postFractionAbsolute"):
         _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
     cap = header.get("synapseCap")
     if not (isinstance(cap, int) and not isinstance(cap, bool) and 1 <= cap <= 65535):

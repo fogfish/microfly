@@ -112,3 +112,24 @@ test('a per-channel outputScale raises feed independently of forward', { skip: S
   assert.ok(Math.abs(perChannelForward - sharedForward) < 0.05,
     `forward's rate should stay comparably low: shared ${sharedForward}, per-channel ${perChannelForward}`);
 });
+
+// L7 (noise, ADR 005): a declared input channel's neurons, driven with the same constant value every tick, spike
+// less in lockstep at noiseAmplitude: 0.3 than at noiseAmplitude: 0, same fixed seed.
+test('noiseAmplitude desynchronizes a declared input channel\'s pool', { skip: SKIP }, () => {
+  const snap = snapshot();
+  const channel = snap.capabilities.channels.inputs[0];
+  const lockstepFraction = (noiseAmplitude) => {
+    const brain = createFlyBrain({ version: 'v1', snapshot: snap, stepsPerTick: 1, lif: { noiseAmplitude } }, 7);
+    let together = 0;
+    let steps = 0;
+    for (let t = 0; t < 300; t++) {
+      brain.step({ inputs: INPUTS, hunger: 0.8 });
+      steps++;
+      if (channel.neurons.every((n) => brain.net.spikes[n] === 1)) together++;
+    }
+    return together / steps;
+  };
+  const still = lockstepFraction(0);
+  const noisy = lockstepFraction(0.3);
+  assert.ok(noisy <= still, `noiseAmplitude 0.3 (${noisy}) should not be more synchronized than noiseAmplitude 0 (${still})`);
+});

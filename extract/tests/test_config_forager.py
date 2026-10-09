@@ -140,6 +140,11 @@ class ConfigForagerTest(unittest.TestCase):
         self.assertEqual(caught.exception.code, "E-CONFIG")
         self.assertIn("postFraction", caught.exception.message)
 
+    def test_weight_rule_accepts_post_fraction_absolute(self):
+        config = base()
+        config["weightRule"] = "postFractionAbsolute"
+        validate_forager(config)  # must not raise (ADR 005 D4')
+
     def test_output_admission_is_fixed(self):
         config = base()
         config["outputAdmission"] = "admit-all"

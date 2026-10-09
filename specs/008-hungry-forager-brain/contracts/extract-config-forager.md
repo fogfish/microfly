@@ -32,7 +32,7 @@ Any other pair stops with `E-CONFIG` naming the key, and writes no file.
 | `budget` | `{odour: int, taste: int}` | Non-negative. |
 | `excludeInterneuronClasses` | list of strings | Default `["olfactory", "gustatory"]`. |
 | `excludeInterneuronSuperclassSuffix` | string | Default `"_sensory"`. |
-| `weightRule` | `"postFraction"` | Required value. |
+| `weightRule` | `"postFraction"` \| `"postFractionAbsolute"` | Required; exactly one. `"postFraction"` normalises each neuron's input weights over its selected presynaptic neurons only (ADR 003 D4). `"postFractionAbsolute"` normalises over every real, dataset-admitted presynaptic neuron with an edge into it, selected or not (ADR 005 D4′) — a backward-compatible addition, not a redefinition. |
 | `modulators` | list | Rule M1–M3 of [container-v4.md](container-v4.md). |
 | `capabilities` | object | Channel declaration v4. Ids and drives are checked against `inputs` and `outputs` (rule C1 below). |
 | `expectedNeuronCount` | integer or null | Exact count, or null. |

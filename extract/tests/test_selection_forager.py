@@ -156,5 +156,54 @@ class SelectionTest(unittest.TestCase):
             self.assertEqual(again[name].tobytes(), self.brain[name].tobytes())
 
 
+def _inflow(brain, body):
+    """Σ |weights| of every edge targeting `body` (by bodyId) in a select_forager result."""
+    body_of = [n["bodyId"] for n in brain["neurons"]]
+    idx = body_of.index(body)
+    offsets, targets, weights = brain["offsets"], brain["targets"], brain["weights"]
+    total = 0.0
+    for pre in range(len(brain["neurons"])):
+        for k in range(offsets[pre], offsets[pre + 1]):
+            if targets[k] == idx:
+                total += abs(float(weights[k]))
+    return total
+
+
+class WeightRuleAbsoluteTest(unittest.TestCase):
+    """ADR 005 D4': postFractionAbsolute normalises over real admitted inputs, not selected-only ones.
+
+    Body 501's real admitted presynaptic inputs (after output-sink edges are dropped) are 101, 201, 104, 303, 505
+    (synapses 3, 2, 1, 5, 3 — total 14), but only 101 and 201 are selected (odour-left/right); 104, 303, 505 are
+    sensory bodies excluded from interneuron selection (excludeInterneuronClasses) and are not pool members. The
+    fixture needs no extension: this truncation already exists in forager-synthetic.json.
+    """
+
+    def setUp(self):
+        self.data = load()
+
+    def test_post_fraction_absolute_uses_real_admitted_total(self):
+        config = copy.deepcopy(self.data["config"])
+
+        config["weightRule"] = "postFraction"
+        selected = run(self.data, config)
+        inflow_selected = _inflow(selected, 501)
+
+        config["weightRule"] = "postFractionAbsolute"
+        absolute = run(self.data, config)
+        inflow_absolute = _inflow(absolute, 501)
+
+        # postFraction rescales the two selected inputs (101, 201; synapses 3, 2) up to sum to 1.
+        self.assertAlmostEqual(inflow_selected, 1.0, places=5)
+        # postFractionAbsolute keeps them as the true fraction of body 501's real admitted total (3 + 2) / 14.
+        self.assertAlmostEqual(inflow_absolute, 5 / 14, places=5)
+        self.assertLess(inflow_absolute, inflow_selected)
+
+        # _check_inflow's invariant ("≤ 1") holds under both rules, for every neuron.
+        for brain in (selected, absolute):
+            inflow = np.zeros(len(brain["neurons"]))
+            np.add.at(inflow, brain["targets"].astype(np.int64), np.abs(brain["weights"]).astype(np.float64))
+            self.assertTrue(np.all(inflow <= 1.0 + 1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()

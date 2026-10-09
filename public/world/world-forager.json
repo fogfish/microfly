@@ -607,10 +607,10 @@
         "adaptStep": 0.05,
         "outputScale": {
           "feed": 30,
-          "forward": 2,
-          "backward": 5,
-          "turn-left": 5,
-          "turn-right": 5
+          "forward": 20,
+          "backward": 10,
+          "turn-left": 10,
+          "turn-right": 10
         }
       }
     },

@@ -120,6 +120,18 @@ test('an unknown kind is refused', () => {
   });
 });
 
+// ADR 005 D4': postFractionAbsolute is a backward-compatible addition alongside postFraction.
+test('a weightRule of postFractionAbsolute parses with no error', () => {
+  const snap = parseSnapshot(encode({ mutate: (m) => { m.weightRule = 'postFractionAbsolute'; } }));
+  assert.equal(snap.manifest.weightRule, 'postFractionAbsolute');
+});
+
+test('an unknown weightRule is refused', () => {
+  assert.throws(() => parseSnapshot(encode({ mutate: (m) => { m.weightRule = 'cap'; } })), {
+    message: 'snapshot weight rule "cap" is not supported',
+  });
+});
+
 test('N1: index must equal position', () => {
   assert.throws(() => parseSnapshot(encode({ mutate: (m) => { m.neurons[1].index = 5; } })), {
     message: 'snapshot neuron index 5 is not its position 1',
