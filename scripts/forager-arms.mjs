@@ -89,7 +89,7 @@ function runBaselineFly(state, ctx) {
 }
 
 // ADR 006 Gate C: per-region neuron totals of a v2/random-matched snapshot, for restMetric's per-tick fraction.
-// Exported for scripts/calibrate-forager-v2.mjs's A1 regime probe (ADR 006's per-group rest/odour gates, L10).
+// Exported for .claude/skills/microfly-calibrate/scripts/profiles/v2.mjs's A1 regime probe (per-group gates, L10).
 export function regionTotals(snapshot) {
   const totals = Object.fromEntries(REGIONS.map((r) => [r, 0]));
   for (const neuron of snapshot.manifest.neurons) if (neuron.group in totals) totals[neuron.group]++;

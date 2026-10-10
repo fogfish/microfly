@@ -67,6 +67,7 @@ These come from the constitution. Breaking one needs an amendment, not a workaro
 ## Working on brains
 
 - **Behaviour failures are findings.** If a brain fails a metric, change config or LIF parameters, record the run that motivated it (see `specs/008-hungry-forager-brain/calibration.md` and `gate-c.md`), and say so. Do not adjust code to make a number pass.
+- **Calibration runs in its own session, not inline during a feature.** LIF parameter search (the staged A1/A2/B protocol, ADR 005 Annex B / ADR 006) is a multi-hour, multi-round process with its own deterministic CLI and its own skill: `/microfly-calibrate` (`.claude/skills/microfly-calibrate/`). A coding session — `/speckit-implement` included — must not start a calibration search itself (re-deriving the protocol or writing new probing scripts); when a feature is blocked on an uncalibrated brain, say so, record the finding, and tell the user to run `/microfly-calibrate` in a separate chat instance. That skill's own CLI (`scripts/calibrate.mjs`) is the only thing that should run the actual search, and only after asking the user for a version and a time/compute budget.
 - **Separate calibration and evaluation seeds.** `experiment.seeds` are for calibration and `experiment.heldOut` for verdicts. Never tune on held-out seeds.
 - **Compare against the null arms.** Report the random walk and the size-matched random graph alongside the brain.
 - **Old brains keep working.** `mock`, `v0` and `v1` brains and their worlds must all still load. When a format moves a version, keep the reader for the old one.

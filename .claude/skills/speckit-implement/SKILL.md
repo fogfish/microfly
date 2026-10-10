@@ -55,6 +55,16 @@ You **MUST** consider the user input before proceeding (if not empty).
     After emitting the block above you MUST actually invoke the hook and wait for it to finish before continuing. Run it the same way you would run the command yourself in this agent/session (the invocation may differ from the literal `{command}` id shown above, e.g. a skills-mode agent runs it as `/skill:speckit-...` or `$speckit-...`). Emitting the block alone does not run the hook.
 - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
+## Project-specific override (AGENTS.md)
+
+This repository's `AGENTS.md` ("Working on brains") requires that LIF/synaptic calibration never runs inline
+during `/speckit-implement`: it is a multi-hour, multi-round search with its own skill and CLI
+(`/microfly-calibrate`, `.claude/skills/microfly-calibrate/`). If a task in this Outline is blocked on an
+uncalibrated brain (a behaviour gate failing because of shipped-but-unverified LIF parameters), do not start a
+calibration search yourself — mark the task's status honestly, record the finding (per AGENTS.md's "behaviour
+failures are findings" rule), and tell the user to run `/microfly-calibrate` in a separate chat instance. Resume
+this implementation once they report back a chosen setting.
+
 ## Outline
 
 1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
