@@ -10,6 +10,11 @@ export function isRequirementMet(requires, capabilities) {
   if (requires.signal !== undefined) {
     return capabilities.signals.includes(requires.signal);
   }
+  // ADR 006, contracts/panel-sections-v2.md: met only for a v5 declaration (capabilities.groups non-empty).
+  // mock/v0/v1 declarations never set groups, so this is unmet for them with no version check in the panel.
+  if (requires.groups !== undefined) {
+    return Array.isArray(capabilities.groups) && capabilities.groups.length > 0;
+  }
   return true;
 }
 

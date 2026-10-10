@@ -17,3 +17,22 @@ export function activeCount(counts) {
   for (let n = 0; n < counts.length; n++) if (counts[n] > 0) active++;
   return active;
 }
+
+// L10's region taxonomy, in the fixed display order the region-activity section uses.
+export const REGIONS = ['input', 'output', 'al', 'vnc', 'dn', 'central'];
+
+// Per-region activity (ADR 006 L10): the same windowCounts/activeCount computation as the global activeCount
+// above, grouped by each neuron's declared region. groups: one region name per neuron (capabilities.groups).
+// Returns one entry per region that has at least one neuron, in REGIONS order.
+export function regionActivity(counts, groups) {
+  const total = Object.fromEntries(REGIONS.map((r) => [r, 0]));
+  const active = Object.fromEntries(REGIONS.map((r) => [r, 0]));
+  for (let n = 0; n < groups.length; n++) {
+    const region = groups[n];
+    if (!(region in total)) continue;
+    total[region]++;
+    if (counts[n] > 0) active[region]++;
+  }
+  return REGIONS.filter((r) => total[r] > 0)
+    .map((region) => ({ region, active: active[region], total: total[region], fraction: active[region] / total[region] }));
+}

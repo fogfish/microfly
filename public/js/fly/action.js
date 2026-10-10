@@ -14,7 +14,10 @@ export function actionLabel(left, right) {
 // The forager action (ADR 003 W4), from the named drives. A turn difference of ACTION_STRAIGHT_DIFF or more is a turn,
 // and a turnLeft drive turns the fly to its left, so it is named first. Otherwise a walk, backward or forward, when the
 // drive difference reaches ACTION_IDLE_SUM. Otherwise Idle.
-export function forageAction({ turnLeft, turnRight, forward, backward }) {
+// ADR 006 W8: `escaped` (a v2 fly's per-tick telemetry flag, true exactly on the tick a jump occurred) takes
+// priority over every other label; absent/false for a v1 fly, so its labelling is unchanged.
+export function forageAction({ turnLeft, turnRight, forward, backward }, escaped = false) {
+  if (escaped) return 'Escape';
   const turn = turnLeft - turnRight;
   const walk = forward - backward;
   if (Math.abs(turn) >= ACTION_STRAIGHT_DIFF) return turn > 0 ? 'Turn left' : 'Turn right';

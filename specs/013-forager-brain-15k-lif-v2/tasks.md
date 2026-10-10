@@ -406,14 +406,14 @@ byte-identical reruns.
 
 ### Tests for User Story 6
 
-- [ ] T071 [P] [US6] Regression test (extend `extract/tests/test_small_unchanged.py` or add
+- [X] T071 [P] [US6] Regression test (extend `extract/tests/test_small_unchanged.py` or add
   `extract/tests/test_forager_v1_unchanged.py`): running `smallest-functional-brain.json` and `forager-brain.json`
   after this feature produces output byte-identical to the files committed before this feature, apart from
   `provenance.createdAt`.
 
 ### Implementation for User Story 6
 
-- [ ] T072 [US6] Run all three configs back-to-back (`smallest-functional-brain.json`, `forager-brain.json`,
+- [X] T072 [US6] Run all three configs back-to-back (`smallest-functional-brain.json`, `forager-brain.json`,
   `forager-brain-15k.json`) and diff each output against its pre-feature committed file (or, for the new one,
   against a second run of itself); record the result in the Gate A section of
   `specs/013-forager-brain-15k-lif-v2/quickstart.md`'s step 2–3 (already drafted; confirm the real output matches).
@@ -430,14 +430,14 @@ byte-identical reruns.
 
 ### Tests for User Story 7
 
-- [ ] T073 [US7] Run `npm test` and confirm every pre-existing test passes with no change to its expected values,
+- [X] T073 [US7] Run `npm test` and confirm every pre-existing test passes with no change to its expected values,
   including `tests/lif-golden.test.mjs` (imports `lif-v0.js` only, structurally unaffected by this feature).
-- [ ] T074 [US7] Run `extract/.venv/bin/python -m unittest discover -s extract/tests -t extract` and confirm every
+- [X] T074 [US7] Run `extract/.venv/bin/python -m unittest discover -s extract/tests -t extract` and confirm every
   pre-existing test passes with no change to its expected values.
 
 ### Implementation for User Story 7
 
-- [ ] T075 [US7] Browser regression check per `AGENTS.md`'s Run check: start `python3 -m http.server 8000` from
+- [X] T075 [US7] Browser regression check per `AGENTS.md`'s Run check: start `python3 -m http.server 8000` from
   `public/`, load the default (`mock`) world, `?world=world/world-connectome.json` (`v0`), and
   `?world=world/world-forager.json` (`v1`); confirm each runs with no console error and unchanged behaviour.
 
@@ -455,24 +455,24 @@ panel is unchanged.
 
 ### Tests for User Story 8
 
-- [ ] T076 [P] [US8] `tests/panel-region-activity.test.mjs`: the region-activity section mounts and renders one
+- [X] T076 [P] [US8] `tests/panel-region-activity.test.mjs`: the region-activity section mounts and renders one
   row per region (`input`, `output`, `al`, `vnc`, `dn`, `central`, in that order) for a fly declaration whose
   `groups` list is non-empty; it does not mount for a declaration with no `groups` field (`v0`/`v1`-shaped
   fixtures) — per `contracts/panel-sections-v2.md`'s `requires: {groups: true}` rule.
 
 ### Implementation for User Story 8
 
-- [ ] T077 [US8] Create `public/js/ui/panel/sections/region-activity.js`: `requires: {groups: true}`; one row per
+- [X] T077 [US8] Create `public/js/ui/panel/sections/region-activity.js`: `requires: {groups: true}`; one row per
   declared region showing its label and the fraction of its neurons that spiked within the existing
   `WINDOW_TICKS` rolling window (`counts.js`'s `activeCount` pattern, computed per region); `mount`/`update`/
   `dispose` follow the shared lifecycle contract (writes only changed values, creates/removes no element on
   `update`).
-- [ ] T078 [US8] Register `region-activity` in `public/js/ui/panel/sections/index.js`'s `SECTIONS`, after
+- [X] T078 [US8] Register `region-activity` in `public/js/ui/panel/sections/index.js`'s `SECTIONS`, after
   `outputsSection`.
-- [ ] T079 [US8] Extend `public/js/ui/panel/model.js`'s diagnostic block to read `drives.escape` when the fly's
+- [X] T079 [US8] Extend `public/js/ui/panel/model.js`'s diagnostic block to read `drives.escape` when the fly's
   declaration lists it; the block omits the escape line entirely when it does not (no change to the `v1`
   diagnostic shape, per spec Acceptance Scenario 3).
-- [ ] T080 [US8] Extend `public/js/ui/panel/action.js`'s `forageAction` with an `"escape"` label shown exactly on
+- [X] T080 [US8] Extend `public/js/ui/panel/action.js`'s `forageAction` with an `"escape"` label shown exactly on
   the tick `fly-host.js`'s `escaped` flag (T066) is true; every other tick keeps today's turn/forward/backward
   labelling unchanged.
 - [ ] T081 [US8] Browser verification per `AGENTS.md`'s Run check: load `world-forager-15k.json`, select a `v2`

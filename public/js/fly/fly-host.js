@@ -48,6 +48,9 @@ export async function loadSnapshot(brain, root) {
   // The brain version of the world must match the container version of the file, before any fly starts (FR-003).
   checkBrainVersion(brain.version ?? 'v0', snapshot.version, `${path}`);
 
+  // ADR 006 L10: a container-v5 brain's neurons each carry a region (group); older containers do not, so
+  // `groups` is null for them and the panel's region-activity section stays ungated by a version check.
+  const hasGroups = snapshot.manifest.neurons.every((n) => n.group !== undefined);
   const { provenance } = snapshot.manifest;
   return {
     url: url.href,
@@ -56,6 +59,7 @@ export async function loadSnapshot(brain, root) {
     createdAt: provenance?.createdAt ?? 'unknown date',
     neuronCount: snapshot.neuronCount,
     capabilities: snapshot.capabilities,
+    groups: hasGroups ? snapshot.manifest.neurons.map((n) => n.group) : null,
     neurons: snapshot.manifest.neurons.map((n) => ({ soma: n.soma ?? null, superclass: n.superclass ?? null })),
   };
 }
@@ -64,7 +68,7 @@ export async function loadSnapshot(brain, root) {
 // the toy declaration or its override for toy flies, and the baseline one for random-walk flies.
 function declarationOf(state, f, snapshot) {
   if (state.mode === 'baseline') return BASELINE_CAPABILITIES;
-  if (snapshot) return snapshot.capabilities;
+  if (snapshot) return snapshot.groups ? { ...snapshot.capabilities, groups: snapshot.groups } : snapshot.capabilities;
   return f.brain?.capabilities ?? TOY_CAPABILITIES;
 }
 

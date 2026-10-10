@@ -4,5 +4,6 @@ import { actionSection } from './action.js';
 import { neuronMapSection } from './neuron-map.js';
 import { inputsSection } from './inputs.js';
 import { outputsSection } from './outputs.js';
+import { regionActivitySection } from './region-activity.js';
 
-export const SECTIONS = [actionSection, neuronMapSection, inputsSection, outputsSection];
+export const SECTIONS = [actionSection, neuronMapSection, inputsSection, outputsSection, regionActivitySection];

@@ -2,7 +2,7 @@
 // from. Pure: built from one fly record and a clock reading, so the sections can be tested without a DOM.
 
 import { actionLabel, forageAction } from '../../fly/action.js';
-import { activeCount, windowCounts } from './counts.js';
+import { activeCount, regionActivity, windowCounts } from './counts.js';
 
 // The width of a 0–100% bar for a value in [0, 1], as a CSS percentage (FR-031). Out-of-range values are clamped.
 export function barWidth(value) {
@@ -19,7 +19,7 @@ export function buildStatusModel(record, nowMs) {
   const forager = last?.drives !== undefined;
   const action = !last ? null
     : last.eating ? 'Eat'
-      : forager ? forageAction(last.drives)
+      : forager ? forageAction(last.drives, last.escaped)
         : actionLabel(last.left, last.right);
 
   return {
@@ -30,6 +30,7 @@ export function buildStatusModel(record, nowMs) {
     hunger: last?.hunger ?? null,
     eating: last?.eating ?? false,
     // The drives behind the action, for a forager fly (FR-034): why it does or does not stop on food.
+    // escape (ADR 006) is read only when the fly's drives carry it (v2); the v1 diagnostic shape is unchanged.
     diagnostic: forager
       ? {
         speed: last.speed,
@@ -37,11 +38,16 @@ export function buildStatusModel(record, nowMs) {
         forward: last.drives.forward ?? 0,
         backward: last.drives.backward ?? 0,
         eating: last.eating,
+        ...(last.drives.escape !== undefined ? { escape: last.drives.escape } : {}),
       }
       : null,
     neuronCount,
     capabilities: record.capabilities,
     activeCount: counts ? activeCount(counts) : 0,
+    // Region activity (ADR 006 L10), only for a v5 declaration (capabilities.groups non-empty).
+    regionActivity: counts && record.capabilities.groups?.length > 0
+      ? regionActivity(counts, record.capabilities.groups)
+      : null,
     // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,
     leftOut: record.positions ? neuronCount - record.positions.length / 3 : 0,
