@@ -154,13 +154,15 @@ if (stage === 'regime') {
     process.exit(0);
   }
   let done = 0;
+  const rowsSoFar = [];
   const { rows } = runRegimeGrid(profile, ctx, axes, {
     shardK, shardN,
     onRow: (r, index, total) => {
       done++;
+      rowsSoFar.push(r);
       console.log(`[${done}/${gridSize}] ${JSON.stringify(r.point)} rest=${JSON.stringify(Object.fromEntries(Object.entries(r.rest).map(([k, v]) => [k, Number(v.toFixed(3))])))} `
         + `brake=${fmt(r.brake)} feedC=${fmt(r.feedContrast)} -> ${r.pass ? 'PASS' : r.fails.join(',')}`);
-      writeCheckpoint(jsonPath, { stage, axes, rows }); // incremental: safe to kill at any point
+      writeCheckpoint(jsonPath, { stage, axes, rows: rowsSoFar }); // incremental: safe to kill at any point
     },
   });
   console.log(`${rows.filter((r) => r.pass).length}/${rows.length} pass. Checkpoint: ${jsonPath}`);
@@ -193,12 +195,14 @@ if (stage === 'regime') {
 
   console.log(`Phase 2: regime grid over ${JSON.stringify(axes)}, ${gridSize} points`);
   let done = 0;
+  const rowsSoFar = [];
   const { rows } = runRegimeGrid(profile, ctx, axes, {
     shardK, shardN,
     onRow: (r) => {
       done++;
+      rowsSoFar.push(r);
       console.log(`[${done}/${gridSize}] ${JSON.stringify(r.point)} -> ${r.pass ? 'PASS' : r.fails.join(',')}`);
-      writeCheckpoint(jsonPath, { stage, scan: scanRows, stuck, axes, rows });
+      writeCheckpoint(jsonPath, { stage, scan: scanRows, stuck, axes, rows: rowsSoFar });
     },
   });
 
