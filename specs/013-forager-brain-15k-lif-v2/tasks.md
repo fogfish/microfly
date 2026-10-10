@@ -257,19 +257,19 @@ run confirming leg-taste/touch precede mouth-taste.
 
 ### Tests for User Story 1
 
-- [ ] T050 [P] [US1] Integration test in `tests/forager-v2-find.test.mjs`: as a `v2` fly's leading front leg
+- [X] T050 [P] [US1] Integration test in `tests/forager-v2-find.test.mjs`: as a `v2` fly's leading front leg
   reaches a flower's cell before its mouth does, leg-taste and touch channels read nonzero while mouth-taste
   still reads 0 (spec Acceptance Scenario 2).
-- [ ] T051 [P] [US1] Integration test in `tests/forager-v2-find.test.mjs`: on the same held-out seeds, the `v2`
+- [X] T051 [P] [US1] Integration test in `tests/forager-v2-find.test.mjs`: on the same held-out seeds, the `v2`
   brain's food-finding rate is not worse than the `v1` brain's (spec Acceptance Scenario 3, SC-001's find/approach
   carry-over).
 
 ### Implementation for User Story 1
 
-- [ ] T052 [US1] Confirm `public/js/fly/metrics.js`'s existing `find`/`approach` functions make no `v1`-specific
+- [X] T052 [US1] Confirm `public/js/fly/metrics.js`'s existing `find`/`approach` functions make no `v1`-specific
   assumption (five fixed channels, a specific channel index) that would misread a `v2` fly's 12-channel
   declaration; adjust only if one is found (they are declared-channel-generic today per the plan's survey).
-- [ ] T053 [US1] Calibrate `world/world-forager-15k.json`'s `flies.stimuli.odour:food` falloff/radius and
+- [X] T053 [US1] Calibrate `world/world-forager-15k.json`'s `flies.stimuli.odour:food` falloff/radius and
   `flies.body.sites.front-leg` offset (T048) so a fly's front leg reaches a flower's cell noticeably before its
   mouth does; record the chosen values in `specs/013-forager-brain-15k-lif-v2/calibration.md` (new file, T057
   creates it; append this entry to it).
@@ -289,17 +289,17 @@ lower than the size-matched random-graph arm's, and the fly eats.
 
 ### Tests for User Story 2
 
-- [ ] T054 [P] [US2] Add `brakeMetric(ticks)` to `public/js/fly/metrics.js`: median `forward` drive with mouth
+- [X] T054 [P] [US2] Add `brakeMetric(ticks)` to `public/js/fly/metrics.js`: median `forward` drive with mouth
   taste present ÷ median `forward` drive off any flower, hungry flies only (data-model.md's Metric records table).
-- [ ] T055 [P] [US2] Unit tests for `brakeMetric` in `tests/metrics-v2.test.mjs` against hand-built tick logs.
-- [ ] T056 [US2] Integration test in `tests/forager-v2-brake.test.mjs`: a `v2` fly's forward drive is lower with
+- [X] T055 [P] [US2] Unit tests for `brakeMetric` in `tests/metrics-v2.test.mjs` against hand-built tick logs.
+- [X] T056 [US2] Integration test in `tests/forager-v2-brake.test.mjs`: a `v2` fly's forward drive is lower with
   mouth taste present than off a flower, its feed drive is above threshold, and it eats (spec Acceptance Scenario
   1); leg taste on one side does not lower backward/turn-toward-that-side drives below their no-leg-taste values
   (Acceptance Scenario 2).
 
 ### Implementation for User Story 2
 
-- [ ] T057 [US2] Create `specs/013-forager-brain-15k-lif-v2/calibration.md` (pattern: `specs/008-hungry-forager-
+- [X] T057 [US2] Create `specs/013-forager-brain-15k-lif-v2/calibration.md` (pattern: `specs/008-hungry-forager-
   brain/calibration.md`) recording the calibration-seed run that confirms SC-007 (brake ratio < 1 and lower than
   the random-graph arm's) before any held-out-seed verdict is taken, per ADR 006's Calibration protocol section
   and the project rule that calibration and held-out seeds never share a seed.
@@ -319,16 +319,16 @@ sign, on held-out seeds.
 
 ### Tests for User Story 3
 
-- [ ] T058 [P] [US3] Add `avoidMetric(ticks, dangerKind)` to `public/js/fly/metrics.js`: fraction of ticks within
+- [X] T058 [P] [US3] Add `avoidMetric(ticks, dangerKind)` to `public/js/fly/metrics.js`: fraction of ticks within
   1.5 tiles of a danger source of the given kind (spider or lantern), signed against the random-walk arm's value.
-- [ ] T059 [P] [US3] Unit tests for `avoidMetric` in `tests/metrics-v2.test.mjs`.
-- [ ] T060 [US3] Integration test in `tests/forager-v2-avoid.test.mjs`: a `v2` fly's steering output changes from
+- [X] T059 [P] [US3] Unit tests for `avoidMetric` in `tests/metrics-v2.test.mjs`.
+- [X] T060 [US3] Integration test in `tests/forager-v2-avoid.test.mjs`: a `v2` fly's steering output changes from
   its no-danger-odour/no-heat baseline when danger odour or heat is read (spec Acceptance Scenarios 1–2); both
   danger odour and heat near a fly at once each report their own nonzero channel value (Edge Cases).
 
 ### Implementation for User Story 3
 
-- [ ] T061 [US3] No production code beyond T036–T048 (declared-sense resolution already covers `odour:danger` and
+- [X] T061 [US3] No production code beyond T036–T048 (declared-sense resolution already covers `odour:danger` and
   `heat` generically) is expected; if T060 finds a gap (e.g. `flies.stimuli`'s `dangers` source lookup missing a
   kind filter), fix it in `public/js/fly/stimulus.js`/`fly-world.js` and note the gap in research.md.
 
@@ -347,19 +347,19 @@ showing one bounded jump per cooldown window.
 
 ### Tests for User Story 4
 
-- [ ] T062 [P] [US4] Add `touchMetric(ticks)` (fraction of ticks with a blocked move) and `escapeMetric(ticks,
+- [X] T062 [P] [US4] Add `touchMetric(ticks)` (fraction of ticks with a blocked move) and `escapeMetric(ticks,
   dangerRadius)` (escape events per minute, near danger vs. away from it) to `public/js/fly/metrics.js`.
-- [ ] T063 [P] [US4] Unit tests for `touchMetric`/`escapeMetric` in `tests/metrics-v2.test.mjs`.
-- [ ] T064 [US4] Integration test in `tests/forager-v2-touch.test.mjs`: a fly whose front leg meets a
+- [X] T063 [P] [US4] Unit tests for `touchMetric`/`escapeMetric` in `tests/metrics-v2.test.mjs`.
+- [X] T064 [US4] Integration test in `tests/forager-v2-touch.test.mjs`: a fly whose front leg meets a
   non-walkable cell changes its turn output on that side (spec Acceptance Scenario 1; also the wall-following
   question ADR 006 Q4 raises — record the measured direction, do not assert a side without the measurement).
-- [ ] T065 [US4] Extend `tests/body-escape.test.mjs` (T046): a fly above the escape threshold outside cooldown
+- [X] T065 [US4] Extend `tests/body-escape.test.mjs` (T046): a fly above the escape threshold outside cooldown
   jumps exactly once per tick-above-threshold run (Acceptance Scenario 2); a second above-threshold tick during
   cooldown produces no second jump (Acceptance Scenario 3, SC-011).
 
 ### Implementation for User Story 4
 
-- [ ] T066 [US4] Confirm `fly-host.js`'s `escaped: boolean` per-tick flag (T044) is set exactly on a tick where
+- [X] T066 [US4] Confirm `fly-host.js`'s `escaped: boolean` per-tick flag (T044) is set exactly on a tick where
   `jumpForagerBody` actually moved the fly, for the panel's action label (US8, T077) and `escapeMetric` (T062).
 
 **Checkpoint**: User Story 4 is independently testable — touch changes turning, escape jumps are bounded and
@@ -376,19 +376,19 @@ no-edit-for-existing-worlds guarantees those three already have.
 
 ### Tests for User Story 5
 
-- [ ] T067 [P] [US5] World-start test in `tests/fly-config-brain-v2.test.mjs`: `flies.brain.version: "v2"` with
+- [X] T067 [P] [US5] World-start test in `tests/fly-config-brain-v2.test.mjs`: `flies.brain.version: "v2"` with
   `world-forager-15k.json`'s matching container-v5 snapshot starts, and the panel names the snapshot, its release
   and its format version (spec Acceptance Scenario 1).
-- [ ] T068 [P] [US5] World-start test in `tests/world-validate-v2.test.mjs`: `flies.brain.version: "v2"` naming
+- [X] T068 [P] [US5] World-start test in `tests/world-validate-v2.test.mjs`: `flies.brain.version: "v2"` naming
   `world-forager-15k-bad.json`'s container-v4 snapshot refuses to start, the error message names both versions
   (spec Acceptance Scenario 2, using T049's fixture).
-- [ ] T069 [US5] Regression test in `tests/fly-config-brain-v2.test.mjs`: existing `mock`, `v0` and `v1` world
+- [X] T069 [US5] Regression test in `tests/fly-config-brain-v2.test.mjs`: existing `mock`, `v0` and `v1` world
   files (`world-connectome.json`, `world-forager.json`, the default toy world) start and behave exactly as before
   this feature (spec Acceptance Scenario 3, FR-002).
 
 ### Implementation for User Story 5
 
-- [ ] T070 [US5] No production code beyond Phase 2 (T029–T030, T034, T041–T042) is expected; this story is the
+- [X] T070 [US5] No production code beyond Phase 2 (T029–T030, T034, T041–T042) is expected; this story is the
   acceptance surface for that plumbing. If any test above finds a gap, fix it at its source file rather than
   adding a version-5-specific branch elsewhere.
 

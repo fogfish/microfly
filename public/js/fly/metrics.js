@@ -66,3 +66,66 @@ export function walkedShare(bouts) {
 export function hungerDependence(hungryFlies, satedFlies) {
   return findRate(hungryFlies).rate - findRate(satedFlies).rate;
 }
+
+// ADR 006 Gate C metrics (contracts/experiment-metrics-v2.md). Pure functions on per-tick records, the same
+// style metrics 1-5 above use on per-run/per-bout records. A failed expectation is still returned as a number
+// (or null when there is no data to compute it from); whether it passes is a reporting decision, not this
+// function's (AGENTS.md: "the fix is config or parameters, recorded with the run", not a changed metric).
+
+// Brake (SC-007): median forward drive with mouth taste present ÷ median forward drive off any flower, hungry
+// flies only. tick: { forward, mouthTaste, hungry }. null when either side has no data.
+export function brakeMetric(ticks) {
+  const hungry = ticks.filter((t) => t.hungry);
+  const on = hungry.filter((t) => t.mouthTaste > 0).map((t) => t.forward);
+  const off = hungry.filter((t) => t.mouthTaste === 0).map((t) => t.forward);
+  const onMedian = median(on);
+  const offMedian = median(off);
+  if (onMedian === null || offMedian === null || offMedian === 0) return null;
+  return onMedian / offMedian;
+}
+
+// Avoid: the fraction of ticks within 1.5 tiles of a danger of `dangerKind`. tick: { distanceToDanger }, a map
+// keyed by danger kind (spider, lantern) to the fly's distance in tiles that tick, or undefined/Infinity when
+// no danger of that kind is within sensing range. Signing against the random-walk arm is a reporting decision
+// (ADR 006 Gate C: "reported with its sign"), not this function's.
+const AVOID_RADIUS = 1.5;
+export function avoidMetric(ticks, dangerKind) {
+  if (ticks.length === 0) return 0;
+  const within = ticks.filter((t) => (t.distanceToDanger?.[dangerKind] ?? Infinity) <= AVOID_RADIUS);
+  return within.length / ticks.length;
+}
+
+// Touch: the fraction of ticks with a blocked move (the touch input nonzero that tick). tick: { touch }.
+export function touchMetric(ticks) {
+  if (ticks.length === 0) return 0;
+  return ticks.filter((t) => t.touch > 0).length / ticks.length;
+}
+
+// Escape: events per minute while within the danger radius, and outside it. tick: { escaped, nearDanger }.
+// tickHz converts a tick count into minutes.
+export function escapeMetric(ticks, tickHz) {
+  const rate = (subset) => {
+    if (subset.length === 0) return 0;
+    const minutes = subset.length / tickHz / 60;
+    return minutes > 0 ? subset.filter((t) => t.escaped).length / minutes : 0;
+  };
+  return {
+    near: rate(ticks.filter((t) => t.nearDanger)),
+    away: rate(ticks.filter((t) => !t.nearDanger)),
+  };
+}
+
+// Rest: activity (spike-rate fraction) per region, over ticks with no stimulus present (ADR 005's "quiet and
+// reactive" question, answered per region, L10). tick: { stimulusPresent, regionActivity }, regionActivity a
+// map of region name (input/output/al/vnc/dn/central) to that region's fraction of neurons that spiked the
+// tick. Returns one mean fraction per region named in the ticks, or null for a region with no data.
+export function restMetric(ticks) {
+  const rest = ticks.filter((t) => !t.stimulusPresent);
+  const regions = new Set(rest.flatMap((t) => Object.keys(t.regionActivity ?? {})));
+  const out = {};
+  for (const region of regions) {
+    const values = rest.map((t) => t.regionActivity[region]).filter((v) => v !== undefined);
+    out[region] = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  }
+  return out;
+}

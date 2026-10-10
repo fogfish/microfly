@@ -690,11 +690,11 @@
       },
       "taste:mouth": {
         "from": "edibles",
-        "radius": 6
+        "radius": 0.3
       },
       "taste:leg": {
         "from": "edibles",
-        "radius": 6
+        "radius": 0.3
       },
       "touch": {
         "from": "blocked"

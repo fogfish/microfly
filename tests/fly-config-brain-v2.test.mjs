@@ -50,6 +50,16 @@ test('body.sites/body.escape/stimuli are absent for a v1 world (no default force
   assert.equal(f.stimuli, undefined);
 });
 
+test('world-forager-15k.json names its brain version, release and container version for the panel', () => {
+  // fly-host.js's brainLabel: "${version} forager brain (snapshot release ..., created ...)" — this is the
+  // string spec Acceptance Scenario 1 (US5) means by "the panel names the snapshot, its release and its format
+  // version"; exercised end to end (not re-derived here) by startFlies in a browser session (AGENTS.md's Run
+  // check, T081).
+  const config = JSON.parse(readFileSync(V2_WORLD_PATH, 'utf8'));
+  assert.equal(config.flies.brain.version, 'v2');
+  assert.equal(config.flies.brain.snapshot, 'brains/forager-brain-15k.brain');
+});
+
 test('a mismatch names both versions: v2 needs a version 5 snapshot', () => {
   assert.throws(() => checkBrainVersion('v2', 4, 'brains/forager-brain.brain'), {
     message: 'flies.brain.version "v2" needs a version 5 snapshot; brains/forager-brain.brain is version 4',
