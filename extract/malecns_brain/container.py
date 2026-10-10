@@ -16,17 +16,22 @@ import tempfile
 
 import numpy as np
 
-from .capabilities import validate_capabilities, validate_capabilities_v4
+from .capabilities import FORAGER_DRIVES_V2, SENSES, SITES, validate_capabilities, validate_capabilities_v4, \
+    validate_capabilities_v5
 
 MAGIC = b"MFBR"
 FORMAT_VERSION = 3
 FORMAT_VERSION_V4 = 4
-SUPPORTED_VERSIONS = (FORMAT_VERSION, FORMAT_VERSION_V4)
+FORMAT_VERSION_V5 = 5
+SUPPORTED_VERSIONS = (FORMAT_VERSION, FORMAT_VERSION_V4, FORMAT_VERSION_V5)
 LEGACY_VERSION = 2
 PREFIX = 12
 ROLES = ("sensory", "left", "right")
 ROLE_MESSAGE = "snapshot roles out of order: expected inputs, outputs, then interneurons"
+ROLE_MESSAGE_V5 = "snapshot roles out of order: expected inputs, outputs, then interneurons"
 SIGNS_V4 = (-1, 0, 1)
+REGIONS = ("input", "output", "al", "vnc", "dn", "central")
+TRANSMITTER_SOURCES = ("ground_truth", "consensus_nt", "predicted_nt")
 WEIGHT_TOLERANCE = 1e-6
 MODULATOR_ID = re.compile(r"[a-z][a-z0-9-]*")
 
@@ -82,8 +87,17 @@ def write_container(path, header, offsets, targets, weights, synapses):
     edge_count = len(targets)
     if header["neuronCount"] != neuron_count or header["edgeCount"] != edge_count:
         raise ValueError("header counts do not match the arrays")
-    version = FORMAT_VERSION_V4 if "kind" in header else FORMAT_VERSION
-    if version == FORMAT_VERSION_V4:
+    if "minSynapses" in header:
+        version = FORMAT_VERSION_V5
+    elif "kind" in header:
+        version = FORMAT_VERSION_V4
+    else:
+        version = FORMAT_VERSION
+    if version == FORMAT_VERSION_V5:
+        _check_forager_v2(header, neuron_count)
+        if header.get("weightRule") != "synapseCount":
+            _check_inflow(targets, weights, neuron_count)
+    elif version == FORMAT_VERSION_V4:
         _check_forager(header, neuron_count)
         _check_inflow(targets, weights, neuron_count)
     else:
@@ -230,6 +244,61 @@ def _check_forager(header, neuron_count):
     _check_modulators(header.get("modulators"), {ch["id"] for ch in inputs})
 
 
+def _check_forager_v2(header, neuron_count):
+    """Version 5 header rules (contracts/container-v5.md, ADR 006 W9): kind, the three-value weight rule, the v5
+    declaration (R1–R11, including sense/site and the 6-value drive vocabulary), roles and signs, plus per-neuron
+    `group` (L10) and `transmitterSource` (D10). The messages match public/js/brain/snapshot.js."""
+    if header.get("kind") != "forager":
+        _reject(f'snapshot kind "{header.get("kind")}" is not supported')
+    if header.get("weightRule") not in ("synapseCount", "postFraction", "postFractionAbsolute"):
+        _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
+    try:
+        validate_capabilities_v5(header.get("capabilities"), neuron_count, subject="snapshot")
+    except ValueError as error:
+        _reject(str(error))
+
+    declaration = header["capabilities"]["channels"]
+    inputs, outputs = declaration["inputs"], declaration["outputs"]
+    pool_of = {}
+    for channel in inputs:
+        for n in channel["neurons"]:
+            pool_of[n] = ("input", channel["id"])
+    for channel in outputs:
+        for n in channel["neurons"]:
+            pool_of[n] = ("output", channel["id"])
+    n_in = sum(len(ch["neurons"]) for ch in inputs)
+    n_out = sum(len(ch["neurons"]) for ch in outputs)
+
+    neurons = header.get("neurons")
+    if not (isinstance(neurons, list) and len(neurons) == neuron_count):
+        _reject(ROLE_MESSAGE_V5)
+    for index, neuron in enumerate(neurons):
+        if not isinstance(neuron, dict) or neuron.get("index") != index:
+            found = neuron.get("index") if isinstance(neuron, dict) else None
+            _reject(f"snapshot neuron index {found} is not its position {index}")
+        expected_role = "input" if index < n_in else "output" if index < n_in + n_out else "interneuron"
+        if neuron.get("role") != expected_role:
+            _reject(ROLE_MESSAGE_V5)
+        if index in pool_of:
+            kind, channel_id = pool_of[index]
+            if neuron.get("channel") != channel_id or kind != expected_role:
+                _reject(f"snapshot neuron {index} is not in channel {neuron.get('channel')}")
+        elif neuron.get("channel") is not None:
+            _reject(f"snapshot neuron {index} is not in channel {neuron.get('channel')}")
+        sign = neuron.get("sign")
+        if sign not in SIGNS_V4:
+            _reject(f"snapshot neuron {index} has sign {sign}; expected -1, 0 or 1")
+        if sign == 0 and neuron.get("role") != "output":
+            _reject(f"snapshot neuron {index} has sign 0 but is not an output")
+        if neuron.get("group") not in REGIONS:
+            _reject(f"snapshot neuron {index} has an unknown group {neuron.get('group')}")
+        if neuron.get("transmitterSource") not in TRANSMITTER_SOURCES:
+            _reject(f"snapshot neuron {index} has an unknown transmitterSource {neuron.get('transmitterSource')}")
+        _check_position(neuron, index)
+
+    _check_modulators(header.get("modulators"), {ch["id"] for ch in inputs})
+
+
 def _check_inflow(targets, weights, neuron_count):
     """postFraction (ADR 003 D4): the absolute input weights of each neuron sum to at most 1."""
     if len(targets) == 0:
@@ -254,7 +323,8 @@ def read_container(data, version=None):
     found = int.from_bytes(data[4:8], "little")
     accepted = SUPPORTED_VERSIONS if version is None else (version,)
     if found not in accepted:
-        listed = " and ".join(str(v) for v in accepted)
+        names = [str(v) for v in accepted]
+        listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" and {names[-1]}"
         _reject(f"unsupported snapshot version {found}; this build supports {listed}")
 
     header_length = int.from_bytes(data[8:12], "little")
@@ -283,7 +353,9 @@ def read_container(data, version=None):
                 break
         if roles_ok:
             roles_ok = [neurons[i].get("role") for i in range(3)] == list(ROLES)
-    if found == FORMAT_VERSION_V4:
+    if found == FORMAT_VERSION_V5:
+        _check_forager_v2(header, neuron_count)
+    elif found == FORMAT_VERSION_V4:
         _check_forager(header, neuron_count)
     else:
         if not roles_ok:
@@ -327,6 +399,8 @@ def read_container(data, version=None):
     if not np.all(np.isfinite(weights)):
         _reject("snapshot CSR is inconsistent: a weight is not finite")
     if found == FORMAT_VERSION_V4:
+        _check_inflow(targets, weights, neuron_count)
+    elif found == FORMAT_VERSION_V5 and header.get("weightRule") != "synapseCount":
         _check_inflow(targets, weights, neuron_count)
 
     return {

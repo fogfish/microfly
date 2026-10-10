@@ -1,5 +1,12 @@
 # Changelog
 
+# 2026-10-10
+
+/speckit-specify Write an utility to parse malecns dataset, extract the brain as defined by ADR 006-cautious-forager-brain-15k.md. This ADR defines a brain of about 15,000 connectome neurons with 12 input channels (six bilateral senses) and 6 output channels. It has a better properties to find food, Brake and eat food, avoid danger odour, touch things and escape from danger. Integrate the brain into LIF and simulator as LIF v2. Keep existing LIF, brains available under the versions mock, v0 and v1, keep same mechanism to choose the configuration. Make sure the extractor is able to produce multiple brain formats and application is able to operate them. Integrate the visualization of new input / output and state channels into the side panel on UI.
+
+/speckit-plan Write an utility to parse malecns dataset, extract the brain as defined by ADR 006-cautious-forager-brain-15k.md Preserve compatibility of the simulator with previous versions allowing user to choose between previous versions. Integrate new sensors with UI. 
+
+
 # 2026-10-09
 
 Apply the dynamical-regime improvements: per-role noise (L7′ `noiseBulkScale`), inhibitory gain (L8 `inhibitoryScale`), regime gates as a calibration stage before world runs, `tauSyn` and `motorSmoothing` on the calibration grid. Keep the best candidate even if it never brakes; the next brain iteration adds brake neurons and changes the path selection.

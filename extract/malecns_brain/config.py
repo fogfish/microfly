@@ -6,7 +6,9 @@ import json
 import math
 import re
 
-from .capabilities import FORAGER_DRIVES, validate_capabilities, validate_capabilities_v4
+from .capabilities import FORAGER_DRIVES, FORAGER_DRIVES_V2, validate_capabilities, validate_capabilities_v4, \
+    validate_capabilities_v5
+from .dataset import TRANSMITTER_SOURCE_COLUMNS
 from .errors import ExtractError
 
 TOP_KEYS = {
@@ -109,23 +111,25 @@ def validate(config):
 
 
 def format_of(config):
-    """Dispatch on the pair (formatVersion, kind): 'small' for 2 without kind, 'forager' for 3 with kind forager.
+    """Dispatch on the pair (formatVersion, kind): 'small' for 2 without kind, 'forager' for 3 or 4 with kind
+    forager (research.md R2: the drive count, not `kind`, tells the two forager generations apart).
 
-    Any other pair stops with E-CONFIG naming the key (contracts/extract-config-forager.md).
+    Any other pair stops with E-CONFIG naming the key (contracts/extract-config-forager.md,
+    contracts/extract-config-forager-v2.md).
     """
     if not isinstance(config, dict):
         _fail("config must be a JSON object")
     version = config.get("formatVersion")
-    if version not in (2, 3):
-        _fail("formatVersion must be 2 (small brain) or 3 (forager brain)")
+    if version not in (2, 3, 4):
+        _fail("formatVersion must be 2 (small brain), 3 (forager brain) or 4 (forager brain, 15K)")
     if version == 2:
         if "kind" in config:
             _fail("kind is not allowed with formatVersion 2")
         return "small"
     if "kind" not in config:
-        _fail('kind is required with formatVersion 3 and must be "forager"')
+        _fail(f'kind is required with formatVersion {version} and must be "forager"')
     if config["kind"] != "forager":
-        _fail('kind must be "forager" with formatVersion 3')
+        _fail(f'kind must be "forager" with formatVersion {version}')
     return "forager"
 
 
@@ -337,8 +341,187 @@ def validate_forager(config):
         _fail("neuronCountRange must be [min, max] with min ≤ max")
 
 
+FORAGER_KEYS_V2 = {
+    "formatVersion", "kind", "datasetRelease", "edgeVariant", "expect", "transmitterSign", "transmitterSource",
+    "minConfidence", "inputs", "sideMatch", "outputs", "pathways", "outputGroups", "flowSteps", "budget",
+    "anchors", "excludeInterneuronClasses", "excludeInterneuronSuperclassSuffix", "weightRule", "minSynapses",
+    "modulators", "capabilities", "neuronCountRange",
+}
+FORAGER_KEYS_V2_OPTIONAL = {"excludeInterneuronSuperclassSuffix", "minSynapses"}
+INPUT_KEYS_V2 = {"class", "rootSide", "types", "subclasses", "typePrefixes", "entryNerve"}
+
+
+def _check_forager_capabilities_v2(decl, inputs, outputs):
+    """C1 (ids and drives match the pools), then R1–R11 of the v5 declaration (contracts/channel-declaration-
+    v5.md). The pool members are not known before selection, so each channel gets a placeholder neuron."""
+    if isinstance(decl, dict) and isinstance(decl.get("channels"), dict):
+        channels = decl["channels"]
+        declared_in = [ch.get("id") for ch in channels.get("inputs", []) if isinstance(ch, dict)]
+        declared_out = {ch.get("id"): ch.get("drive") for ch in channels.get("outputs", []) if isinstance(ch, dict)}
+        for cid in declared_in:
+            if cid not in inputs:
+                _fail(f"capabilities input {cid} is not declared in inputs")
+        for cid in inputs:
+            if cid not in declared_in:
+                _fail(f"inputs {cid} is missing from capabilities")
+        for cid, drive in declared_out.items():
+            if cid not in outputs:
+                _fail(f"capabilities output {cid} is not declared in outputs")
+            if drive != outputs[cid]["drive"]:
+                _fail(f"capabilities output {cid} has drive {drive}, outputs declares {outputs[cid]['drive']}")
+        for cid in outputs:
+            if cid not in declared_out:
+                _fail(f"outputs {cid} is missing from capabilities")
+
+        template = copy.deepcopy(decl)
+        template_channels = template["channels"]
+        everything = [ch for ch in template_channels.get("inputs", []) + template_channels.get("outputs", [])
+                      if isinstance(ch, dict)]
+        for slot, channel in enumerate(everything):
+            channel["neurons"] = [slot]
+        decl = template
+    try:
+        validate_capabilities_v5(decl, math.inf, subject="config")
+    except ValueError as error:
+        _fail(str(error))
+
+
+def validate_forager_v2(config):
+    """Raise E-CONFIG for an invalid key or value, E-TRANSMITTER-SOURCE for an unreadable transmitterSource
+    column, and E-MODULATOR for a bad modulator (format 4, ADR 006 D14)."""
+    if not isinstance(config, dict):
+        _fail("config must be a JSON object")
+    unknown = sorted(set(config) - FORAGER_KEYS_V2)
+    if unknown:
+        _fail(f"unknown key: {unknown[0]}")
+    missing = sorted((FORAGER_KEYS_V2 - FORAGER_KEYS_V2_OPTIONAL) - set(config))
+    if missing:
+        _fail(f"missing key: {missing[0]}")
+
+    if config["formatVersion"] != 4 or config["kind"] != "forager":
+        _fail('formatVersion 4 with kind "forager" is required')
+    if not isinstance(config["datasetRelease"], str) or not config["datasetRelease"]:
+        _fail("datasetRelease must be a non-empty string")
+    if config["edgeVariant"] != "traced-only":
+        _fail("edgeVariant must be traced-only")
+
+    _check_keys(config["expect"], "expect", EXPECT_KEYS)
+    for key in sorted(EXPECT_KEYS):
+        if not _is_int(config["expect"][key]) or config["expect"][key] < 0:
+            _fail(f"expect.{key} must be an integer ≥ 0")
+
+    signs = config["transmitterSign"]
+    if not isinstance(signs, dict) or not signs:
+        _fail("transmitterSign must be a non-empty object")
+    for transmitter, sign in signs.items():
+        if not _is_int(sign) or sign not in SIGNS:
+            _fail(f"transmitterSign value for {transmitter} must be 1 or -1")
+
+    source = config["transmitterSource"]
+    if not _is_str_list(source):
+        raise ExtractError("E-TRANSMITTER-SOURCE", "transmitterSource must be a non-empty list of column names")
+    for column in source:
+        if column not in TRANSMITTER_SOURCE_COLUMNS:
+            raise ExtractError("E-TRANSMITTER-SOURCE", f"transmitterSource names an unreadable column: {column}")
+
+    confidence = config["minConfidence"]
+    if not _is_number(confidence) or not 0 <= confidence <= 1:
+        _fail("minConfidence must be a number in [0, 1]")
+
+    inputs = config["inputs"]
+    if not isinstance(inputs, dict) or not inputs:
+        _fail("inputs must be a non-empty object")
+    for name, spec in inputs.items():
+        if not isinstance(spec, dict):
+            _fail(f"inputs.{name} must be an object")
+        unknown = sorted(set(spec) - INPUT_KEYS_V2)
+        if unknown:
+            _fail(f"unknown key in inputs.{name}: {unknown[0]}")
+        if spec.get("rootSide") not in ("L", "R"):
+            _fail(f'inputs.{name}.rootSide must be "L" or "R"')
+        if "class" in spec and not (isinstance(spec["class"], str) and spec["class"]):
+            _fail(f"inputs.{name}.class must be a non-empty string")
+        if "entryNerve" in spec and not (isinstance(spec["entryNerve"], str) and spec["entryNerve"]):
+            _fail(f"inputs.{name}.entryNerve must be a non-empty string")
+        for key in ("types", "subclasses", "typePrefixes"):
+            if key in spec and not _is_str_list(spec[key]):
+                _fail(f"inputs.{name}.{key} must be a non-empty list of strings")
+
+    pathways = config["pathways"]
+    if not isinstance(pathways, dict) or not pathways:
+        _fail("pathways must be a non-empty object")
+    for pathway, members in pathways.items():
+        if not _is_str_list(members) or any(cid not in inputs for cid in members):
+            _fail(f"pathways.{pathway} must name declared inputs")
+
+    side = config["sideMatch"]
+    if not (isinstance(side, dict) and set(side) == set(pathways)
+            and all(isinstance(v, bool) for v in side.values())):
+        _fail("sideMatch must be an object with one boolean per pathway")
+
+    outputs = config["outputs"]
+    if not isinstance(outputs, dict) or not outputs:
+        _fail("outputs must be a non-empty object")
+    for name, spec in outputs.items():
+        if not isinstance(spec, dict):
+            _fail(f"outputs.{name} must be an object")
+        unknown = sorted(set(spec) - OUTPUT_KEYS)
+        if unknown:
+            _fail(f"unknown key in outputs.{name}: {unknown[0]}")
+        if not _is_str_list(spec.get("types")):
+            _fail(f"outputs.{name}.types must be a non-empty list of strings")
+        if spec.get("drive") not in FORAGER_DRIVES_V2:
+            _fail(f"outputs.{name}.drive must be one of {', '.join(FORAGER_DRIVES_V2)}")
+        if "somaSide" in spec and spec["somaSide"] not in ("L", "R"):
+            _fail(f'outputs.{name}.somaSide must be "L" or "R"')
+
+    _check_forager_capabilities_v2(config["capabilities"], inputs, outputs)
+
+    output_groups = config["outputGroups"]
+    if not isinstance(output_groups, dict) or not output_groups:
+        _fail("outputGroups must be a non-empty object")
+    for group, members in output_groups.items():
+        if not _is_str_list(members) or any(cid not in outputs for cid in members):
+            _fail(f"outputGroups.{group} must name declared outputs")
+
+    steps = config["flowSteps"]
+    if not _is_int(steps) or not 1 <= steps <= 30:
+        _fail("flowSteps must be an integer from 1 to 30")
+
+    budget = config["budget"]
+    if not (isinstance(budget, dict) and set(budget) == {"perPair"}
+            and _is_int(budget["perPair"]) and budget["perPair"] > 0):
+        _fail("budget must be an object with a positive integer perPair")
+
+    anchors = config["anchors"]
+    if not isinstance(anchors, list):
+        _fail("anchors must be a list")
+    for index, anchor in enumerate(anchors):
+        if not (isinstance(anchor, dict) and anchor and all(isinstance(k, str) for k in anchor)):
+            _fail(f"anchors[{index}] must be a non-empty object")
+
+    if not _is_str_list(config["excludeInterneuronClasses"], allow_empty=True):
+        _fail("excludeInterneuronClasses must be a list of strings")
+    suffix = config.get("excludeInterneuronSuperclassSuffix", "")
+    if not isinstance(suffix, str):
+        _fail("excludeInterneuronSuperclassSuffix must be a string")
+
+    if config["weightRule"] not in ("synapseCount", "postFraction", "postFractionAbsolute"):
+        _fail('weightRule must be "synapseCount", "postFraction" or "postFractionAbsolute"')
+    min_synapses = config.get("minSynapses", 1)
+    if not _is_int(min_synapses) or min_synapses < 1:
+        _fail("minSynapses must be a positive integer")
+
+    _check_modulators(config["modulators"], inputs)
+
+    bounds = config["neuronCountRange"]
+    if not (isinstance(bounds, list) and len(bounds) == 2 and all(_is_int(b) and b >= 0 for b in bounds)
+            and bounds[0] <= bounds[1]):
+        _fail("neuronCountRange must be [min, max] with min ≤ max")
+
+
 def load_config(path):
-    """Read, parse and validate the config file. Returns the config dict, format 2 or format 3."""
+    """Read, parse and validate the config file. Returns the config dict, format 2, 3 or 4."""
     try:
         with open(path, "r", encoding="utf-8") as handle:
             config = json.load(handle)
@@ -346,7 +529,10 @@ def load_config(path):
         _fail(f"config file not found: {path}")
     except json.JSONDecodeError as error:
         _fail(f"malformed JSON in {path}: {error}")
-    if format_of(config) == "forager":
+    kind = format_of(config)
+    if kind == "forager" and config.get("formatVersion") == 4:
+        validate_forager_v2(config)
+    elif kind == "forager":
         validate_forager(config)
     else:
         validate(config)

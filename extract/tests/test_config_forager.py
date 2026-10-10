@@ -89,6 +89,9 @@ class ConfigForagerTest(unittest.TestCase):
     def test_dispatch_pairs(self):
         self.assertEqual(format_of({"formatVersion": 2}), "small")
         self.assertEqual(format_of({"formatVersion": 3, "kind": "forager"}), "forager")
+        # format 4 (ADR 006, container v5) dispatches to "forager" too (research.md R2): the drive count, not
+        # `kind`, tells the two forager generations apart.
+        self.assertEqual(format_of({"formatVersion": 4, "kind": "forager"}), "forager")
 
     def test_other_pairs_name_the_key(self):
         with self.assertRaises(ExtractError) as caught:
@@ -102,7 +105,7 @@ class ConfigForagerTest(unittest.TestCase):
             format_of({"formatVersion": 3, "kind": "tank"})
         self.assertIn("kind", caught.exception.message)
         with self.assertRaises(ExtractError) as caught:
-            format_of({"formatVersion": 4, "kind": "forager"})
+            format_of({"formatVersion": 5, "kind": "forager"})
         self.assertIn("formatVersion", caught.exception.message)
 
     def test_base_config_is_valid(self):

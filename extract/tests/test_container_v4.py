@@ -126,12 +126,13 @@ class ContainerV4RoundTripTest(unittest.TestCase):
             read_container(data)
         self.assertEqual(str(caught.exception), message)
 
-    def test_unknown_version_names_both_supported_versions(self):
+    def test_unknown_version_names_all_supported_versions(self):
+        # Version 5 (ADR 006, container-v5.md) is now a supported version; 6 is not.
         data = raw_container(self.header, self.brain)
-        bad = data[:4] + struct.pack("<I", 5) + data[8:]
+        bad = data[:4] + struct.pack("<I", 6) + data[8:]
         with self.assertRaises(ValueError) as caught:
             read_container(bad)
-        self.assertEqual(str(caught.exception), "unsupported snapshot version 5; this build supports 3 and 4")
+        self.assertEqual(str(caught.exception), "unsupported snapshot version 6; this build supports 3, 4 and 5")
 
     def test_unknown_kind_is_refused(self):
         bad = copy.deepcopy(self.header)

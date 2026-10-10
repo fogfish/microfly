@@ -18,7 +18,12 @@ EDGES = "connectome-weights-male-cns-v1.0-minconf-0.5-traced-only.feather"
 ANNOTATION_COLUMNS = ["bodyId", "class", "superclass", "somaSide", "somaLocation", "status", "type"]
 # The forager pools (ADR 003 D1) filter on the side and subclass of a body, and receptorType is recorded.
 FORAGER_ANNOTATION_COLUMNS = ANNOTATION_COLUMNS + ["rootSide", "subclass", "receptorType"]
+# ADR 006 D8: taste-leg and touch pools additionally filter on the entry nerve (front-leg: ProLN).
+FORAGER_ANNOTATION_COLUMNS_V2 = FORAGER_ANNOTATION_COLUMNS + ["entryNerve"]
 NEUROTRANSMITTER_COLUMNS = ["body", "predicted_nt", "predicted_nt_confidence"]
+# ADR 006 D10: the transmitter-source fallback order reads ground_truth and consensus_nt beside predicted_nt.
+NEUROTRANSMITTER_COLUMNS_V2 = NEUROTRANSMITTER_COLUMNS + ["ground_truth", "consensus_nt"]
+TRANSMITTER_SOURCE_COLUMNS = ("ground_truth", "consensus_nt", "predicted_nt")
 EDGE_COLUMNS = ["body_pre", "body_post", "weight"]
 
 
@@ -77,8 +82,8 @@ def load_annotations(directory, columns=ANNOTATION_COLUMNS):
     return load_rows(dataset_path(directory, ANNOTATIONS), columns)
 
 
-def load_neurotransmitters(directory):
-    return load_rows(dataset_path(directory, NEUROTRANSMITTERS), NEUROTRANSMITTER_COLUMNS)
+def load_neurotransmitters(directory, columns=NEUROTRANSMITTER_COLUMNS):
+    return load_rows(dataset_path(directory, NEUROTRANSMITTERS), columns)
 
 
 def stream_edges(directory, admitted_ids):

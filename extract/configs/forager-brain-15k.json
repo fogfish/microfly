@@ -1,0 +1,192 @@
+{
+  "formatVersion": 4,
+  "kind": "forager",
+  "datasetRelease": "male-cns-v1.0",
+  "edgeVariant": "traced-only",
+  "expect": {
+    "annotationRows": 211577,
+    "edgeRows": 25563197,
+    "neurotransmitterRows": 1835518
+  },
+  "transmitterSign": {
+    "acetylcholine": 1,
+    "gaba": -1,
+    "glutamate": -1
+  },
+  "transmitterSource": ["ground_truth", "consensus_nt", "predicted_nt"],
+  "minConfidence": 0.5,
+  "inputs": {
+    "odour-food-left": {
+      "class": "olfactory",
+      "types": ["ORN_DM1", "ORN_DM2", "ORN_DM4", "ORN_VA2", "ORN_VM2", "ORN_DP1m"],
+      "rootSide": "L"
+    },
+    "odour-food-right": {
+      "class": "olfactory",
+      "types": ["ORN_DM1", "ORN_DM2", "ORN_DM4", "ORN_VA2", "ORN_VM2", "ORN_DP1m"],
+      "rootSide": "R"
+    },
+    "odour-danger-left": {
+      "class": "olfactory",
+      "types": ["ORN_V", "ORN_DA2"],
+      "rootSide": "L"
+    },
+    "odour-danger-right": {
+      "class": "olfactory",
+      "types": ["ORN_V", "ORN_DA2"],
+      "rootSide": "R"
+    },
+    "heat-left": {
+      "class": "thermosensory",
+      "types": ["TRN_VP2"],
+      "rootSide": "L"
+    },
+    "heat-right": {
+      "class": "thermosensory",
+      "types": ["TRN_VP2"],
+      "rootSide": "R"
+    },
+    "taste-mouth-left": {
+      "class": "gustatory",
+      "subclasses": ["labellar bristle", "taste peg"],
+      "rootSide": "L"
+    },
+    "taste-mouth-right": {
+      "class": "gustatory",
+      "subclasses": ["labellar bristle", "taste peg"],
+      "rootSide": "R"
+    },
+    "taste-leg-left": {
+      "class": "gustatory",
+      "subclasses": ["leg bristle"],
+      "entryNerve": "ProLN",
+      "rootSide": "L"
+    },
+    "taste-leg-right": {
+      "class": "gustatory",
+      "subclasses": ["leg bristle"],
+      "entryNerve": "ProLN",
+      "rootSide": "R"
+    },
+    "touch-left": {
+      "class": "mechanosensory_tactile",
+      "entryNerve": "ProLN",
+      "rootSide": "L"
+    },
+    "touch-right": {
+      "class": "mechanosensory_tactile",
+      "entryNerve": "ProLN",
+      "rootSide": "R"
+    }
+  },
+  "sideMatch": {
+    "odour-food": true,
+    "odour-danger": true,
+    "heat": true,
+    "taste-mouth": false,
+    "taste-leg": false,
+    "touch": true
+  },
+  "outputs": {
+    "turn-left": {
+      "types": ["DNa01", "DNa02"],
+      "somaSide": "L",
+      "drive": "turnLeft"
+    },
+    "turn-right": {
+      "types": ["DNa01", "DNa02"],
+      "somaSide": "R",
+      "drive": "turnRight"
+    },
+    "forward": {
+      "types": ["DNp09", "DNg100"],
+      "drive": "forward"
+    },
+    "backward": {
+      "types": ["MDN"],
+      "drive": "backward"
+    },
+    "feed": {
+      "types": ["MN9"],
+      "drive": "feed"
+    },
+    "escape": {
+      "types": ["DNp01"],
+      "drive": "escape"
+    }
+  },
+  "pathways": {
+    "odour-food": ["odour-food-left", "odour-food-right"],
+    "odour-danger": ["odour-danger-left", "odour-danger-right"],
+    "heat": ["heat-left", "heat-right"],
+    "taste-mouth": ["taste-mouth-left", "taste-mouth-right"],
+    "taste-leg": ["taste-leg-left", "taste-leg-right"],
+    "touch": ["touch-left", "touch-right"]
+  },
+  "outputGroups": {
+    "turn": ["turn-left", "turn-right"],
+    "forward": ["forward"],
+    "backward": ["backward"],
+    "feed": ["feed"],
+    "escape": ["escape"]
+  },
+  "flowSteps": 6,
+  "budget": {
+    "perPair": 2400
+  },
+  "anchors": [
+    { "class": "ALLN" }
+  ],
+  "excludeInterneuronClasses": [
+    "olfactory", "gustatory", "hygrosensory", "thermosensory", "mechanosensory",
+    "mechanosensory_tactile", "mechanosensory_proprioceptive", "chemosensory",
+    "unknown_sensory", "Kenyon_Cell"
+  ],
+  "excludeInterneuronSuperclassSuffix": "_sensory",
+  "weightRule": "synapseCount",
+  "minSynapses": 1,
+  "modulators": [
+    {
+      "id": "hunger",
+      "label": "Hunger",
+      "range": [0, 1],
+      "gain": [0.5, 1.5],
+      "targets": ["odour-food-left", "odour-food-right"]
+    },
+    {
+      "id": "hunger-taste",
+      "label": "Hunger taste",
+      "source": "hunger",
+      "gain": [0.1, 1.5],
+      "targets": ["taste-mouth-left", "taste-mouth-right", "taste-leg-left", "taste-leg-right"]
+    }
+  ],
+  "capabilities": {
+    "signals": ["spikes"],
+    "channels": {
+      "inputs": [
+        {"id": "odour-food-left", "label": "Odour food left", "side": "L", "sense": "odour:food", "site": "antenna", "range": [0, 1]},
+        {"id": "odour-food-right", "label": "Odour food right", "side": "R", "sense": "odour:food", "site": "antenna", "range": [0, 1]},
+        {"id": "odour-danger-left", "label": "Odour danger left", "side": "L", "sense": "odour:danger", "site": "antenna", "range": [0, 1]},
+        {"id": "odour-danger-right", "label": "Odour danger right", "side": "R", "sense": "odour:danger", "site": "antenna", "range": [0, 1]},
+        {"id": "heat-left", "label": "Heat left", "side": "L", "sense": "heat", "site": "antenna", "range": [0, 1]},
+        {"id": "heat-right", "label": "Heat right", "side": "R", "sense": "heat", "site": "antenna", "range": [0, 1]},
+        {"id": "taste-mouth-left", "label": "Taste mouth left", "side": "L", "sense": "taste:mouth", "site": "mouth", "range": [0, 1]},
+        {"id": "taste-mouth-right", "label": "Taste mouth right", "side": "R", "sense": "taste:mouth", "site": "mouth", "range": [0, 1]},
+        {"id": "taste-leg-left", "label": "Taste leg left", "side": "L", "sense": "taste:leg", "site": "front-leg", "range": [0, 1]},
+        {"id": "taste-leg-right", "label": "Taste leg right", "side": "R", "sense": "taste:leg", "site": "front-leg", "range": [0, 1]},
+        {"id": "touch-left", "label": "Touch left", "side": "L", "sense": "touch", "site": "front-leg", "range": [0, 1]},
+        {"id": "touch-right", "label": "Touch right", "side": "R", "sense": "touch", "site": "front-leg", "range": [0, 1]}
+      ],
+      "outputs": [
+        {"id": "turn-left", "label": "Turn left", "side": "L", "range": [0, 1], "drive": "turnLeft"},
+        {"id": "turn-right", "label": "Turn right", "side": "R", "range": [0, 1], "drive": "turnRight"},
+        {"id": "forward", "label": "Forward", "side": "both", "range": [0, 1], "drive": "forward"},
+        {"id": "backward", "label": "Backward", "side": "both", "range": [0, 1], "drive": "backward"},
+        {"id": "feed", "label": "Feed", "side": "both", "range": [0, 1], "drive": "feed"},
+        {"id": "escape", "label": "Escape", "side": "both", "range": [0, 1], "drive": "escape"}
+      ]
+    }
+  },
+  "neuronCountRange": [12000, 18000]
+}

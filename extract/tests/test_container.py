@@ -126,11 +126,12 @@ class ContainerTest(unittest.TestCase):
 
     def test_rejects_version_2(self):
         bad = self.data[:4] + struct.pack("<I", 2) + self.data[8:]
-        self.assertRejects(bad, "unsupported snapshot version 2; this build supports 3 and 4")
+        self.assertRejects(bad, "unsupported snapshot version 2; this build supports 3, 4 and 5")
 
-    def test_rejects_version_5(self):
-        bad = self.data[:4] + struct.pack("<I", 5) + self.data[8:]
-        self.assertRejects(bad, "unsupported snapshot version 5; this build supports 3 and 4")
+    def test_rejects_version_6(self):
+        # Version 5 (ADR 006, container-v5.md) is now a supported version; 6 is not.
+        bad = self.data[:4] + struct.pack("<I", 6) + self.data[8:]
+        self.assertRejects(bad, "unsupported snapshot version 6; this build supports 3, 4 and 5")
 
     def test_round_trips_capabilities(self):
         self.assertEqual(read_container(self.data)["header"]["capabilities"], CAPABILITIES)

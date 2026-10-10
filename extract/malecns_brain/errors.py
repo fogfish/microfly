@@ -2,6 +2,9 @@
 
 Forager codes (ADR 003 D7, contracts/extract-config-forager.md): E-POOL-EMPTY, E-SIDE-IMBALANCE,
 E-OUTPUT-UNREACHED, E-NODE-RANGE, E-MODULATOR. ADR 002 codes are unchanged.
+
+Forager v2 codes (ADR 006 D14, contracts/extract-config-forager-v2.md): E-POOL-OVERLAP, E-ANCHOR-EMPTY,
+E-TRANSMITTER-SOURCE, E-PAIR-EMPTY.
 """
 
 

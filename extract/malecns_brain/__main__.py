@@ -13,12 +13,13 @@ import numpy as np
 
 from . import __version__
 from . import dataset
-from .admission import admit_forager
+from .admission import admit_forager, admit_forager_v2
 from .config import config_hash, format_of, load_config
 from .container import write_container
 from .errors import ExtractError
 from .selection import admit, select_brain
 from .selection_forager import select_forager
+from .selection_forager_v2 import select_forager_v2
 
 
 def build_header(config, brain, created_at):
@@ -60,6 +61,34 @@ def build_header_forager(config, brain, created_at):
         "kind": config["kind"],
         "synapseCap": config["synapseCap"],
         "weightRule": config["weightRule"],
+        "neuronCount": len(brain["neurons"]),
+        "edgeCount": brain["edgeCount"],
+        "neurons": brain["neurons"],
+        "capabilities": capabilities,
+        "modulators": config["modulators"],
+    }
+
+
+def build_header_forager_v2(config, brain, created_at):
+    """The version 5 container header (container-v5.md) for the ADR 006 brain. The channels of the declaration get
+    the neuron indices of their pools; the config declares them without neurons."""
+    capabilities = copy.deepcopy(config["capabilities"])
+    for channel in capabilities["channels"]["inputs"] + capabilities["channels"]["outputs"]:
+        channel["neurons"] = brain["pools"][channel["id"]]
+    return {
+        "provenance": {
+            "datasetRelease": config["datasetRelease"],
+            "edgeVariant": config["edgeVariant"],
+            "minConfidence": config["minConfidence"],
+            "configHash": config_hash(config),
+            "toolVersion": __version__,
+            "createdAt": created_at,
+            "positionSource": "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation",
+        },
+        "kind": config["kind"],
+        "weightRule": config["weightRule"],
+        "minSynapses": config.get("minSynapses", 1),
+        "anchors": config["anchors"],
         "neuronCount": len(brain["neurons"]),
         "edgeCount": brain["edgeCount"],
         "neurons": brain["neurons"],
@@ -143,6 +172,71 @@ def report_forager(config, brain, output, size, self_check):
     return "\n".join(lines)
 
 
+def report_forager_v2(config, brain, output, size, self_check):
+    """Per pool and per pair-grid cell: counts, admission-source breakdown, edges into each output, weight range
+    and the self-check (contracts/extract-config-forager-v2.md)."""
+    neurons = brain["neurons"]
+    pools = brain["pools"]
+    incoming = np.bincount(brain["targets"].astype(np.int64), minlength=len(neurons))
+    source_counts = {}
+    for n in neurons:
+        source_counts[n["transmitterSource"]] = source_counts.get(n["transmitterSource"], 0) + 1
+    lines = [
+        f"dataset        {config['datasetRelease']} ({config['edgeVariant']}), forager kind (15K)",
+        f"neurons        {len(neurons)}   (inputs {sum(1 for n in neurons if n['role'] == 'input')}, "
+        f"outputs {sum(1 for n in neurons if n['role'] == 'output')}, "
+        f"interneurons {sum(1 for n in neurons if n['role'] == 'interneuron')})",
+        f"edges          {brain['edgeCount']}",
+        "admission source   " + ", ".join(f"{k} {v}" for k, v in sorted(source_counts.items())),
+        "pools:",
+    ]
+    for cid in pools:
+        lines.append(f"  {cid:<20} {len(pools[cid]):>5} neurons, {int(sum(incoming[pools[cid]])):>7} edges in")
+    pairs = len(config["pathways"]) * len(config["outputGroups"])
+    lines.append(f"pair budget fill   (pathway × outputGroup) {pairs} pairs, perPair {config['budget']['perPair']}")
+    lines.append("edges into outputs: " + ", ".join(
+        f"{cid} {int(sum(incoming[pools[cid]]))}" for cid in config["outputs"]))
+    weights = brain["weights"]
+    synapses = brain["synapses"]
+    lines += [
+        f"weights        {config['weightRule']}, minSynapses {config.get('minSynapses', 1)}; "
+        f"min {float(weights.min()):g}, max {float(weights.max()):g}; "
+        f"synapses min {int(synapses.min())}, max {int(synapses.max())}",
+        f"output         {output} ({size} bytes)",
+        f"self-check     {self_check}",
+    ]
+    return "\n".join(lines)
+
+
+def extract_forager_v2(config, dataset_dir, out_path):
+    """The ADR 006 forager brain (format 4): six-sense pools, the pathway × output-group pair grid, synapseCount
+    weights, container version 5."""
+    dataset.check_files(dataset_dir)
+    dataset.check_rows(dataset_dir, config["expect"])
+
+    annotations = dataset.load_annotations(dataset_dir, dataset.FORAGER_ANNOTATION_COLUMNS_V2)
+    transmitters = dataset.load_neurotransmitters(dataset_dir, dataset.NEUROTRANSMITTER_COLUMNS_V2)
+    pool_types = {t for spec in config["outputs"].values() for t in spec["types"]}
+    bodies = admit_forager_v2(annotations, transmitters, config, pool_types)
+    if not bodies:
+        raise ExtractError("E-POOL-EMPTY", "no body is admitted")
+    edges = dataset.stream_edges(dataset_dir, sorted(bodies))
+
+    brain = select_forager_v2(config, bodies, edges)
+
+    # Self-check (as every other kind): a second run must match byte for byte, except provenance.createdAt.
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    header = build_header_forager_v2(config, brain, created_at)
+    again = select_forager_v2(config, bodies, edges)
+    again_header = build_header_forager_v2(config, again, created_at)
+    if not (_same_body(brain, again) and _same_header(header, again_header)):
+        raise ExtractError("E-NONDETERMINISTIC", "the second selection run differs from the first")
+
+    size = write_container(out_path, header, brain["offsets"], brain["targets"],
+                           brain["weights"], brain["synapses"])
+    return report_forager_v2(config, brain, out_path, size, "identical")
+
+
 def extract_forager(config, dataset_dir, out_path):
     """The forager kind (ADR 003): pools, side matching, flow ranking, weights, container version 4."""
     dataset.check_files(dataset_dir)
@@ -174,6 +268,8 @@ def extract_forager(config, dataset_dir, out_path):
 def extract(config_path, dataset_dir, out_path):
     config = load_config(config_path)
     if format_of(config) == "forager":
+        if config.get("formatVersion") == 4:
+            return extract_forager_v2(config, dataset_dir, out_path)
         return extract_forager(config, dataset_dir, out_path)
     dataset.check_files(dataset_dir)
     dataset.check_rows(dataset_dir, config["expect"])
