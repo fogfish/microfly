@@ -9,6 +9,8 @@ export const FOOD_DEFAULTS = Object.freeze({
   eatSpeed: 0.5, feedThreshold: 0.5, stock: 1.0, consumeRate: 0.2, regrowth: 0.02, sated: 0.9,
 });
 export const ANTENNA_OFFSET_DEFAULT = 0.5;
+// ADR 006 W8: escape defaults, used only when a v2 world declares flies.body.escape.
+export const BODY_ESCAPE_DEFAULTS = Object.freeze({ threshold: 0.5, distance: 1.5, cooldown: 2 });
 
 export function resolveFlies(config) {
   const f = config.flies;
@@ -27,9 +29,15 @@ export function resolveFlies(config) {
       maxSpeed: f.body.maxSpeed,
       turnRate: f.body.turnRate,
       energy: { ...ENERGY_DEFAULTS, ...f.body.energy },
+      // ADR 006 W7/W8: declared only by a v2 world; absent for mock/v0/v1 (no default forced on them).
+      ...(f.body.sites !== undefined ? { sites: { ...f.body.sites } } : {}),
+      ...(f.body.escape !== undefined ? { escape: { ...BODY_ESCAPE_DEFAULTS, ...f.body.escape } } : {}),
     },
     food: { ...FOOD_DEFAULTS, ...f.food },
     stimulus: { resting: 0, antennaOffset: ANTENNA_OFFSET_DEFAULT, ...f.stimulus },
+    // ADR 006 W6: flies.stimuli (plural), declared only by a v2 world; v1's flies.stimulus (singular) is
+    // untouched above.
+    ...(f.stimuli !== undefined ? { stimuli: { ...f.stimuli } } : {}),
     brain: resolveBrain(mode, f.brain),
     experiment: {
       seeds: f.experiment?.seeds ?? [f.seed ?? config.seed],
@@ -45,11 +53,15 @@ function resolveBrain(mode, brain) {
   if (mode !== 'toy') return null;
   const version = resolveBrainVersion(brain);
   if (brain?.snapshot === undefined) return { ...BRAIN_DEFAULTS, ...brain, version };
-  return {
+  const resolved = {
     motorSmoothing: BRAIN_DEFAULTS.motorSmoothing,
     ...brain,
     version,
   };
+  // L9 (ADR 006): brain.input, declared only by a v2 world; "current" (today's constant-drive behaviour) is
+  // the default encoding for v1 and v2 alike when absent.
+  if (version === 'v2') resolved.input = { encoding: 'current', ...brain.input };
+  return resolved;
 }
 
 // The brain stack for a brain section (contracts/world-config-forager.md). Absent version: "mock" when there is

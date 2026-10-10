@@ -197,48 +197,48 @@ declared-sense/body-site/escape machinery the world needs to drive it.
 
 ### World, body and declared senses (JS)
 
-- [ ] T036 Add `resolveDeclaredStimulus(sense, site, fliesStimuli, bodySites)` to `public/js/fly/stimulus.js`:
+- [X] T036 Add `resolveDeclaredStimulus(sense, site, fliesStimuli, bodySites)` to `public/js/fly/stimulus.js`:
   looks up `fliesStimuli[sense]`'s source objects, `kinds`/`radius` filter and falloff shape, and `bodySites`'s
   offset for `site`, reusing the existing `falloff()` unchanged. `senseBilateral`/`senseAt` (v0/v1) are untouched.
-- [ ] T037 Add `resolveBodySites(flyBodyConfig)` to `public/js/fly/body.js`: resolves `antenna`/`mouth`/
+- [X] T037 Add `resolveBodySites(flyBodyConfig)` to `public/js/fly/body.js`: resolves `antenna`/`mouth`/
   `front-leg` sample points from `flies.body.sites` offsets (W7 — front-leg additionally offset laterally per
   side). `stepForagerBody` is untouched.
-- [ ] T038 Add `jumpForagerBody(fly, distance, world)` to `public/js/fly/body.js`: moves the fly `distance` tiles
+- [X] T038 Add `jumpForagerBody(fly, distance, world)` to `public/js/fly/body.js`: moves the fly `distance` tiles
   along its current heading in one tick, stopping at the first non-walkable cell (reusing the same walkability
   check existing moves use), per W8.
-- [ ] T039 Add `senseForagerFlyV2(fly, env)` to `public/js/fly/forager-step.js`: loops over the snapshot's
+- [X] T039 Add `senseForagerFlyV2(fly, env)` to `public/js/fly/forager-step.js`: loops over the snapshot's
   declared input channels (each with a `sense`/`site`), calling `resolveDeclaredStimulus` (T036) per channel to
   build the 12-value input vector generically — no positional constant, unlike the unchanged `senseForagerFly`.
-- [ ] T040 Extend `applyForagerMotor` in `public/js/fly/forager-step.js` with an escape branch: when
+- [X] T040 Extend `applyForagerMotor` in `public/js/fly/forager-step.js` with an escape branch: when
   `drives.escape` is above `flies.body.escape.threshold` and the fly's `escapeCooldownTicks` is `0`, call
   `jumpForagerBody(fly, flies.body.escape.distance, world)` (T038) and set `escapeCooldownTicks` from
   `flies.body.escape.cooldown`; otherwise decrement `escapeCooldownTicks` toward `0`.
-- [ ] T041 Extend `public/js/world/validate.js`: `BRAIN_VERSIONS` gains `'v2'` (error message lists all four);
+- [X] T041 Extend `public/js/world/validate.js`: `BRAIN_VERSIONS` gains `'v2'` (error message lists all four);
   validate `flies.stimuli` (every snapshot-declared `sense` with no matching key is a named error — FR-021);
   validate `flies.body.sites` (each site a finite offset) and `flies.body.escape` (`threshold`/`distance`/
   `cooldown` each "a positive number"); validate `brain.input.encoding` is `"current"` or `"poisson"`, and
   `"poisson"` requires `rate` (`[r0, r1]`, `0 ≤ r0 ≤ r1 ≤ 1`) and `weight` (a positive number); gate a `v2` brain's
   `lif` keys against `LIF_V1_DEFAULTS`, exactly as `v1` already is.
-- [ ] T042 Extend `public/js/fly/fly-config.js`: merge defaults for `body.sites`, `body.escape`, `stimuli`,
+- [X] T042 Extend `public/js/fly/fly-config.js`: merge defaults for `body.sites`, `body.escape`, `stimuli`,
   `brain.input` only when a world declares them (no change to `resolveBrainVersion` or to any `mock`/`v0`/`v1`
   default).
-- [ ] T043 Extend `public/js/fly/fly-world.js` to read `flies.stimuli`'s source declarations (both `edibles` and
+- [X] T043 Extend `public/js/fly/fly-world.js` to read `flies.stimuli`'s source declarations (both `edibles` and
   `dangers`) into the per-tick stimulus lookup table, alongside the existing flower-stock table.
-- [ ] T044 Extend `public/js/fly/fly-host.js`: dispatch `senseForagerFlyV2` (T039) and protocol-v3 for
+- [X] T044 Extend `public/js/fly/fly-host.js`: dispatch `senseForagerFlyV2` (T039) and protocol-v3 for
   `brain.version === 'v2'` (reusing the existing generic-by-declared-length sense/motor path); hold
   `escapeCooldownTicks` per fly; write a per-tick `escaped: boolean` telemetry flag for the panel (US8).
-- [ ] T045 [P] `tests/stimulus-declared.test.mjs`: `resolveDeclaredStimulus` resolves every one of the six senses
+- [X] T045 [P] `tests/stimulus-declared.test.mjs`: `resolveDeclaredStimulus` resolves every one of the six senses
   correctly from a test `flies.stimuli`/`flies.body.sites`; a snapshot channel naming an undeclared sense fails
   world start-up with a named error (not a silent zero).
-- [ ] T046 [P] `tests/body-escape.test.mjs`: `jumpForagerBody` moves the configured `distance`, stops at the first
+- [X] T046 [P] `tests/body-escape.test.mjs`: `jumpForagerBody` moves the configured `distance`, stops at the first
   non-walkable cell, and `applyForagerMotor`'s cooldown gate suppresses a second jump until `cooldown` elapses.
-- [ ] T047 [P] `tests/fly-config-brain-v2.test.mjs`: `resolveBrainVersion` is unaffected by this feature; `v2`
+- [X] T047 [P] `tests/fly-config-brain-v2.test.mjs`: `resolveBrainVersion` is unaffected by this feature; `v2`
   defaults merge correctly; a `v2`/non-v5-snapshot mismatch is refused, naming both versions.
-- [ ] T048 Create `public/world/world-forager-15k.json`: `flies.brain.version: "v2"`, `snapshot:
+- [X] T048 Create `public/world/world-forager-15k.json`: `flies.brain.version: "v2"`, `snapshot:
   "brains/forager-brain-15k.brain"`, `brain.input` (L9 encoding config), `flies.stimuli` (all six senses mapped
   onto the existing `edibles`/`dangers` world objects per `contracts/world-config-forager-v2.md`'s example),
   `flies.body.sites` (antenna/mouth/front-leg offsets), `flies.body.escape` (threshold/distance/cooldown).
-- [ ] T049 [P] Create `public/world/world-forager-15k-bad.json`: a copy of T048 with `flies.brain.version: "v2"`
+- [X] T049 [P] Create `public/world/world-forager-15k-bad.json`: a copy of T048 with `flies.brain.version: "v2"`
   pointed at `forager-brain.brain` (container v4, not v5) — the test fixture for T047/T066's mismatch-refusal
   check.
 

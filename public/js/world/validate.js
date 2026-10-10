@@ -15,7 +15,10 @@ const GROVE_MIN = 4;
 const GROVE_MAX = 12;
 const MAX_SPRITE_SIDE = 32;
 const SEED_MAX = 4294967295;
-const BRAIN_VERSIONS = ['mock', 'v0', 'v1'];
+const BRAIN_VERSIONS = ['mock', 'v0', 'v1', 'v2'];
+// ADR 006 W6: the six declared senses and the three declared body sites a v2 channel may name.
+const SENSES = ['odour:food', 'odour:danger', 'heat', 'taste:mouth', 'taste:leg', 'touch'];
+const BODY_SITES = ['antenna', 'mouth', 'front-leg'];
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -353,7 +356,15 @@ function validateFlies(flies, config, err) {
   validateFlyStimulus(flies.stimulus, edible, err);
 
   // The brain is ignored in baseline mode, so it is only checked for toy flies
-  if ((flies.mode ?? 'toy') === 'toy') validateFlyBrain(flies.brain, err);
+  const version = (flies.mode ?? 'toy') === 'toy' ? validateFlyBrain(flies.brain, err) : null;
+
+  // ADR 006 W6-W8: flies.stimuli, flies.body.sites, flies.body.escape — meaningful (and validated) only for a
+  // v2 brain; harmless when absent for mock/v0/v1, which never declare them.
+  if (version === 'v2') {
+    validateFlyStimuli(flies.stimuli, err);
+    validateFlyBodySites(flies.body?.sites, err);
+    validateFlyBodyEscape(flies.body?.escape, err);
+  }
 
   validateFlyExperiment(flies.experiment, err);
 }
@@ -444,6 +455,58 @@ function validateFlyStimulus(stimulus, edible, err) {
   }
 }
 
+// ADR 006 W6: flies.stimuli (plural), the declared-sense source map. Every sense a v2 snapshot's channels name
+// must have an entry here (checked against the brain's own declaration when it is available as a parsed
+// snapshot; the config-only check here validates shape and the `from`/`kinds`/`radius` fields).
+function validateFlyStimuli(stimuli, err) {
+  if (!isObject(stimuli)) {
+    err('flies.stimuli', 'must be an object mapping each declared sense to its source');
+    return;
+  }
+  for (const sense of Object.keys(stimuli)) {
+    if (!SENSES.includes(sense)) err(`flies.stimuli.${sense}`, `"${sense}" is not one of the six declared senses`);
+  }
+  for (const [sense, decl] of Object.entries(stimuli)) {
+    const path = `flies.stimuli.${sense}`;
+    if (!isObject(decl)) {
+      err(path, 'must be an object with "from"');
+      continue;
+    }
+    if (!['edibles', 'dangers', 'blocked'].includes(decl.from)) {
+      err(`${path}.from`, 'must be "edibles", "dangers" or "blocked"');
+    }
+    if (decl.kinds !== undefined && (!Array.isArray(decl.kinds) || decl.kinds.some((k) => typeof k !== 'string'))) {
+      err(`${path}.kinds`, 'must be a list of strings');
+    }
+    if (decl.radius !== undefined && !(isNum(decl.radius) && decl.radius > 0)) {
+      err(`${path}.radius`, 'must be a number greater than 0');
+    }
+  }
+}
+
+// ADR 006 W7: flies.body.sites, a forward offset per declared body site.
+function validateFlyBodySites(sites, err) {
+  if (!isObject(sites)) {
+    err('flies.body.sites', 'must be an object mapping each declared body site to a forward offset');
+    return;
+  }
+  for (const [site, offset] of Object.entries(sites)) {
+    if (!BODY_SITES.includes(site)) err(`flies.body.sites.${site}`, `"${site}" is not a declared body site`);
+    if (!isNum(offset)) err(`flies.body.sites.${site}`, 'must be a finite number');
+  }
+}
+
+// ADR 006 W8: flies.body.escape, the threshold/distance/cooldown of the escape jump.
+function validateFlyBodyEscape(escape, err) {
+  if (!isObject(escape)) {
+    err('flies.body.escape', 'must be an object with threshold, distance and cooldown');
+    return;
+  }
+  for (const key of ['threshold', 'distance', 'cooldown']) {
+    if (!(isNum(escape[key]) && escape[key] > 0)) err(`flies.body.escape.${key}`, 'must be a positive number');
+  }
+}
+
 function validateFlyBrain(brain, err) {
   if (brain === undefined) {
     err('flies.brain', 'is required when mode is "toy"');
@@ -454,11 +517,12 @@ function validateFlyBrain(brain, err) {
     return;
   }
 
-  // The version selects the brain stack (contracts/world-config-forager.md). Absent: mock, or v0 when a snapshot is given.
+  // The version selects the brain stack (contracts/world-config-forager.md, world-config-forager-v2.md).
+  // Absent: mock, or v0 when a snapshot is given.
   const snapshot = brain.snapshot;
   const isSnapshot = snapshot !== undefined;
   if (brain.version !== undefined && !BRAIN_VERSIONS.includes(brain.version)) {
-    err('flies.brain.version', 'must be "mock", "v0" or "v1"');
+    err('flies.brain.version', `must be one of ${BRAIN_VERSIONS.map((v) => `"${v}"`).join(', ')}`);
   }
   const version = BRAIN_VERSIONS.includes(brain.version) ? brain.version : (isSnapshot ? 'v0' : 'mock');
   if (version === 'mock' && isSnapshot) {
@@ -512,49 +576,78 @@ function validateFlyBrain(brain, err) {
     if (problem) err('flies.brain.capabilities', problem);
   }
 
-  // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1.
+  // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1 and v2
+  // (both run on lif-v1.js; v2 just gains groupGain, contracts/lif-v1-groupgain.md).
+  const usesLifV1 = version === 'v1' || version === 'v2';
   if (brain.stepsPerTick !== undefined) {
-    if (version !== 'v1') err('flies.brain.stepsPerTick', 'is only for version "v1"');
+    if (!usesLifV1) err('flies.brain.stepsPerTick', 'is only for version "v1" or "v2"');
     else if (!isInt(brain.stepsPerTick, 1, 20)) err('flies.brain.stepsPerTick', 'must be an integer from 1 to 20');
   }
 
   if (brain.lif !== undefined) {
     if (!isObject(brain.lif)) {
       err('flies.brain.lif', 'must be an object of LIF parameters');
-      return;
+      return version;
     }
-    const defaults = version === 'v1' ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
+    const defaults = usesLifV1 ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
     const entries = Object.entries(brain.lif);
     const unknown = entries.filter(([key]) => !Object.hasOwn(defaults, key));
     for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
 
-    // outputScale (BUG-002) may be a plain object keyed by output-channel id; every other key stays number-only.
-    let outputScaleShapeInvalid = false;
-    if (Object.hasOwn(brain.lif, 'outputScale') && isObject(brain.lif.outputScale)) {
-      for (const [channel, value] of Object.entries(brain.lif.outputScale)) {
-        if (!isNum(value)) {
-          err(`flies.brain.lif.outputScale.${channel}`, 'must be a number');
-          outputScaleShapeInvalid = true;
+    // outputScale (BUG-002) and groupGain (ADR 006 L10) may be plain objects keyed by channel/region id; every
+    // other key stays number-only.
+    let shapeInvalid = false;
+    for (const objectKey of ['outputScale', 'groupGain']) {
+      if (Object.hasOwn(brain.lif, objectKey) && isObject(brain.lif[objectKey])) {
+        for (const [name, value] of Object.entries(brain.lif[objectKey])) {
+          if (!isNum(value)) {
+            err(`flies.brain.lif.${objectKey}.${name}`, 'must be a number');
+            shapeInvalid = true;
+          }
         }
       }
     }
     const notNumbers = entries.filter(([key, value]) => {
       if (!Object.hasOwn(defaults, key)) return false;
-      if (key === 'outputScale' && isObject(value)) return false; // handled above
+      if ((key === 'outputScale' || key === 'groupGain') && isObject(value)) return false; // handled above
       return !isNum(value);
     });
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');
 
     // Range checks (dt > 0, vThreshold > vReset, ...) live in the engine (lif-v0.js, lif-v1.js), so they match it
-    if (unknown.length === 0 && notNumbers.length === 0 && !outputScaleShapeInvalid) {
+    if (unknown.length === 0 && notNumbers.length === 0 && !shapeInvalid) {
       try {
-        if (version === 'v1') resolveParamsV1(brain.lif);
+        if (usesLifV1) resolveParamsV1(brain.lif);
         else resolveParams(brain.lif);
       } catch (e) {
         err('flies.brain.lif', e.message);
       }
     }
   }
+
+  // L9 (ADR 006): brain.input, meaningful only for v2. "current" (the default) is today's constant-drive
+  // behaviour for every existing world; "poisson" needs rate ([r0, r1], 0 ≤ r0 ≤ r1 ≤ 1) and a positive weight.
+  if (brain.input !== undefined) {
+    if (version !== 'v2') err('flies.brain.input', 'is only for version "v2"');
+    else if (!isObject(brain.input)) {
+      err('flies.brain.input', 'must be an object with encoding');
+    } else {
+      const encoding = brain.input.encoding ?? 'current';
+      if (!['current', 'poisson'].includes(encoding)) {
+        err('flies.brain.input.encoding', 'must be "current" or "poisson"');
+      } else if (encoding === 'poisson') {
+        const rate = brain.input.rate;
+        const rateOk = Array.isArray(rate) && rate.length === 2 && rate.every(isNum)
+          && rate[0] >= 0 && rate[0] <= rate[1] && rate[1] <= 1;
+        if (!rateOk) err('flies.brain.input.rate', 'must be [r0, r1] with 0 ≤ r0 ≤ r1 ≤ 1');
+        if (!(isNum(brain.input.weight) && brain.input.weight > 0)) {
+          err('flies.brain.input.weight', 'must be a number greater than 0');
+        }
+      }
+    }
+  }
+
+  return version;
 }
 
 function validateFlyExperiment(experiment, err) {

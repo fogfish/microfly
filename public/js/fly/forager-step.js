@@ -3,8 +3,9 @@
 // worker and applies the motor reply; the experiment calls stepForagerFly with a synchronous brain.
 
 import * as P3 from '../brain/protocol-v3.js';
-import { stepForagerBody } from './body.js';
-import { senseBilateral } from './stimulus.js';
+import { jumpForagerBody, stepForagerBody } from './body.js';
+import { resolveDeclaredStimulus, senseBilateral } from './stimulus.js';
+import { dangerPoints } from './fly-world.js';
 import { canEat, closeBout, eat, hunger as hungerOf, metabolise, startBout, updateBout } from './energy.js';
 
 // env: forageEnv(...). f: the resolved flies section (tickHz, body, stimulus, food, energy).
@@ -28,13 +29,48 @@ export function forageEnv(f, world, flowers, capabilities) {
 }
 
 // The per-fly state a forager fly adds to the body (W1, W2): energy, the open bout, closed bouts, and the flags the
-// panel shows.
+// panel shows. escapeCooldownTicks and escaped (ADR 006 W8) are harmless no-ops for a v1 fly (no escape drive).
 export function initForagerFly(fly, initialEnergy) {
   fly.energy = initialEnergy;
   fly.bout = null;
   fly.bouts = [];
   fly.eating = false;
+  fly.escapeCooldownTicks = 0;
+  fly.escaped = false;
   return fly;
+}
+
+// ADR 006 W6: the env a v2 fly senses and moves through. capabilities is the snapshot's declaration (12 inputs,
+// 6 outputs); f.stimuli/f.body.sites/f.body.escape are the declared-sense/body-site/escape sections.
+export function forageEnvV2(f, world, flowers, capabilities) {
+  return {
+    dt: 1 / f.tickHz,
+    maxSpeed: f.body.maxSpeed,
+    turnRate: f.body.turnRate,
+    width: world.width,
+    height: world.height,
+    isWalkable: world.walkable,
+    isStimulusCell: world.isStimulusCell,
+    fliesStimuli: f.stimuli,
+    bodySites: f.body.sites,
+    escapeConfig: f.body.escape,
+    ediblePoints: () => flowers.points(),
+    dangerPoints: (kinds) => dangerPoints(world, kinds),
+    energyConfig: f.body.energy,
+    foodConfig: f.food,
+    flowers,
+    drives: capabilities.channels.outputs.map((ch) => ch.drive),
+    channels: capabilities.channels.inputs,
+  };
+}
+
+// The sense for a v2 tick (ADR 006 W6): one value per declared input channel, generic over however many senses
+// and sites the snapshot declares (no positional constant, unlike the four-input senseForagerFly above).
+export function senseForagerFlyV2(fly, env) {
+  const inputs = Float32Array.from(env.channels,
+    (ch) => resolveDeclaredStimulus(ch, fly.body, env.fliesStimuli, env.bodySites, env));
+  const hunger = hungerOf(fly.energy);
+  return { inputs, hunger, message: P3.sense({ tick: fly.tick, inputs, state: { hunger } }) };
 }
 
 // The sense for this tick: odour from two antenna samples (W3), and taste on a flower, both legs on the same cell.
@@ -67,6 +103,19 @@ export function applyForagerMotor(fly, motor, env) {
   const cy = Math.floor(fly.body.y);
   stepForagerBody(fly.body, drives, env);
 
+  // ADR 006 W8: escape is physics, gated by the brain's own escape output crossing a configured threshold
+  // outside cooldown — the world never decides to escape, it only supplies the threshold and the physics.
+  // escapeConfig is undefined for a v1 fly (its drives have no `escape` key either), so this is inert for v1.
+  if (fly.escapeCooldownTicks > 0) fly.escapeCooldownTicks--;
+  if (env.escapeConfig && drives.escape !== undefined
+      && drives.escape > env.escapeConfig.threshold && fly.escapeCooldownTicks <= 0) {
+    jumpForagerBody(fly.body, env.escapeConfig.distance, env);
+    fly.escapeCooldownTicks = Math.round(env.escapeConfig.cooldown / dt);
+    fly.escaped = true;
+  } else {
+    fly.escaped = false;
+  }
+
   const cell = flowers.cellOf(cx, cy);
   const stock = flowers.stockAt(cx, cy);
   const eating = canEat({ stock, speed: fly.body.speed, feed: drives.feed ?? 0 }, foodConfig);
@@ -95,6 +144,7 @@ export function applyForagerMotor(fly, motor, env) {
     energy: fly.energy,
     speed: fly.body.speed,
     eating,
+    escaped: fly.escaped,
     outputs: motor.outputs,
     spikes: motor.spikes,
     drives,
@@ -107,6 +157,15 @@ export function applyForagerMotor(fly, motor, env) {
 // messages and the history entry.
 export function stepForagerFly(fly, env, brain) {
   const { inputs, hunger, message: sense } = senseForagerFly(fly, env);
+  const out = brain.step({ inputs, hunger });
+  const motor = P3.motor({ tick: fly.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
+  const entry = applyForagerMotor(fly, motor, env);
+  return { sense, motor, entry };
+}
+
+// The v2 equivalent of stepForagerFly, used by the experiment script (scripts/compare-baseline.mjs).
+export function stepForagerFlyV2(fly, env, brain) {
+  const { inputs, hunger, message: sense } = senseForagerFlyV2(fly, env);
   const out = brain.step({ inputs, hunger });
   const motor = P3.motor({ tick: fly.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
   const entry = applyForagerMotor(fly, motor, env);

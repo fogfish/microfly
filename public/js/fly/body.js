@@ -50,6 +50,32 @@ function free(x, y, env) {
   return env.isWalkable(Math.floor(x), Math.floor(y));
 }
 
+// ADR 006 W7: the declared body sites (flies.body.sites), a forward offset per site name. Resolved once per
+// world; stimulus.js's sitePoint combines it with a fly's own position and heading.
+export function resolveBodySites(flyBodyConfig) {
+  return flyBodyConfig?.sites ?? {};
+}
+
+// ADR 006 W8: escape is physics, not a scripted move. Moves the body `distance` tiles along its current heading
+// in one tick (no turn), stopping at the first non-walkable cell, reusing the same walkability check every other
+// move already uses. Mutates and returns body.
+export function jumpForagerBody(body, distance, env) {
+  const dx = Math.cos(body.heading) * distance;
+  const dy = Math.sin(body.heading) * distance;
+  const next = pick(body.x, body.y, dx, dy, env);
+  body.x = next.x;
+  body.y = next.y;
+
+  const cx = Math.floor(body.x);
+  const cy = Math.floor(body.y);
+  const key = cellKey(cx, cy);
+  if (key !== body.cell) {
+    body.cell = key;
+    if (env.isStimulusCell(cx, cy)) body.contacts++;
+  }
+  return body;
+}
+
 // Forager motion (ADR 003 W4). The turn sign is fixed by the sign test in tests/forager-body.test.mjs: the fly's left
 // is (sin θ, −cos θ) (stimulus.js), and increasing the heading turns the fly right, so a turnLeft drive lowers it.
 export const FORAGER_TURN_SIGN = -1;

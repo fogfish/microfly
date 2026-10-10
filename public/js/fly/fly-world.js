@@ -27,10 +27,18 @@ export function buildWorld(config, logic) {
     }
   }
 
+  // ADR 006 W6: danger sources (spiders, lanterns), unconditional of flies.stimulus.objects (that list is
+  // edible-only). A v2 world's flies.stimuli declares which senses read which danger kinds.
+  const dangerCells = new Map();
+  for (let idx = 0; idx < logic.danger.length; idx++) {
+    const kind = logic.danger[idx];
+    if (kind !== null) dangerCells.set(idx, { kind });
+  }
+
   const walkable = (cx, cy) => blocked[cy * width + cx] === 0;
   const isStimulusCell = (cx, cy) => stimulusCells.has(cy * width + cx);
 
-  return { width, height, blocked, stimulusCells, walkable, isStimulusCell };
+  return { width, height, blocked, stimulusCells, dangerCells, walkable, isStimulusCell };
 }
 
 // The odour sources: [{x, y, reach}] cell centres of the stimulus cells, in tiles, with the reach in cells.
@@ -40,6 +48,19 @@ export function stimulusPoints(world) {
     y: Math.floor(idx / world.width) + 0.5,
     reach,
   }));
+}
+
+// Danger sources (ADR 006 W6): [{x, y, fraction}] cell centres in tiles, filtered by kind when `kinds` is given.
+// fraction is always 1 (dangers carry no stock); the declared radius is applied by the caller
+// (stimulus.js's resolveDeclaredStimulus), the same way v1's fixed `flies.stimulus.radius` is.
+export function dangerPoints(world, kinds) {
+  const wanted = kinds ? new Set(kinds) : null;
+  const out = [];
+  for (const [idx, d] of world.dangerCells) {
+    if (wanted && !wanted.has(d.kind)) continue;
+    out.push({ x: (idx % world.width) + 0.5, y: Math.floor(idx / world.width) + 0.5, fraction: 1 });
+  }
+  return out;
 }
 
 // Returns one FlyState per fly. Throws when a fly has no free cell after SPAWN_ATTEMPTS tries.

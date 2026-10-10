@@ -14,7 +14,7 @@ import { senseAt } from './stimulus.js';
 import { resolveFlies } from './fly-config.js';
 import { stimulusPoints } from './fly-world.js';
 import { createFood } from './food.js';
-import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
+import { applyForagerMotor, forageEnv, forageEnvV2, initForagerFly, senseForagerFly, senseForagerFlyV2 } from './forager-step.js';
 
 const HISTORY = 200;
 const NO_SPIKES = new Uint32Array(0);
@@ -74,16 +74,20 @@ function declarationOf(state, f, snapshot) {
 //              checks, neuronCount, activity, positions, drawn }
 export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
   const f = resolveFlies(config);
-  // The forager brain (version v1) runs on protocol 3. Its toy flies are the only ones that use the brain.
-  const forager = f.brain?.version === 'v1' && snapshot !== null;
+  // The forager brain (version v1 or v2) runs on protocol 3. Its toy flies are the only ones that use the brain.
+  const foragerVersion = f.brain?.version === 'v1' || f.brain?.version === 'v2' ? f.brain.version : null;
+  const forager = foragerVersion !== null && snapshot !== null;
   const brainLabel = forager
-    ? `v1 forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
+    ? `${foragerVersion} forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
     : snapshot
       ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
       : null;
   const points = stimulusPoints(world);
   const flowers = forager ? createFood(world, f) : null;
-  const forageEnvironment = forager ? forageEnv(f, world, flowers, snapshot.capabilities) : null;
+  const forageEnvironment = forager
+    ? (foragerVersion === 'v2' ? forageEnvV2(f, world, flowers, snapshot.capabilities)
+      : forageEnv(f, world, flowers, snapshot.capabilities))
+    : null;
   const env = {
     dt: 1 / f.tickHz,
     maxSpeed: f.body.maxSpeed,
@@ -239,7 +243,10 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
     }
     r.pending = true;
     if (r.forager) {
-      r.worker.postMessage(senseForagerFly(s, forageEnvironment).message);
+      const sense = foragerVersion === 'v2'
+        ? senseForagerFlyV2(s, forageEnvironment)
+        : senseForagerFly(s, forageEnvironment);
+      r.worker.postMessage(sense.message);
       return;
     }
     r.worker.postMessage(P.sense({ tick: s.tick, sensory: senseOf(s) }));
