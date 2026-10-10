@@ -5,6 +5,7 @@
 import { createFlyBrain } from './fly-brain.js';
 import { error, motor, ready, transferables, validateMessage } from './protocol.js';
 import * as P3 from './protocol-v3.js';
+import { checkBrainVersion } from './snapshot.js';
 
 const MISMATCH = 'brain version does not match the message protocol';
 
@@ -59,8 +60,10 @@ export function createWorkerCore() {
     }
   }
 
-  // Protocol 3: forager (v1) brains. The init checks the brain version against the snapshot, then the sense runs one
-  // brain tick and the reply is a protocol 3 motor.
+  // Protocol 3: forager (v1 and v2) brains. The init checks the brain version against the snapshot (research.md
+  // R7: generalised to whatever msg.brain.version names, via snapshot.js's own checkBrainVersion map, instead of
+  // hard-coding 'v1' and container version 4 — a pre-existing defect that would otherwise silently run a v2
+  // brain as v1). The sense then runs one brain tick and the reply is a protocol 3 motor.
   function handleV1(msg) {
     const failV3 = (id, tick, message) => {
       failed = true;
@@ -71,9 +74,13 @@ export function createWorkerCore() {
 
     switch (msg.type) {
       case 'init': {
-        if (msg.brain.snapshot?.version !== 4) return failV3(msg.flyId, null, MISMATCH);
         try {
-          brain = createFlyBrain({ ...msg.brain, version: 'v1' }, msg.seed);
+          checkBrainVersion(msg.brain.version, msg.brain.snapshot?.version);
+        } catch (e) {
+          return failV3(msg.flyId, null, e.message);
+        }
+        try {
+          brain = createFlyBrain(msg.brain, msg.seed);
         } catch (e) {
           return failV3(msg.flyId, null, e.message);
         }

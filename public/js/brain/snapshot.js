@@ -3,14 +3,16 @@
 // specs/008-hungry-forager-brain/contracts/container-v4.md (the forager brain). Both share the section code.
 // The rules and messages match extract/malecns_brain/container.py.
 
-import { validateCapabilities, validateCapabilitiesV4 } from './capabilities.js';
+import { validateCapabilities, validateCapabilitiesV4, validateCapabilitiesV5 } from './capabilities.js';
 
 const MAGIC = 'MFBR';
-const FORMAT_VERSIONS = [3, 4];
+const FORMAT_VERSIONS = [3, 4, 5];
 const PREFIX = 12;
 const ROLES = ['sensory', 'left', 'right'];
 const ID_PATTERN = /^[a-z][a-z0-9-]*$/;
 const SIGNS = [-1, 0, 1];
+const REGIONS = ['input', 'output', 'al', 'vnc', 'dn', 'central'];
+const TRANSMITTER_SOURCES = ['ground_truth', 'consensus_nt', 'predicted_nt'];
 const WEIGHT_TOLERANCE = 1e-6;
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 
@@ -39,9 +41,10 @@ export function sectionTable(headerLength, neuronCount, edgeCount) {
 }
 
 // The brain version a world asks for must match the container version of its snapshot (spec FR-003).
-// v0 reads version 3, v1 reads version 4. mock has no snapshot, so it is not checked.
+// v0 reads version 3, v1 reads version 4, v2 reads version 5 (ADR 006 W9). mock has no snapshot, so it is not
+// checked.
 export function checkBrainVersion(brainVersion, containerVersion, path = 'snapshot') {
-  const expected = { v0: 3, v1: 4 }[brainVersion];
+  const expected = { v0: 3, v1: 4, v2: 5 }[brainVersion];
   if (expected === undefined || expected === containerVersion) return;
   reject(`flies.brain.version "${brainVersion}" needs a version ${expected} snapshot; ${path} is version ${containerVersion}`);
 }
@@ -140,6 +143,27 @@ function checkForager(manifest, neuronCount) {
   checkModulators(manifest.modulators, inputIds);
 }
 
+// Version 5 header rules (contracts/container-v5.md, ADR 006 W9): kind, the three-value weight rule, the v5
+// declaration (R1–R11, including sense/site and the 6-value drive vocabulary), roles and signs, plus per-neuron
+// group (L10) and transmitterSource (D10).
+function checkForagerV2(manifest, neuronCount) {
+  if (manifest.kind !== 'forager') reject(`snapshot kind "${manifest.kind}" is not supported`);
+  if (!['synapseCount', 'postFraction', 'postFractionAbsolute'].includes(manifest.weightRule)) {
+    reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
+  }
+  const [capabilityError] = validateCapabilitiesV5(manifest.capabilities, neuronCount);
+  if (capabilityError) reject(capabilityError);
+  checkForagerNeurons(manifest.neurons, manifest.capabilities, neuronCount);
+  (manifest.neurons ?? []).forEach((neuron, i) => {
+    if (!REGIONS.includes(neuron.group)) reject(`snapshot neuron ${i} has an unknown group ${neuron.group}`);
+    if (!TRANSMITTER_SOURCES.includes(neuron.transmitterSource)) {
+      reject(`snapshot neuron ${i} has an unknown transmitterSource ${neuron.transmitterSource}`);
+    }
+  });
+  const inputIds = new Set(manifest.capabilities.channels.inputs.map((ch) => ch.id));
+  checkModulators(manifest.modulators, inputIds);
+}
+
 export function parseSnapshot(arrayBuffer) {
   const bytes = new Uint8Array(arrayBuffer);
   if (!LITTLE_ENDIAN) reject('brain snapshots need a little-endian platform');
@@ -150,7 +174,9 @@ export function parseSnapshot(arrayBuffer) {
   const view = new DataView(arrayBuffer);
   const version = view.getUint32(4, true);
   if (!FORMAT_VERSIONS.includes(version)) {
-    reject(`unsupported snapshot version ${version}; this build supports ${FORMAT_VERSIONS.join(' and ')}`);
+    const names = FORMAT_VERSIONS.map(String);
+    const listed = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    reject(`unsupported snapshot version ${version}; this build supports ${listed}`);
   }
 
   const headerLength = view.getUint32(8, true);
@@ -178,6 +204,8 @@ export function parseSnapshot(arrayBuffer) {
     checkPositions(neurons);
     const [capabilityError] = validateCapabilities(manifest.capabilities, neuronCount);
     if (capabilityError) reject(capabilityError);
+  } else if (version === 5) {
+    checkForagerV2(manifest, neuronCount);
   } else {
     checkForager(manifest, neuronCount);
   }
@@ -215,7 +243,9 @@ export function parseSnapshot(arrayBuffer) {
     if (!Number.isFinite(weights[k])) reject('snapshot CSR is inconsistent: a weight is not finite');
   }
   // Version 4 weights are postFraction (ADR 003 D4): the absolute input weights of a neuron sum to at most 1.
-  if (version === 4) {
+  // Version 5 carries the same invariant only for postFraction/postFractionAbsolute; synapseCount weights (D13)
+  // are sign × raw synapse count, unnormalised, so they are not checked (contracts/container-v5.md).
+  if (version === 4 || (version === 5 && manifest.weightRule !== 'synapseCount')) {
     const inflow = new Float64Array(neuronCount);
     for (let k = 0; k < edgeCount; k++) inflow[targets[k]] += Math.abs(weights[k]);
     if (inflow.some((sum) => sum > 1 + WEIGHT_TOLERANCE)) {

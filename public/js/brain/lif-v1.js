@@ -22,6 +22,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   noiseAmplitude: 0,      // half-width of a per-neuron, per-step uniform membrane noise term; 0 is a no-op (L7)
   noiseBulkScale: 1,      // noise multiplier for neurons outside the declared input pools; 1 is uniform noise (L7′)
   inhibitoryScale: 1,     // multiplier of every negative edge weight; 1 is a no-op (L8)
+  groupGain: {},          // map from region name to a non-negative gain on edges into that region; {} is a no-op (L10)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -63,6 +64,15 @@ export function resolveParams(overrides = {}) {
   }
   if (!(Number.isFinite(p.inhibitoryScale) && p.inhibitoryScale >= 0)) {
     throw new Error('LIF parameter "inhibitoryScale" must be 0 or more');
+  }
+  // L10: a plain object mapping region name to a non-negative gain; {} (the default) is a no-op.
+  if (typeof p.groupGain !== 'object' || p.groupGain === null || Array.isArray(p.groupGain)) {
+    throw new Error('LIF parameter "groupGain" must be a map of region name to a number 0 or more');
+  }
+  for (const value of Object.values(p.groupGain)) {
+    if (!(Number.isFinite(value) && value >= 0)) {
+      throw new Error('LIF parameter "groupGain" must be a map of region name to a number 0 or more');
+    }
   }
   return Object.freeze(p);
 }
@@ -128,6 +138,16 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
   if (params.inhibitoryScale !== 1) {
     weights = Float64Array.from(csr.weights, (w) => (w < 0 ? w * params.inhibitoryScale : w));
   }
+  // L10: per-neuron resolved group scale, built once from graph.neuronGroup × groupGain (the same "resolved once,
+  // looked up with one branch per step" pattern outputScaleOf/outputOverride already use, L6). Absent
+  // neuronGroup, or an empty groupGain, leaves every entry 1 (no-op).
+  const groupScaleOf = new Float64Array(n).fill(1);
+  if (graph.neuronGroup && Object.keys(params.groupGain).length > 0) {
+    for (let i = 0; i < n; i++) {
+      const group = graph.neuronGroup[i];
+      if (group !== undefined && Object.hasOwn(params.groupGain, group)) groupScaleOf[i] = params.groupGain[group];
+    }
+  }
   return {
     params, n,
     offsets: csr.offsets,
@@ -144,6 +164,7 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     outputMask,                   // per-neuron output-pool membership (L6), used only when outputScale is not null
     outputOverride,                // per-neuron: use outputScaleOf instead of synapticScale (L6, BUG-002)
     outputScaleOf,                 // per-neuron resolved output scale, meaningful only where outputOverride is set
+    groupScaleOf,                  // per-neuron resolved group scale (L10); 1 everywhere when groupGain is {}
     noiseRand,                     // L7: next() of the dedicated noise stream; undefined when noiseAmplitude is 0
     noiseOf,                       // L7′: per-neuron noise half-width; undefined when noiseAmplitude is 0
   };
@@ -168,7 +189,7 @@ function toCsr({ neuronCount: n, edges }) {
 // external: Float64Array(n) of drive for this step (zeros if none).
 // With tauSyn = 0 and tauAdapt = 0 the update is lif-v0's, in its order (the off path, G1).
 export function step(net, external) {
-  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf, noiseRand, noiseOf } = net;
+  const { params: p, n, v, refractory, input, spikes, offsets, targets, weights, threshold, syn, adapt, outputOverride, outputScaleOf, groupScaleOf, noiseRand, noiseOf } = net;
   const nextInput = net.spare;
   nextInput.fill(0);
   const delta = p.tauSyn > 0;
@@ -199,9 +220,10 @@ export function step(net, external) {
       if (adaptive) adapt[i] += p.adaptStep;
       for (let k = offsets[i]; k < offsets[i + 1]; k++) {
         // L6: output-targeted edges use their resolved outputScale instead of synapticScale (BUG-002: resolved
-        // once in createNetwork, scalar or per-channel alike, so this stays a single branch per edge).
+        // once in createNetwork, scalar or per-channel alike, so this stays a single branch per edge). L10:
+        // every other edge is scaled by its target's resolved group gain (1 when groupGain is {}).
         const target = targets[k];
-        const scale = outputOverride[target] ? outputScaleOf[target] : p.synapticScale;
+        const scale = outputOverride[target] ? outputScaleOf[target] : groupScaleOf[target] * p.synapticScale;
         nextInput[target] += weights[k] * scale;
       }
     }

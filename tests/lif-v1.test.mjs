@@ -427,3 +427,31 @@ test('L7′/L8: resolveParams rejects a negative or non-numeric noiseBulkScale o
     assert.throws(() => resolveParams({ [key]: 'x' }), { message });
   }
 });
+
+// L10 (G21, named G16 in contracts/lif-v1-groupgain.md): groupGain: {} (the default), or graph.neuronGroup
+// absent, is a no-op — identical to the mechanism not existing at all. Appended here per the plan's Phase 2
+// ordering, before any other v2 work depends on groupGain.
+test('L10: groupGain {} or neuronGroup absent gives identical spike trains and potentials to no groupGain at all', () => {
+  const graph = toyGraph();
+  const drive = sensoryDrive();
+  const withEmptyGain = createV1({ ...graph, neuronGroup: { 1: 'al', 2: 'vnc' } }, { groupGain: {} }, GOLDEN_SEED);
+  const withoutNeuronGroup = createV1(graph, { groupGain: { al: 0.5, vnc: 2 } }, GOLDEN_SEED);
+  const absent = createV1(graph, {}, GOLDEN_SEED);
+  const extA = new Float64Array(withEmptyGain.n);
+  const extB = new Float64Array(withoutNeuronGroup.n);
+  const extC = new Float64Array(absent.n);
+  drive.forEach((value, t) => {
+    extA[0] = value;
+    extB[0] = value;
+    extC[0] = value;
+    stepV1(withEmptyGain, extA);
+    stepV1(withoutNeuronGroup, extB);
+    stepV1(absent, extC);
+    for (let i = 0; i < absent.n; i++) {
+      assert.equal(withEmptyGain.v[i], absent.v[i], `(empty groupGain) potential of neuron ${i} differs at step ${t}`);
+      assert.equal(withEmptyGain.spikes[i], absent.spikes[i], `(empty groupGain) spike of neuron ${i} differs at step ${t}`);
+      assert.equal(withoutNeuronGroup.v[i], absent.v[i], `(no neuronGroup) potential of neuron ${i} differs at step ${t}`);
+      assert.equal(withoutNeuronGroup.spikes[i], absent.spikes[i], `(no neuronGroup) spike of neuron ${i} differs at step ${t}`);
+    }
+  });
+});

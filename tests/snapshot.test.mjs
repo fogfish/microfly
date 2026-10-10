@@ -74,15 +74,16 @@ test('rejects a version 2 file, which has no capabilities block', () => {
   const bytes = fixture();
   new DataView(bytes.buffer).setUint32(4, 2, true);
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
-    message: 'unsupported snapshot version 2; this build supports 3 and 4',
+    message: 'unsupported snapshot version 2; this build supports 3, 4 and 5',
   });
 });
 
 test('rejects an unsupported format version', () => {
+  // Version 5 (ADR 006, container-v5.md) is now a supported version; 6 is not.
   const bytes = fixture();
-  new DataView(bytes.buffer).setUint32(4, 5, true);
+  new DataView(bytes.buffer).setUint32(4, 6, true);
   assert.throws(() => parseSnapshot(toBuffer(bytes)), {
-    message: 'unsupported snapshot version 5; this build supports 3 and 4',
+    message: 'unsupported snapshot version 6; this build supports 3, 4 and 5',
   });
 });
 

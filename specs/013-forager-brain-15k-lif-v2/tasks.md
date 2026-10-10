@@ -155,43 +155,43 @@ declared-sense/body-site/escape machinery the world needs to drive it.
 
 ### LIF core, runner, protocol, worker (JS)
 
-- [ ] T024 Extend `public/js/brain/lif-v1.js` per `contracts/lif-v1-groupgain.md`: add `groupGain: {}` to
+- [X] T024 Extend `public/js/brain/lif-v1.js` per `contracts/lif-v1-groupgain.md`: add `groupGain: {}` to
   `LIF_V1_DEFAULTS`; `resolveParams` rejects a `groupGain` value that is "not a plain object, or any of its values
   not finite and ≥ 0"; `createNetwork` resolves `groupScaleOf` once from an optional `graph.neuronGroup`
   (`groupScaleOf[i] = groupGain[graph.neuronGroup[i]] ?? 1`, defaulting to `1` when `graph.neuronGroup` is
   absent); `step()`'s edge-delivery line becomes `weights[k] * (outputOverride[target] ? outputScaleOf[target] :
   groupScaleOf[target] * p.synapticScale)`.
-- [ ] T025 [P] `tests/lif-v1-groupgain.test.mjs`: G16 (no-op with `groupGain: {}` or `graph.neuronGroup` absent,
+- [X] T025 [P] `tests/lif-v1-groupgain.test.mjs`: G16 (no-op with `groupGain: {}` or `graph.neuronGroup` absent,
   identical to pre-amendment `lif-v1.js`), G17 (only edges into a listed group are scaled), G18 (rejects a
   negative/non-numeric/non-object `groupGain` before any network is built).
-- [ ] T026 Append the G16 no-op assertion to `tests/lif-v1.test.mjs`'s existing G1-style guarantees (must pass
+- [X] T026 Append the G16 no-op assertion to `tests/lif-v1.test.mjs`'s existing G1-style guarantees (must pass
   before any task below depends on `groupGain`).
-- [ ] T027 Create `public/js/brain/fly-brain-v2.js`: Poisson input encoding (L9) — `p = r0 + (r1 - r0) *
+- [X] T027 Create `public/js/brain/fly-brain-v2.js`: Poisson input encoding (L9) — `p = r0 + (r1 - r0) *
   clamp(gain_c(h) * value_c, 0, 1)`, one Bernoulli draw per input neuron per step from its own `createPrng(seed)`
   stream (tagged distinctly from `lif-v1.js`'s jitter/noise streams); the `stepsPerTick` loop over `lif-v1.js`
   with `graph.neuronGroup` populated from the snapshot's per-neuron `group` field; EMA output-rate tracking
   generalised to 6 declared output channels (adds `escape` to the existing 5-channel tracking `fly-brain-v1.js`
   uses).
-- [ ] T028 [P] `tests/fly-brain-v2.test.mjs`: L9 rate mapping (`value = 0` fires at `r0`, `value = 1` at `r1`),
+- [X] T028 [P] `tests/fly-brain-v2.test.mjs`: L9 rate mapping (`value = 0` fires at `r0`, `value = 1` at `r1`),
   reproducibility (same seed ⇒ same Bernoulli draws), and stream independence (the input-encoding stream's draws
   are unaffected by `thresholdJitter`/`noiseAmplitude` settings and vice versa).
-- [ ] T029 Extend `public/js/brain/fly-brain.js`'s dispatcher with `if (version === 'v2') return
+- [X] T029 Extend `public/js/brain/fly-brain.js`'s dispatcher with `if (version === 'v2') return
   createV2FlyBrain(brainConfig, seed)`, importing from `fly-brain-v2.js` (T027).
-- [ ] T030 Extend `public/js/brain/snapshot.js`: `FORMAT_VERSIONS` gains `5`; `checkBrainVersion`'s map becomes
+- [X] T030 Extend `public/js/brain/snapshot.js`: `FORMAT_VERSIONS` gains `5`; `checkBrainVersion`'s map becomes
   `{v0: 3, v1: 4, v2: 5}`; `parseSnapshot` gains a `version === 5` branch calling `checkForagerV2` (the
   `group`/`transmitterSource`/`sense`/`site`/`escape` checks from `contracts/container-v5.md`) and
   `validateCapabilitiesV5`. CSR/section parsing code is shared with v3/v4, unchanged.
-- [ ] T031 [P] `tests/snapshot-v5.test.mjs`: parse a v5 fixture, `checkBrainVersion`'s `v2: 5` mapping, the new
+- [X] T031 [P] `tests/snapshot-v5.test.mjs`: parse a v5 fixture, `checkBrainVersion`'s `v2: 5` mapping, the new
   branch's checks, and that v3/v4 parsing is unaffected.
-- [ ] T032 Extend `public/js/brain/capabilities.js` with `validateCapabilitiesV5` (JS mirror of T014's R9–R11;
+- [X] T032 Extend `public/js/brain/capabilities.js` with `validateCapabilitiesV5` (JS mirror of T014's R9–R11;
   `validateCapabilitiesV4` untouched).
-- [ ] T033 [P] `tests/capabilities-v5.test.mjs`: JS mirror of T020.
-- [ ] T034 Fix `public/js/brain/worker-core.js`'s `handleV1`: replace the hard-coded `version: 'v1'` passed into
+- [X] T033 [P] `tests/capabilities-v5.test.mjs`: JS mirror of T020.
+- [X] T034 Fix `public/js/brain/worker-core.js`'s `handleV1`: replace the hard-coded `version: 'v1'` passed into
   `createFlyBrain` with `msg.brain.version`, and replace the local `msg.brain.snapshot?.version !== 4` check with
   a lookup against `snapshot.js`'s `checkBrainVersion` map for whatever `msg.brain.version` actually is (per
   research.md R7 — this is a pre-existing defect, not new protocol surface; protocol v3's wire format is
   unchanged).
-- [ ] T035 [P] `tests/worker-core-v2.test.mjs`: a protocol-v3 message with `brain.version: 'v2'` and a container-v5
+- [X] T035 [P] `tests/worker-core-v2.test.mjs`: a protocol-v3 message with `brain.version: 'v2'` and a container-v5
   snapshot round-trips correctly; a regression case confirms a `brain.version: 'v1'` message with a container-v4
   snapshot still resolves to the v1 brain exactly as before T034.
 

@@ -109,8 +109,9 @@ test('synthetic version 4 buffer parses, with its version, kind and modulators',
 });
 
 test('an unknown version is refused with the supported versions named', () => {
-  assert.throws(() => parseSnapshot(encode({ version: 5 })), {
-    message: 'unsupported snapshot version 5; this build supports 3 and 4',
+  // Version 5 (ADR 006, container-v5.md) is now a supported version; 6 is not.
+  assert.throws(() => parseSnapshot(encode({ version: 6 })), {
+    message: 'unsupported snapshot version 6; this build supports 3, 4 and 5',
   });
 });
 
