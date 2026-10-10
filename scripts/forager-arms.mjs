@@ -18,15 +18,18 @@ import { createFlyBrain } from '../public/js/brain/fly-brain.js';
 import { createBaselineMotor } from '../public/js/fly/baseline.js';
 import { stepBody } from '../public/js/fly/body.js';
 import { createFood } from '../public/js/fly/food.js';
-import { forageEnv, initForagerFly, stepForagerFly } from '../public/js/fly/forager-step.js';
+import { forageEnv, forageEnvV2, initForagerFly, stepForagerFly, stepForagerFlyV2 } from '../public/js/fly/forager-step.js';
 import { senseAt } from '../public/js/fly/stimulus.js';
-import { spawnFlies } from '../public/js/fly/fly-world.js';
+import { spawnFlies, dangerPoints } from '../public/js/fly/fly-world.js';
 import {
-  approachMedian, bootstrapCI, eatMedian, findInterval, findRate, hungerDependence, walkedShare,
+  approachMedian, avoidMetric, bootstrapCI, brakeMetric, eatMedian, escapeMetric, findInterval, findRate,
+  hungerDependence, restMetric, touchMetric, walkedShare,
 } from '../public/js/fly/metrics.js';
 import { createPrng } from '../public/js/world/prng.js';
+import { REGIONS } from '../public/js/ui/panel/counts.js';
 
 const COHORT_ENERGY = { hungry: 0.1, sated: 0.9 };
+const DANGER_KINDS = ['spider', 'lantern'];
 
 // A degree-preserving rewiring of a snapshot: each neuron keeps its out-edges, the targets are drawn uniformly, and the
 // weight of each edge slot is kept (so the weight distribution is the same).
@@ -52,31 +55,117 @@ function nearestFlower(points, x, y) {
 }
 
 // One fly of a v0-style arm (mock, v0, random-matched for v0): the v0 runner drives the body; find is contact.
+// ticks carries only distanceToDanger, the one Gate C field that is meaningful with no v2 declaration at all
+// (avoidMetric is positional, not brain-dependent — ADR 006 Gate C compares every arm, including the nulls).
 function runV0Fly(state, brainConfig, ctx) {
   const brain = createFlyBrain(brainConfig, state.brainSeed);
   const start = nearestFlower(ctx.points, state.body.x, state.body.y);
   let firstContactTick = null;
+  const ticks = [];
   for (let t = 0; t < ctx.ticks; t++) {
     const out = brain.step(senseAt(ctx.points, state.body.x, state.body.y, ctx.f.stimulus));
     stepBody(state.body, { left: out.left, right: out.right }, ctx.env);
     if (firstContactTick === null && ctx.world.isStimulusCell(Math.floor(state.body.x), Math.floor(state.body.y))) {
       firstContactTick = t;
     }
+    ticks.push({ distanceToDanger: distanceToDangers(ctx, state.body.x, state.body.y) });
   }
-  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [] };
+  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [], ticks };
 }
 
 function runBaselineFly(state, ctx) {
   const motor = createBaselineMotor(state.brainSeed);
   const start = nearestFlower(ctx.points, state.body.x, state.body.y);
   let firstContactTick = null;
+  const ticks = [];
   for (let t = 0; t < ctx.ticks; t++) {
     stepBody(state.body, motor.next(), ctx.env);
     if (firstContactTick === null && ctx.world.isStimulusCell(Math.floor(state.body.x), Math.floor(state.body.y))) {
       firstContactTick = t;
     }
+    ticks.push({ distanceToDanger: distanceToDangers(ctx, state.body.x, state.body.y) });
   }
-  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [] };
+  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [], ticks };
+}
+
+// ADR 006 Gate C: per-region neuron totals of a v2/random-matched snapshot, for restMetric's per-tick fraction.
+function regionTotals(snapshot) {
+  const totals = Object.fromEntries(REGIONS.map((r) => [r, 0]));
+  for (const neuron of snapshot.manifest.neurons) if (neuron.group in totals) totals[neuron.group]++;
+  return totals;
+}
+
+// The fraction of each region's neurons present in `spikes` (one tick's union of spikes, forager-step.js).
+function regionFractionsOf(spikes, totals, groupOf) {
+  const active = Object.fromEntries(REGIONS.map((r) => [r, 0]));
+  for (const n of spikes) {
+    const g = groupOf[n];
+    if (g in active) active[g]++;
+  }
+  const out = {};
+  for (const r of REGIONS) if (totals[r] > 0) out[r] = active[r] / totals[r];
+  return out;
+}
+
+// Distance (tiles) from (x, y) to the nearest danger of each kind, or Infinity without one.
+function distanceToDangers(ctx, x, y) {
+  const out = {};
+  for (const kind of DANGER_KINDS) {
+    let best = Infinity;
+    for (const p of ctx.dangerPointsByKind[kind]) best = Math.min(best, Math.hypot(p.x - x, p.y - y));
+    out[kind] = best;
+  }
+  return out;
+}
+
+// The flies of one v2 cohort (ADR 006). Each tick's record carries the fields public/js/fly/metrics.js's new
+// Gate C metrics (brake, touch, escape, rest) read, plus avoid's distanceToDanger (shared with every arm).
+function runV2Cohort(seeded, cohortEnergy, brainConfig, ctx) {
+  const flowers = createFood(ctx.world, ctx.f);
+  const env = forageEnvV2(ctx.f, ctx.world, flowers, ctx.capabilities);
+  const flies = spawnFlies(seeded, ctx.world, 'toy');
+  const totals = regionTotals(ctx.snapshotForRegions);
+  const groupOf = ctx.snapshotForRegions.manifest.neurons.map((n) => n.group);
+  const inputs = ctx.capabilities.channels.inputs;
+  const mouthIdx = inputs.flatMap((ch, k) => (ch.sense === 'taste:mouth' ? [k] : []));
+  const touchIdx = inputs.flatMap((ch, k) => (ch.sense === 'touch' ? [k] : []));
+  const outputs = ctx.capabilities.channels.outputs;
+  const forwardK = outputs.findIndex((ch) => ch.drive === 'forward');
+
+  return flies.map((state) => {
+    const brain = createFlyBrain(brainConfig, state.brainSeed);
+    initForagerFly(state, cohortEnergy);
+    const start = nearestFlower(ctx.points, state.body.x, state.body.y);
+    let firstContactTick = null;
+    const ticks = [];
+    for (let t = 0; t < ctx.ticks; t++) {
+      const { sense, entry } = stepForagerFlyV2(state, env, brain);
+      const cx = Math.floor(state.body.x);
+      const cy = Math.floor(state.body.y);
+      if (firstContactTick === null && ctx.world.isStimulusCell(cx, cy) && flowers.stockAt(cx, cy) > 0) {
+        firstContactTick = t;
+      }
+      const distanceToDanger = distanceToDangers(ctx, state.body.x, state.body.y);
+      const mouthTaste = mouthIdx.reduce((sum, k) => sum + sense.inputs[k], 0);
+      const touch = touchIdx.reduce((sum, k) => sum + sense.inputs[k], 0);
+      const stimulusPresent = Array.from(sense.inputs).some((v) => v > 0);
+      ticks.push({
+        forward: entry.drives.forward ?? 0,
+        mouthTaste,
+        hungry: entry.hunger > 0.5,
+        touch,
+        escaped: entry.escaped === true,
+        nearDanger: Math.min(distanceToDanger.spider, distanceToDanger.lantern) <= 1.5,
+        distanceToDanger,
+        stimulusPresent,
+        regionActivity: regionFractionsOf(entry.spikes, totals, groupOf),
+      });
+    }
+    return {
+      found: firstContactTick !== null, startDistance: start, firstContactTick,
+      bouts: state.bouts, contacts: state.body.contacts, ticks,
+    };
+  });
 }
 
 // The flies of one v1 cohort share one flower table, as the browser does. Each fly is run to the end of the run.
@@ -89,6 +178,7 @@ function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
     initForagerFly(state, cohortEnergy);
     const start = nearestFlower(ctx.points, state.body.x, state.body.y);
     let firstContactTick = null;
+    const ticks = [];
     for (let t = 0; t < ctx.ticks; t++) {
       stepForagerFly(state, env, brain);
       const cx = Math.floor(state.body.x);
@@ -96,8 +186,12 @@ function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
       if (firstContactTick === null && ctx.world.isStimulusCell(cx, cy) && flowers.stockAt(cx, cy) > 0) {
         firstContactTick = t;
       }
+      ticks.push({ distanceToDanger: distanceToDangers(ctx, state.body.x, state.body.y) });
     }
-    return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: state.bouts, contacts: state.body.contacts };
+    return {
+      found: firstContactTick !== null, startDistance: start, firstContactTick,
+      bouts: state.bouts, contacts: state.body.contacts, ticks,
+    };
   });
 }
 
@@ -112,6 +206,8 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms
     world,
     ticks,
     capabilities,
+    snapshotForRegions: snapshot,
+    dangerPointsByKind: Object.fromEntries(DANGER_KINDS.map((kind) => [kind, dangerPoints(world, [kind])])),
     points: [...world.stimulusCells.keys()].map((idx) => ({
       x: (idx % world.width) + 0.5,
       y: Math.floor(idx / world.width) + 0.5,
@@ -127,6 +223,7 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms
     },
   };
   const result = Object.fromEntries(arms.map((arm) => [arm, { flies: [], cohorts: {} }]));
+  const isV2World = f.brain?.version === 'v2';
 
   for (const seed of seeds) {
     const seeded = { ...expConfig, flies: { ...expConfig.flies, seed } };
@@ -136,12 +233,18 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms
         for (const state of spawnFlies(seeded, world, 'baseline')) bucket.flies.push(runBaselineFly(state, ctx));
         continue;
       }
-      if (arm === 'v1' || arm === 'random-matched') {
-        const brainConfig = arm === 'v1'
-          ? { ...f.brain, snapshot }
-          : { ...f.brain, snapshot: rewire(snapshot, seed + 1) };
+      if (arm === 'v1' || arm === 'v2' || arm === 'random-matched') {
+        // random-matched rewires whichever snapshot this world's brain.version actually uses (ADR 006: "the
+        // size-matched random-graph arm is generated against the v2 brain's neuron/edge count exactly as they
+        // already are for v1").
+        const useV2 = arm === 'v2' || (arm === 'random-matched' && isV2World);
+        const runCohort = useV2 ? runV2Cohort : runV1Cohort;
+        const version = useV2 ? 'v2' : 'v1';
+        const brainConfig = arm === 'random-matched'
+          ? { ...f.brain, snapshot: rewire(snapshot, seed + 1) }
+          : { ...f.brain, snapshot };
         for (const [cohort, energy] of [['main', f.body.energy.initial], ['hungry', COHORT_ENERGY.hungry], ['sated', COHORT_ENERGY.sated]]) {
-          const flies = runV1Cohort(seeded, energy, { ...brainConfig, version: 'v1' }, ctx);
+          const flies = runCohort(seeded, energy, { ...brainConfig, version }, ctx);
           (bucket.cohorts[cohort] ??= []).push(...flies);
           if (cohort === 'main') bucket.flies.push(...flies);
         }
@@ -159,14 +262,17 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms
   return result;
 }
 
-// The metrics of each arm, from the flies of its main cohort and its hungry and sated cohorts.
-export function armMetrics(arms, result, radius, seed) {
+// The metrics of each arm, from the flies of its main cohort and its hungry and sated cohorts. The ADR 006
+// Gate C metrics (brake, avoid, touch, escape, rest) read every fly's per-tick log (runV0Fly/runBaselineFly/
+// runV1Cohort carry distanceToDanger only; runV2Cohort carries the full set every metric needs).
+export function armMetrics(arms, result, radius, seed, tickHz = 20) {
   const out = {};
   for (const arm of Object.keys(result)) {
     const { flies, cohorts } = result[arm];
     const hungry = cohorts.hungry ?? [];
     const sated = cohorts.sated ?? [];
     const bouts = [...hungry, ...sated].flatMap((fly) => fly.bouts);
+    const ticks = flies.flatMap((fly) => fly.ticks ?? []);
     out[arm] = {
       find: findRate(flies),
       findCI: findInterval(flies, seed),
@@ -176,6 +282,15 @@ export function armMetrics(arms, result, radius, seed) {
       walked: walkedShare(bouts),
       hungerDependence: cohorts.hungry ? hungerDependence(hungry, sated) : null,
       contacts: flies.reduce((sum, fly) => sum + (fly.contacts ?? 0), 0),
+      // Avoid is positional: every arm's ticks carry distanceToDanger.
+      avoidSpider: ticks.length ? avoidMetric(ticks, 'spider') : null,
+      avoidLantern: ticks.length ? avoidMetric(ticks, 'lantern') : null,
+      // Brake, touch, escape and rest need the v2 declaration (mouthTaste/touch/escaped/regionActivity);
+      // absent for mock/v0/v1/baseline ticks, so these read null for them (printed as n/a, not 0 — FR-028).
+      brake: ticks.some((t) => t.mouthTaste !== undefined) ? brakeMetric(ticks) : null,
+      touch: ticks.some((t) => t.touch !== undefined) ? touchMetric(ticks) : null,
+      escape: ticks.some((t) => t.escaped !== undefined) ? escapeMetric(ticks, tickHz) : null,
+      rest: ticks.some((t) => t.regionActivity !== undefined) ? restMetric(ticks) : null,
     };
   }
   return out;
@@ -203,6 +318,25 @@ export function printForagerTable(metrics, seeds) {
   return lines.join('\n');
 }
 
+// ADR 006 Gate C's five new metrics, one table, every arm (FR-028: a metric that does not pass is still
+// printed, with the run that produced it).
+export function printGateCTable(metrics) {
+  const lines = [];
+  lines.push('arm              brake   avoid(spider) avoid(lantern)  touch   escape(near/away per min)  rest (per region)');
+  for (const [arm, m] of Object.entries(metrics)) {
+    const rest = m.rest ? Object.entries(m.rest).map(([r, v]) => `${r}=${v === null ? 'n/a' : v.toFixed(3)}`).join(' ') : 'n/a';
+    lines.push(
+      `${arm.padEnd(16)} ${num(m.brake).padEnd(8)}`
+      + `${m.avoidSpider === null ? 'n/a' : pct(m.avoidSpider)}`.padEnd(15)
+      + `${m.avoidLantern === null ? 'n/a' : pct(m.avoidLantern)}`.padEnd(16)
+      + `${m.touch === null ? 'n/a' : pct(m.touch)}`.padEnd(8)
+      + `${m.escape ? `${m.escape.near.toFixed(2)}/${m.escape.away.toFixed(2)}` : 'n/a'}`.padEnd(28)
+      + rest,
+    );
+  }
+  return lines.join('\n');
+}
+
 // The expectations of Gate C. Each is printed as PASS or FAIL with its values. Nothing is adjusted to pass.
 export function verdicts(metrics) {
   const v1 = metrics.v1;
@@ -222,6 +356,16 @@ export function verdicts(metrics) {
       values: `median ${num(v1.approach.median)} ticks, ${v1.approach.included} included, ${v1.approach.excluded} excluded` });
     out.push({ metric: 'leave', expectation: 'measured (no threshold in the spec)', pass: null,
       values: `walked ${pct(v1.walked)}` });
+  }
+  // ADR 006 SC-007: v2's brake ratio must be < 1 and lower than the size-matched random-graph arm's. The one
+  // Gate C expectation with a required pass; avoid/touch/escape/rest are measurements (FR-028).
+  const v2 = metrics.v2;
+  const matched = metrics['random-matched'];
+  if (v2) {
+    const pass = v2.brake !== null && matched?.brake !== undefined
+      && v2.brake < 1 && (matched.brake === null || v2.brake < matched.brake);
+    out.push({ metric: 'brake', expectation: 'v2 brake ratio < 1 and lower than the random-graph arm (SC-007)',
+      pass, values: `v2 ${num(v2.brake)}, random-matched ${num(matched?.brake)}` });
   }
   return out;
 }

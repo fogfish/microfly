@@ -494,17 +494,17 @@ held-out seed count.
 
 ### Tests for User Story 9
 
-- [ ] T082 [P] [US9] Add `restMetric(ticksByRegion)` to `public/js/fly/metrics.js`: activity (spike-rate fraction)
+- [X] T082 [P] [US9] Add `restMetric(ticksByRegion)` to `public/js/fly/metrics.js`: activity (spike-rate fraction)
   per region with no stimulus present.
-- [ ] T083 [P] [US9] Unit test for `restMetric` in `tests/metrics-v2.test.mjs`.
+- [X] T083 [P] [US9] Unit test for `restMetric` in `tests/metrics-v2.test.mjs`.
 
 ### Implementation for User Story 9
 
-- [ ] T084 [US9] Extend `scripts/compare-baseline.mjs`: `--brains` accepts `v2`; print the brake (T054), avoid
+- [X] T084 [US9] Extend `scripts/compare-baseline.mjs`: `--brains` accepts `v2`; print the brake (T054), avoid
   (T058), touch (T062), escape (T062) and rest (T082) columns per arm, alongside the unchanged
   find/approach/eat/leave/hunger-dependence table; size-matched random-graph and random-walk arms are generated
   against the `v2` brain's neuron/edge count exactly as they already are for `v1`.
-- [ ] T085 [US9] Run `node scripts/compare-baseline.mjs --world=world/world-forager-15k.json
+- [X] T085 [US9] Run `node scripts/compare-baseline.mjs --world=world/world-forager-15k.json
   --brains=mock,v0,v1,v2,random-matched,baseline` on held-out seeds; record the full table in
   `specs/013-forager-brain-15k-lif-v2/gate-c.md` (new file, pattern: `specs/008-hungry-forager-brain/gate-c.md`),
   stating each metric's measured value as it is, whether or not it passes (FR-028) — brake must pass (SC-007).

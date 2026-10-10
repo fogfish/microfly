@@ -71,10 +71,11 @@ const seedsArg = process.argv.find((a) => a.startsWith('--seeds='))?.slice('--se
 const jsonArg = process.argv.find((a) => a.startsWith('--json='))?.slice('--json='.length);
 const ticksArg = process.argv.find((a) => a.startsWith('--ticks='))?.slice('--ticks='.length);
 const forageTicks = ticksArg !== undefined ? Number(ticksArg) : f.experiment.ticks;
-if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
-  const { runForagerArms, armMetrics, printForagerTable, verdicts } = await import('./forager-arms.mjs');
+const foragerVersions = ['v1', 'v2'];
+if (foragerVersions.includes(f.brain?.version) || brainsArg?.split(',').some((a) => foragerVersions.includes(a))) {
+  const { runForagerArms, armMetrics, printForagerTable, printGateCTable, verdicts } = await import('./forager-arms.mjs');
   const { createHash } = await import('node:crypto');
-  const arms = (brainsArg ?? 'mock,v1,random-matched,baseline').split(',');
+  const arms = (brainsArg ?? `mock,${f.brain?.version ?? 'v1'},random-matched,baseline`).split(',');
   if (seedsArg !== undefined && seedsArg !== 'held-out') {
     console.error(`--seeds must be "held-out" or omitted, got "${seedsArg}"`);
     process.exit(1);
@@ -99,11 +100,14 @@ if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
     f, world, expConfig, snapshot, v0Snapshot, arms, seeds, ticks: forageTicks,
     capabilities: snapshot.capabilities,
   });
-  const metrics = armMetrics(arms, result, f.stimulus.radius, 1);
+  const metrics = armMetrics(arms, result, f.stimulus.radius, 1, f.tickHz);
   console.log(`world ${worldArg}, seeds ${seedsArg === 'held-out' ? 'held-out' : 'calibration'} (${seeds.length}), ` +
     `${f.count} flies per cohort, ${forageTicks} ticks per fly`);
   console.log('');
   console.log(printForagerTable(metrics, seeds.length));
+  console.log('');
+  console.log('ADR 006 Gate C (brake/avoid/touch/escape/rest; n/a where an arm has no v2 declaration):');
+  console.log(printGateCTable(metrics));
   console.log('');
   for (const v of verdicts(metrics)) {
     const mark = v.pass === null ? 'MEASURED' : v.pass ? 'PASS' : 'FAIL';
