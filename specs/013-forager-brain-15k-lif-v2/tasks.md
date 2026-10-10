@@ -479,6 +479,16 @@ panel is unchanged.
   fly, confirm 12 input rows, 6 output rows and the region-activity section all render and update live with no
   console error; then select a `v1` fly in `world-forager.json` and confirm its panel is pixel-for-pixel what it
   showed before this feature (spec SC-010).
+  **Blocked on a real browser** (2026-10-10 continuation): no browser tool is available in this session. Verified
+  instead, at the code level, against the real shipped `.brain` files: a Node reproduction of the full host→brain
+  pipeline (sense → `fly-brain-v2.js`'s `step` → `applyForagerMotor` → `stepForagerBody`) ran 50 ticks against
+  `forager-brain-15k.brain` with no exception, with spiking, non-zero `turnLeft`/`turnRight`/`feed` outputs, and
+  a changing heading — confirming the wiring this task exists to check is live, not throwing, and not a frozen
+  no-op. `curl` against the actual static server (`localhost:8010`, already running from `public/`) confirmed
+  every asset the page needs (`main.js`, `fly.worker.js`, `region-activity.js`, `world-forager-15k.json`,
+  `forager-brain-15k.brain`, the atlas) serves 200, so there is no 404 that would show as a console error.
+  A human (or a session with a browser tool) still needs to actually open the page to confirm the DOM renders the
+  12/6/region-activity rows and that `v1`'s panel is pixel-identical — that part is not done.
 
 **Checkpoint**: the panel shows every new channel and region for `v2`, and nothing new for `v0`/`v1`.
 
@@ -518,21 +528,30 @@ held-out seed count.
 **Purpose**: fold the amendment contracts into their canonical documents, record the measured performance, and
 run the full validation guide end to end.
 
-- [ ] T086 [P] Update `public/world/README.md`: add the `v2` row to the brain-version table (container version 5,
+- [X] T086 [P] Update `public/world/README.md`: add the `v2` row to the brain-version table (container version 5,
   `lif-v1.js`, `fly-brain-v2.js`, protocol v3) and a 15K calibration section matching the existing `v1` section's
   style (table + "Calibration." / "Starting values, not calibrated." prose).
-- [ ] T087 [P] Create `public/tests/forager-v2-timing.html`: Gate B browser harness running six `v2` flies and
+- [X] T087 [P] Create `public/tests/forager-v2-timing.html`: Gate B browser harness running six `v2` flies and
   printing mean/p95 tick time per fly.
 - [ ] T088 Run the Gate B harness (T087) and record the measured per-tick cost in
   `specs/013-forager-brain-15k-lif-v2/research.md` (append a dated note to R5/R6) or a new `gate-b.md`, against
   the ADR 006 Annex A6 reference figures (1.9–9.4 ms per tick at `stepsPerTick: 10` on the reference hardware).
-- [ ] T089 Fold each of the 7 contract amendment documents in `contracts/` into its canonical file
+  **Blocked**: needs a real browser tab running `public/tests/forager-v2-timing.html` for 60 s; no browser tool is
+  available in this session (2026-10-10 continuation). The harness file itself (T087) is ready — open
+  `http://localhost:8010/tests/forager-v2-timing.html` and paste back the printed mean/p95 lines to finish this.
+- [X] T089 Fold each of the 7 contract amendment documents in `contracts/` into its canonical file
   (`specs/008-hungry-forager-brain/contracts/*.md` for 6 of them, `specs/006-fly-status-panel/contracts/
   panel-sections.md` for the panel one), per `AGENTS.md`'s "update the contract document in the same change"
   rule — the amendment documents stay in this feature's `contracts/` as the historical record of what changed and
   why.
 - [ ] T090 Run `npm test` and the extractor `unittest` suite one final time, both fully green, then walk
   `quickstart.md` steps 1–6 end to end exactly as written and confirm every "Expected" outcome holds.
+  **Partially done** (2026-10-10 continuation): `npm test` (546 tests) and
+  `extract/.venv/bin/python -m unittest discover` (239 tests) both run clean — the only JS failures are
+  `tests/activity.test.mjs`'s 6 pre-existing, feature-unrelated assertions (unchanged on this branch vs. `main`,
+  confirmed by `git diff main...HEAD`). Quickstart steps 1–3, 5 verified (1 above; 2/3 already shipped as
+  committed `.brain` files; 5 already run and recorded in `gate-c.md`). Step 4 (open each world URL, no console
+  error) and step 6 (Gate B timing, same blocker as T088) need a real browser — not available in this session.
 
 ---
 

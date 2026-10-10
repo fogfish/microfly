@@ -39,11 +39,30 @@ settings it was tuned with (`?world=world/world-antennal-lobe.json`).
 | `mock` | toy random graph (`neuronCount`, `outDegree`, `inhibitoryFraction`) | none | `lif-v0.js` | 2 |
 | `v0` | small connectome brain (ADR 002) | version 3 | `lif-v0.js` | 2 |
 | `v1` | forager brain (ADR 003) | version 4 | `lif-v1.js` | 3 |
+| `v2` | cautious forager brain, 15K (ADR 006) | version 5 | `lif-v1.js` (`fly-brain-v2.js` runner) | 3 |
 
 The version is optional. Without it, a world with no `snapshot` is `mock`, and a world with one is `v0`, so every existing
 world keeps its meaning. A `v1` world needs a version 4 snapshot, and a version 4 snapshot needs `v1`; a mismatch stops the
 app before any fly starts, and names both versions. `world-forager-bad.json` is a test fixture that names a version 3 file
-under `v1`, so it must refuse to start.
+under `v1`, so it must refuse to start. The same holds for `v2` and version 5: `world-forager-15k-bad.json` names a
+version 4 file under `v2`.
+
+## The 15K world: `world-forager-15k.json`
+
+The same map as `world.json`, with the ADR 006 brain (`brains/forager-brain-15k.brain`, from
+`extract/configs/forager-brain-15k.json`): six bilateral senses (`flies.stimuli`), declared body sites
+(`flies.body.sites`), the escape jump (`flies.body.escape`) and Poisson input encoding (`flies.brain.input`).
+Open it with `?world=world/world-forager-15k.json`.
+
+**Starting values, not calibrated.** `brain.lif` (`dt`, `tau`, `refractorySteps`, `tauSyn`, `synapticScale`),
+`brain.stepsPerTick` and `brain.input.rate`/`weight` are ADR 006 L11's published starting point (Shiu et al.
+2024), not a calibrated setting — unlike `world-forager.json`'s v1 brain, which did go through the staged
+calibration protocol. `specs/013-forager-brain-15k-lif-v2/calibration.md` records a first look (the L11 values
+sit well above ADR 005's rest-activity target) and the staged protocol that still needs to run before a held-out
+verdict means anything (`specs/013-forager-brain-15k-lif-v2/gate-c.md`). `flies.body.sites`' offsets (front-leg
+ahead of the mouth, so the leg senses a flower first) and `flies.stimuli`'s per-sense radii are likewise starting
+values, chosen to be geometrically sensible (tested in `tests/forager-v2-find.test.mjs`), not tuned against
+brain behaviour.
 
 ## The forager world: `world-forager.json`
 

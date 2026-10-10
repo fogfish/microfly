@@ -89,14 +89,15 @@ function runBaselineFly(state, ctx) {
 }
 
 // ADR 006 Gate C: per-region neuron totals of a v2/random-matched snapshot, for restMetric's per-tick fraction.
-function regionTotals(snapshot) {
+// Exported for scripts/calibrate-forager-v2.mjs's A1 regime probe (ADR 006's per-group rest/odour gates, L10).
+export function regionTotals(snapshot) {
   const totals = Object.fromEntries(REGIONS.map((r) => [r, 0]));
   for (const neuron of snapshot.manifest.neurons) if (neuron.group in totals) totals[neuron.group]++;
   return totals;
 }
 
 // The fraction of each region's neurons present in `spikes` (one tick's union of spikes, forager-step.js).
-function regionFractionsOf(spikes, totals, groupOf) {
+export function regionFractionsOf(spikes, totals, groupOf) {
   const active = Object.fromEntries(REGIONS.map((r) => [r, 0]));
   for (const n of spikes) {
     const g = groupOf[n];

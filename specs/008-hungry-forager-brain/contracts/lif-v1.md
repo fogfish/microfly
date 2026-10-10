@@ -25,6 +25,7 @@ reference for the bit-exact check below.
 | `noiseAmplitude` | 0 | Half-width of a per-neuron, per-step uniform noise term added to the membrane update (L7). `0` is a no-op: no draw is made, every potential is identical to `noiseAmplitude` absent entirely. |
 | `noiseBulkScale` | 1 | Multiplier of `noiseAmplitude` for neurons **not** in `graph.inputNeurons` (L7′, ADR 005 Annex B). `1` is a no-op (uniform noise, as L7); `0` confines noise to the declared input pools. Ignored when `noiseAmplitude` is 0. |
 | `inhibitoryScale` | 1 | Multiplier of every negative edge weight (L8, ADR 005 Annex B). `1` is a no-op: the graph's own weight array is used unchanged. Applied before `synapticScale`/`outputScale`, so it composes with both. |
+| `groupGain` | `{}` | Map from region name to a non-negative gain (L10, specs 013's ADR 006). Edges into a neuron of a listed region use `synapticScale × groupGain[region]` instead of `synapticScale`. An empty map (the default) is a no-op: every region's effective gain is 1. `fly-brain-v1.js` never populates `graph.neuronGroup`, so this is inert for every v1 network; `fly-brain-v2.js` (specs 013) is the only caller that passes a region per neuron. |
 
 `resolveParams(overrides)` throws naming the parameter for: an unknown key, `dt ≤ 0`, `tau ≤ 0`, `refractorySteps`
 not a non-negative integer, `vThreshold ≤ vReset`, `tauSyn < 0`, `tauAdapt < 0`, `adaptStep < 0`, `thresholdJitter`
@@ -34,8 +35,10 @@ not a plain object of finite numbers ≥ 0, each named by its channel key
 `` `LIF parameter "outputScale.${channel}" must be a number of 0 or more` `` for a bad per-channel entry — the
 object form does not change the scalar message, BUG-002), `noiseAmplitude` not a finite number ≥ 0
 (`'LIF parameter "noiseAmplitude" must be 0 or more'`, L7), `noiseBulkScale` not a finite number ≥ 0
-(`'LIF parameter "noiseBulkScale" must be 0 or more'`, L7′), and `inhibitoryScale` not a finite number ≥ 0
-(`'LIF parameter "inhibitoryScale" must be 0 or more'`, L8).
+(`'LIF parameter "noiseBulkScale" must be 0 or more'`, L7′), `inhibitoryScale` not a finite number ≥ 0
+(`'LIF parameter "inhibitoryScale" must be 0 or more'`, L8), and `groupGain` not a plain object of finite numbers
+≥ 0, each keyed by region name (`'LIF parameter "groupGain" must be a map of region name to a number 0 or more'`,
+L10).
 
 ## Create
 
@@ -87,6 +90,12 @@ by `inhibitoryScale`, and the network uses the copy; the graph's own array is ne
 `inhibitoryScale = 1` no copy is made and `net.weights` is the graph's array (G18). Signs never change, and no
 edge is added or removed: the gain scales the dataset's own inhibitory edges, as `synapticScale` scales all of them.
 
+**(L10)** `graph.neuronGroup` (a region name, or `undefined`, per neuron — populated only by callers that know
+regions) resolves `groupScaleOf`, a `Float64Array` sized to `graph.neuronCount`, once at `createNetwork` time,
+alongside the other per-neuron arrays above: `groupScaleOf[i] = groupGain[graph.neuronGroup[i]] ?? 1`. When
+`graph.neuronGroup` is absent, or `groupGain` is `{}`, `groupScaleOf[i]` is `1` for every `i` — the same
+"resolved once, outside the hot loop" pattern `outputScaleOf`/`outputOverride` (L6) already establish.
+
 ## Step
 
 `step(net, external)` runs one LIF step. The update order for the **off** case is exactly v0's:
@@ -98,10 +107,12 @@ if v[i] ≥ threshold_i: spike, v ← vReset, refractory ← refractorySteps, de
 ```
 
 For each delivered edge (L6), the scale depends on the edge's target: `appliedScale(target) = outputScaleOf[target]`
-if `outputOverride[target]` is set, else `synapticScale`. **(BUG-002)** `outputOverride`/`outputScaleOf` are
-resolved once at `createNetwork` time (above), so this stays a single branch per edge regardless of whether
-`outputScale` is a plain number, an object, or `null` — no additional allocation, no change to iteration order,
-spike timing, refractory handling, adaptation, or synaptic filtering.
+if `outputOverride[target]` is set, else `groupScaleOf[target] × synapticScale` (L10). **(BUG-002)**
+`outputOverride`/`outputScaleOf` are resolved once at `createNetwork` time (above), so this stays a single branch
+per edge regardless of whether `outputScale` is a plain number, an object, or `null` — no additional allocation,
+no change to iteration order, spike timing, refractory handling, adaptation, or synaptic filtering. With
+`groupGain: {}` (the default) `groupScaleOf[target]` is always `1`, so the non-output branch reduces exactly to
+`weights[k] * synapticScale` — identical to this contract before L10.
 
 For `tauSyn > 0` (L1), spikes arriving in a step are summed per target (`arrive[j]`), and
 `syn[j] ← syn[j] × e^(−dt/tauSyn) + arrive[j] × (1 − e^(−dt/tauSyn))`; the membrane update adds `syn[j]` in place of
@@ -178,7 +189,25 @@ still made for every neuron, including those whose `noiseOf[i]` is 0, so the str
 - **G20 validation (L7′, L8)**: `resolveParams` rejects a negative, non-numeric, or non-finite `noiseBulkScale` or
   `inhibitoryScale`, naming the parameter.
 
-These are the unit tests named in the plan (`tests/lif-v1.test.mjs`); G1 is also the golden test for v1; G11, G16 and
-G18 are golden-adjacent tests for v1 (alongside G1/G6, the other declared no-ops). The runner test in
+- **G21 group-gain no-op (L10)**: with `groupGain: {}` (the default) or `graph.neuronGroup` absent, every spike
+  train and every potential is identical (`===`) to the same network run with `groupGain` absent from the
+  overrides entirely. Composes with G1 — `groupGain: {}` is itself a default, so G1 holds unconditionally.
+- **G22 per-group scale (L10)**: with `groupGain: {al: 0.5}` and a `graph.neuronGroup` marking some neurons
+  `"al"`, only edges targeting those neurons are scaled by `0.5`; every other target's input is unaffected,
+  verified against the same run with `groupGain: {}`.
+- **G23 validation (L10)**: `resolveParams` rejects a `groupGain` value that is negative, non-numeric,
+  non-finite, or not a plain object, naming the parameter, before any network is built.
+
+These are the unit tests named in the plan (`tests/lif-v1.test.mjs`); G1 is also the golden test for v1; G11, G16
+and G18 are golden-adjacent tests for v1 (alongside G1/G6, the other declared no-ops). The runner test in
 `tests/fly-brain-v1.test.mjs` checks that every declared input neuron, and no other, keeps its noise at
-`noiseBulkScale: 0`.
+`noiseBulkScale: 0`. G21–G23 are specs 013's own unit tests (`tests/lif-v1-groupgain.test.mjs`, named G16–G18
+there — a feature-local numbering fixed up here to continue this contract's own sequence); G21 is also appended
+to `tests/lif-v1.test.mjs`'s existing G1-style no-op assertions (labelled L10/G21 there), per specs 013's plan
+ordering: it must pass before any other v2 work depends on `groupGain`.
+
+## World config
+
+`flies.brain.lif.groupGain` is a legal key for `v1` **and** `v2` worlds (`validate.js`'s LIF-key allow-list
+derives from `LIF_V1_DEFAULTS`, so a new default key is automatically legal); its value shape (an object, not a
+plain number) has its own branch in `validate.js`'s per-key check, mirroring `outputScale`'s object-shaped check.

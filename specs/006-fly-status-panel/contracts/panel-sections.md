@@ -44,6 +44,12 @@ per refresh rebuilt the rows and lost track of the point cloud it replaced.)
 - `requires.channels` is `inputs` or `outputs`. The section is mounted only when the declaration has
   at least one channel of that kind.
 - `requires.signal` is a signal id. The section is mounted only when the declaration lists it.
+- `requires.groups` is `true` (specs 013's ADR 006). The section is mounted only when the selected fly's
+  declaration carries a non-empty `groups` list — one region name per neuron, populated only for
+  container-version-5 (`v2`) brains, per `specs/008-hungry-forager-brain/contracts/container-v4.md`'s v5
+  additions. `mock`/`v0`/`v1` declarations never set `groups`, so this requirement is unmet for them with no
+  version check anywhere in the panel — the same capability-gating style `requires.channels`/`requires.signal`
+  already use.
 - `requires` may be empty for a section that always applies (the action).
 
 ## Registry rules
@@ -68,6 +74,37 @@ fly record or the worker directly, so that a section can be tested with a plain 
 | `neuron-map` | Brain activity | `signal: spikes` | The three.js point cloud and the counts (neuron count, active count). |
 | `channels-input` | Inputs | `channels: inputs` | One row per input, grouped under L and R (see below). |
 | `channels-output` | Outputs | `channels: outputs` | One row per output, grouped under L and R. |
+| `region-activity` (**v2**) | Region activity | `groups: true` | One row per declared region; see below. |
+
+## Region activity (v2 only, ADR 006 L10)
+
+- **Rows**: one per region named in the fly's declaration, in the fixed order `input`, `output`, `al`, `vnc`,
+  `dn`, `central` (L10's taxonomy). Each row shows the region's label and its current activity: the fraction of
+  that region's neurons that spiked within the same rolling window (`WINDOW_TICKS`) `counts.js`'s existing global
+  `activeCount` already uses, computed per region instead of globally.
+- **Update**: on each tick, only the changed rows' fraction and bar width are rewritten (no element
+  created/removed), per the shared lifecycle contract above.
+- **Registration**: `region-activity` (`public/js/ui/panel/sections/region-activity.js`) is registered in
+  `SECTIONS` (`sections/index.js`) after `channels-output`, so a `v2` fly's panel reads action → neuron map →
+  inputs → outputs → region activity.
+- **Tests**: `tests/panel-region-activity.test.mjs` — the section mounts and renders one row per region for a fly
+  declaration with `groups` present; it does not mount (and the shell shows no box for it) for a declaration
+  without `groups` (`v0`/`v1`-shaped fixtures).
+
+## Diagnostic and action-label amendments (v2 only, `model.js`/`action.js`)
+
+Not panel sections themselves, but the model and action-label code the `action` section (and the model every
+section receives) depend on:
+
+- `model.js`'s diagnostic block reads `drives.escape` when the fly's declaration lists it (`v2` only); the
+  existing `drives.feed`/`forward`/`backward` reads are unchanged, and the block omits the escape line entirely
+  for `v1` flies (whose `drives` object has no `escape` key).
+- `action.js`'s `forageAction` gains an `"escape"` label, shown on exactly the tick a jump occurred (the fly's
+  per-tick telemetry carries an `escaped: boolean` flag written by `fly-host.js`, the same pattern `eating`
+  already uses for the `feed` drive); on every other tick the existing turn/forward/backward labelling applies
+  unchanged.
+- `tests/panel-region-activity.test.mjs` also confirms `model.js`'s diagnostic and `action.js`'s label are
+  unchanged for a `v1`-shaped declaration (no `escape` key, no `"escape"` label ever emitted).
 
 ## Channel rows
 
