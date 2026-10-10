@@ -38,7 +38,7 @@ Headline numbers:
 | `syn-partners-…-traced-only.feather` | 124,025,046 | Synapse-level, traced bodies only |
 | `syn-partners-…-significant-only.feather` | 124,039,080 | Synapse-level, significant edges only |
 | `syn-points-male-cns-v1.0-minconf-0.5.feather` | 357,489,383 | One row per synapse site, with location and region labels |
-| `tbar-neurotransmitters-male-cns-v1.0.feather` | 45,656,140 | Per presynaptic release site (T-bar): six transmitter probabilities |
+| `tbar-neurotransmitters-male-cns-v1.0.feather` | 45,656,140 | Per presynaptic release site (T-bar): seven transmitter probabilities |
 
 Notes on the three "variants" of each edge and synapse file:
 
@@ -248,7 +248,7 @@ One row per synapse site with `x`, `y`, `z`, `kind`, `conf`, `sv` (supervoxel), 
 ### Neurotransmitters
 
 - `body-neurotransmitters` (1,835,518 rows, one per body): `predicted_nt`, `predicted_nt_confidence`, `total_nt_predictions`, `ground_truth` (available for about 85k bodies), `consensus_nt`, and per-cell-type fields `celltype_*`.
-- `tbar-neurotransmitters` (45.7M rows, one per presynaptic release site): six probabilities (`nt_acetylcholine_prob`, `nt_dopamine_prob`, `nt_gaba_prob`, `nt_glutamate_prob`, `nt_histamine_prob`, `nt_octopamine_prob`, `nt_serotonin_prob`) and a `split` label.
+- `tbar-neurotransmitters` (45.7M rows, one per presynaptic release site): seven probabilities (`nt_acetylcholine_prob`, `nt_dopamine_prob`, `nt_gaba_prob`, `nt_glutamate_prob`, `nt_histamine_prob`, `nt_octopamine_prob`, `nt_serotonin_prob`), the site's position (`x`, `y`, `z`, `conf`, `sv`, `body`), its neuropil (`major`, `primary`) and a `split` label.
 
 Consensus transmitter counts across bodies:
 
@@ -264,6 +264,41 @@ Consensus transmitter counts across bodies:
 | serotonin | 48 |
 
 Most bodies are `unclear`; the table includes many small fragments. Predictions describe the presynaptic neuron only.
+
+#### Transmitter columns
+
+| Column | Level | Meaning |
+|---|---|---|
+| `predicted_nt`, `predicted_nt_confidence` | body | Majority prediction over the body's own T-bars, with its confidence. |
+| `celltype_predicted_nt`, `celltype_predicted_nt_confidence` | cell type | The same prediction pooled over every body of the type. |
+| `consensus_nt` | body | Consensus label for the body. It equals `ground_truth` on all 85,484 bodies that have one (`predicted_nt` matches on 88.6 %), and is far less often `unclear` than `predicted_nt`. |
+| `ground_truth` | body | Experimentally established transmitter, about 85k bodies (85,484), mostly by cell type. |
+
+The columns disagree for whole populations, so the choice matters (see §12, Predicted transmitters).
+
+#### The seven transmitters
+
+Counts are for the 165,122 `Traced` bodies, per column. Roles are general fly neuroscience, not derived from this dataset.
+
+| Transmitter | `predicted_nt` | `consensus_nt` | `ground_truth` | Action | Where it is in this dataset (by `consensus_nt`) |
+|---|---:|---:|---:|---|---|
+| acetylcholine | 94,946 | 103,718 | 52,778 | The main fast excitatory transmitter of the insect CNS (nicotinic receptors). | Most sensory neurons, projection neurons, Kenyon cells, most descending and ascending neurons. |
+| glutamate | 28,055 | 29,296 | 14,395 | Fast. Inhibitory in the CNS through the glutamate-gated chloride channel (GluCl); excitatory at the neuromuscular junction. The sign depends on the receptor, which the dataset does not record. | Many local interneurons; motor neurons (at muscle, excitatory). |
+| GABA | 20,218 | 22,055 | 13,149 | The main fast inhibitory transmitter (GABA-A, Rdl). | Local interneurons (for example antennal-lobe LNs), the APL neuron, many CX ring neurons. |
+| histamine | 2,026 | 5,910 | 2,699 | Fast inhibitory through histamine-gated chloride channels. The photoreceptor transmitter. | Photoreceptors (`R1-R6` 1,394, `R7*`, `R8*`) and the optic-lobe type `T1` (1,777). |
+| dopamine | 4,443 | 392 | 380 | Modulatory, through G-protein-coupled receptors (slow). Teaching signal of the mushroom body. | DANs (338, mostly `PAM*`), a few CX and central neurons. `predicted_nt` also labels 4,058 Kenyon cells dopamine, which `consensus_nt` corrects to acetylcholine. |
+| octopamine | 102 | 101 | 51 | Modulatory; the insect counterpart of noradrenaline (arousal, flight, muscle modulation). | VNC efferent neurons (49), CX `EL` (18), visual centrifugal (16), `OA-*` types. |
+| serotonin | 465 | 48 | 44 | Modulatory (feeding, sleep, aggression), through G-protein-coupled receptors. | Few bodies: `SNpp23` proprioceptors (16), `DNg28`, `FB4Y`, `5-HT*` types. `predicted_nt` calls 465 bodies serotonin; only 48 are confirmed by `consensus_nt`. |
+| `unclear` | 14,365 | 3,100 | — | No confident call. | — |
+| null | 502 | 502 | 81,626 | No row or no label. | — |
+
+`celltype_predicted_nt` (traced): acetylcholine 98,511, glutamate 29,015, GABA 21,482, histamine 5,983, `unclear` 4,708,
+dopamine 4,448, serotonin 386, octopamine 87, null 502.
+
+**Use in microfly.** Brain snapshots give a fast sign to acetylcholine (+1), GABA (−1) and glutamate (−1), from
+the config's `transmitterSign`. Histamine, dopamine, octopamine and serotonin have no fast sign, and their bodies are
+left out of the fast graph. ADR 006 D10 reads `ground_truth`, then `consensus_nt`, then `predicted_nt`. ADR 007 D18 gives
+dopamine a modulatory role.
 
 ### Body statistics (`body-stats`)
 
@@ -290,7 +325,7 @@ Most bodies are `unclear`; the table includes many small fragments. Predictions 
 - **Mixed name systems.** `type`, `flywireType`, `hemibrainType`, and `mancType` come from different naming schemes and do not map one to one.
 - **Subsets change the answer.** Traced-only, significant-only, and full edge files differ in size and in which edges they keep. Always state which one you used.
 - **Confidence thresholds.** Synapses carry per-side confidence. The `minconf-0.5` threshold is from the file name only; check the release documentation for its exact definition.
-- **Predicted transmitters.** Neurotransmitter identity is predicted from synapse appearance, not measured. `unclear` covers most bodies.
+- **Predicted transmitters.** Neurotransmitter identity is predicted from synapse appearance, not measured. `unclear` covers most bodies. Per-body `predicted_nt` can be wrong for whole populations: 4,058 of 4,064 Kenyon cells are predicted `dopamine`, while `consensus_nt` gives `acetylcholine` for all 4,064; of 707 traced VNC motor neurons, 672 are `unclear` in `predicted_nt`, while `consensus_nt` names 302 of them `glutamate`. Compare `predicted_nt`, `consensus_nt` and `ground_truth` before choosing one.
 - **Unannotated bodies.** About 45k bodies have no superclass, and they carry a large share of synapses. Results that ignore them may be biased.
 - **Approximate counts.** Counts of cell types defined by name pattern (Kenyon cells, DAN, MBON, DN, AN, MN, Tm, T4, T5 and others) are approximate. Use `class` or `type` exact matches when precision matters.
 - **Coordinates.** Voxel units are not stated in the files. Verify the voxel size before converting to physical distance.
@@ -415,7 +450,7 @@ Families are assigned by name pattern, so they are a readable grouping rather th
 | AN ascending neurons | 1,849 | 556 | Ascending neurons. They carry VNC sensory and motor-circuit feedback to the brain. | [MANC VNC circuits (eLife)](https://elifesciences.org/articles/96084) |
 | Li lobula intrinsic | 1,558 | 31 | Lobula intrinsic neurons. Roles not verified in these sources. | - |
 | Y-type visual neurons | 1,367 | 5 | Y-type visual neurons. Roles not verified in these sources. | - |
-| Gustatory receptor neurons | 1,347 | 40 | Gustatory receptor neurons. Labellar (LgLG, LB) and wing (WG) taste sensilla. | - |
+| Gustatory receptor neurons | 1,347 | 40 | Gustatory receptor neurons. Type prefixes follow the organ (checked against `subclass`): `LB` labellar bristle, `LgLG` and `LgAG` leg bristle, `WG` wing bristle, `PhG` pharyngeal sensillum. `LgLG` is leg taste, not labellar. | - |
 | DN descending neurons | 1,342 | 484 | Descending neurons. They carry brain commands to the VNC for walking, turning, takeoff and grooming. | [MANC VNC circuits (eLife)](https://elifesciences.org/articles/96084) |
 | BM bristle-associated | 932 | 8 | Bristle-associated neurons, including BM_Taste. Functions are not verified in these sources. | - |
 | LPLC lobula-plate/lobula complex | 417 | 4 | Lobula-plate and lobula complex neurons. Visual projection neurons; individual roles not verified here. | - |
