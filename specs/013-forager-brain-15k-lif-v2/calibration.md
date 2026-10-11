@@ -77,3 +77,46 @@ its neuron count, edge count and admitted interneuron population are all differe
 `/microfly-calibrate` pass on the new snapshot is still needed before SC-007 (brake) and US1 (find-rate parity)
 can be verified; this document's "Next steps" above are otherwise still the right next actions, just against the
 new file.
+
+## Update 2026-10-11 — `/microfly-calibrate --stage=auto` on the post-BUG-001 brain: no A1 pass, one near-miss
+
+Five `--stage=auto` runs against the re-extracted brain (16,127 neurons), all calibration-seed only, no held-out
+seeds touched. **0 of 342 valid A1 grid points pass** (robust, >= 50% of axis-neighbours also passing). No
+world-stage run was attempted — there is no A1-passing candidate to carry into it.
+
+1. **Plain `synapticScale` grid** (`runs/v2-auto-20261011/auto.json`, 48 points, scale 0.002–0.02 ×
+   `tauSyn` × `inputRateHigh` × `stepsPerTick`): a cliff, not a ramp. At 0.002 the network is silent
+   (`output`/`vnc`/`central` quiet, only `al` flickers on at some `stepsPerTick`). At >= 0.005 everything —
+   `output`, `al`, `vnc`, `dn`, `central` — is ignited together, with `gain:al`/`gain:central` also failing.
+   0/48 pass.
+2. **Narrowed scale grid** (`runs/v2-auto-narrow-20261011/auto.json`, 60 points, scale 0.0025–0.0045): same
+   cliff at finer resolution. 0.0025 leaves `al` ignited alone while the rest stay silent; >= 0.003 ignites
+   everything at once. 0/60 pass.
+3. **Tooling bug found and fixed**: `calibrate.mjs`'s phase-2 axes merge applied
+   `profile.groupGainAxisFor(stuck)` *after* `--axes`, and that function returns the truthy `[{}]` (not `null`)
+   whenever classify finds no "stuck" region — silently discarding any `groupGain` the operator passed via
+   `--axes`. `al` never satisfies classify's strict "ignited at every scanned scale" test, so this fired every
+   time. Fixed in `.claude/skills/microfly-calibrate/scripts/calibrate.mjs` (explicit `--axes` override now wins).
+   A `groupGain.al` run taken before this fix (`runs/v2-auto-algain-20261011/`) is invalid and is not used below.
+4. **`groupGain.al` grid, post-fix** (`runs/v2-auto-algain-fixed-20261011/auto.json`, 144 points, scale
+   {0.005, 0.01, 0.02} × `al` gain {0.1, 0.2, 0.3, 0.5}): suppressing `al`'s own gain does not decouple it from
+   the rest of the network. At scale 0.005, `al` gain 0.1–0.3 leaves *everything* silent (`output`, `vnc`, `dn`,
+   `central` included) — not just `al`. `al` gain 0.5 re-ignites everything together, same as before. Reading:
+   `al` looks upstream of the rest of this circuit's activity rather than merely more excitable than it; there is
+   no tested point where `al` is calm and downstream regions are still responsive. 0/144 pass.
+5. **Fine grid around the transition** (`runs/v2-auto-algain-fine-20261011/auto.json`, 90 points, scale
+   0.005–0.01 step 0.001 × `al` gain {0.3, 0.35, 0.4, 0.45, 0.5}, `tauSyn`=5, `stepsPerTick`=10 pinned,
+   `inputRateHigh` kept at {0.08, 0.15, 0.3} to confirm robustness): **one consistent near-miss**. At
+   `synapticScale=0.006, groupGain.al=0.4`, the only failing gate at *all three* `inputRateHigh` values is
+   `ignited:output` — `al`, `vnc`, `dn` and `central` all sit inside the 0.2–10% rest band
+   (`profiles/v2.mjs` `gates.restFloor`/`restCeiling`). Every neighbouring `al` gain (0.35 or 0.45) at the same
+   scale fails on 3–4 regions at once; this point is a genuine local minimum, not noise. 0/90 pass, but this is
+   the closest point found across all five runs.
+
+**Finding.** A single global `synapticScale` cannot place `al` and the rest of the network in their quiet bands
+at the same time — `al` drives the others rather than merely co-exciting with them. The best lead so far
+(`synapticScale=0.006`, `groupGain.al=0.4`) leaves only `output`'s own rest activity slightly over the 0.1
+ceiling; nothing else is close. The untried next lever is a `groupGain.output` axis (mirroring `groupGain.al`)
+scanned near this point, to see whether `output` alone can be brought down without disturbing `al`/`vnc`/`dn`/
+`central`. No shipped world config, extractor config, or this document's "shipped" status was changed by any of
+these runs — `world/world-forager-15k.json` still ships the unmodified L11 starting values.
