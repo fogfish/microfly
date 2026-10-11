@@ -182,7 +182,11 @@ if (stage === 'regime') {
   console.log(`Stuck regions: ${stuck.length ? stuck.join(', ') : '(none)'}`);
 
   const groupGainAxis = profile.groupGainAxisFor(stuck);
-  const axes = { ...profile.axes, ...axesOverride, ...(groupGainAxis ? { groupGain: groupGainAxis } : {}) };
+  const axes = {
+    ...profile.axes,
+    ...(groupGainAxis && !axesOverride.groupGain ? { groupGain: groupGainAxis } : {}),
+    ...axesOverride,
+  };
   const gridSize = Math.ceil(cartesianSize(axes) / shardN);
   const perPointMs = profile.estimateRegimePointMs(profile.referencePoint());
   const ok = checkBudget((gridSize * perPointMs) / 60000, false);

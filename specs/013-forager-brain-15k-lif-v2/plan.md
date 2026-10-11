@@ -38,6 +38,12 @@ exactly as they are.
 Design decisions and their reasons are in [research.md](research.md). Entities are in [data-model.md](data-model.md).
 Formats are in [contracts/](contracts/). The runnable guide is [quickstart.md](quickstart.md).
 
+**Bugfix**: 2026-10-10 — [BUG-001](bugs/BUG-001.md) found that Phase 1's D11 pair-grid selection (R4) admits a
+`forward` output pool whose net synaptic weight is inhibitory, so no `v2` world can walk forward at any LIF
+setting. Phase 1 is reopened (T091–T097): a design decision (sign-aware D11 score vs. a widened D9 `forward`
+pool), a code fix, a re-extraction and a fresh calibration pass are all needed before Phases 3/4/11 (US1/US2/US9)
+can be re-validated. See the new Risk entry below.
+
 ## Technical Context
 
 **Language/Version**: JavaScript ES2022 (browser ES modules, Node 20+ for tests). Python 3.14 with the extractor's
@@ -300,6 +306,9 @@ tasks.
 1. **Extractor, six-sense selection (format 4, container v5)**: `dataset.py` column additions, `admission.py`'s
    transmitter-source fallback, `selection_forager_v2.py` (D8–D13), `errors.py`'s four new codes, `container.py`/
    `capabilities.py` v5 support. Synthetic fixture and failure-code tests first, then the real v1.0 run (Gate A).
+   **Reopened by BUG-001**: D11's score (`selection_forager_v2.py`'s pair-grid step) must become sign-aware for
+   `forward`, or D9's `forward` pool must widen, before the real run (T023) can be trusted; FR-032/SC-012 add a
+   net-sign check and report line to this phase.
 2. **LIF core, L10**: `groupGain` added to `lif-v1.js` with the no-op-default guarantee proven before anything else
    touches it (same order spec 008 used for G1).
 3. **Runner, protocol dispatch and worker fix**: `fly-brain-v2.js` (L9 Poisson encoding, `graph.neuronGroup`
@@ -347,6 +356,13 @@ tasks.
   full held-out-seed arm at 15K, against ~5 minutes today). Mitigation: out of this feature's required scope (the
   spec has no requirement for parallel seed execution); `compare-baseline.mjs`'s worker-threads parallelisation
   (W10) is deferred as a follow-up, run serially if needed for this feature's acceptance.
+- **D11's pair-grid score ranks by flow magnitude only, with no sign term** ([BUG-001](bugs/BUG-001.md), found
+  during calibration, not anticipated here): the induced subgraph it selects can leave an output pool net
+  inhibitory, which no LIF parameter can correct. Measured: `forward` (`DNp09`/`DNg100`) at −867 signed
+  weight/neuron, against `turn-left` +4084, `turn-right` +3874, `backward` +1093. Mitigation: ADR 006 needs an
+  amendment (sign-aware scoring, or a widened `forward` pool per D9/spec Q2) before Phase 1's extraction can be
+  trusted; FR-032/SC-012 add a standing check so the next brain generation catches this at Gate A, not after a
+  multi-round calibration search.
 
 ## Complexity Tracking
 

@@ -137,6 +137,26 @@ def _flow(read, update, syn, n, seeds, steps):
     return best
 
 
+def _signed_flow(read, update, syn, n, seeds, steps, sign):
+    """D11 Amendment (BUG-001, ADR 006 Amendment 2026-10-10): a signed variant of `_flow`, used only for an
+    output group's backward score. Each hop multiplies by `sign[update]` (the transmitting neuron's resolved
+    sign, for that edge's pre-synaptic body), so a path through an even number of inhibitory synapses nets
+    positive and an odd one nets negative, instead of `_flow`'s magnitude-only reachability — this is what makes
+    `score_{p,o}(i)` reject a candidate whose net contribution to the group is inhibitory, where the unsigned
+    `_flow` could not tell the two apart. `read`/`update`/`seeds`/`steps` as `_flow`; `sign` is the dense
+    per-neuron sign array ({-1, 0, 1})."""
+    total = np.bincount(update, weights=syn, minlength=n)
+    weight = syn / total[update]
+    x = np.zeros(n)
+    x[seeds] = 1.0
+    best = x.copy()
+    for _ in range(steps):
+        x = np.clip(np.bincount(update, weights=weight * x[read] * sign[update], minlength=n), -1.0, 1.0)
+        take = np.abs(x) > np.abs(best)
+        best = np.where(take, x, best)
+    return best
+
+
 def _excluded(body, config):
     """D12: whole-class and superclass-suffix exclusions never become interneurons."""
     if body.get("class") in config["excludeInterneuronClasses"]:
@@ -175,6 +195,7 @@ def select_forager_v2(config, bodies, edges):
         _fail("E-POOL-EMPTY", "no admitted body to select from")
     ids = np.array(sorted(bodies), dtype=np.int64)
     n = len(ids)
+    sign_dense = np.array([bodies[int(b)].get("sign", 0) for b in ids], dtype=np.float64)
     pre, post, syn = (np.asarray(a, dtype=np.int64) for a in edges)
     min_synapses = config.get("minSynapses", 1)
     keep = np.isin(pre, ids) & np.isin(post, ids) & (syn >= min_synapses)
@@ -203,17 +224,22 @@ def select_forager_v2(config, bodies, edges):
         pathway_flow[pathway] = _flow(pre_i, post_i, syn, n, seeds, steps)
 
     group_flow = {}
+    signed_group_flow = {}
     for group, member_ids in config["outputGroups"].items():
         seeds = dense(sorted(b for cid in member_ids for b in outputs[cid]))
         group_flow[group] = _flow(post_i, pre_i, syn, n, seeds, steps)
+        # D11 Amendment (BUG-001): scoring uses the signed variant so a candidate whose net contribution to
+        # the group is inhibitory scores 0, not high — `group_flow` (unsigned) is kept only for the header's
+        # informational flowOutput field, unchanged from before this amendment.
+        signed_group_flow[group] = _signed_flow(post_i, pre_i, syn, n, seeds, steps, sign_dense)
 
     budget = config["budget"]["perPair"]
     candidate_i = [i for i in range(n) if int(ids[i]) not in pool_bodies]
     chosen = set()
     for pathway in config["pathways"]:
         for group in config["outputGroups"]:
-            fp, bo = pathway_flow[pathway], group_flow[group]
-            score = {int(ids[i]): float(np.sqrt(fp[i] * bo[i])) for i in candidate_i}
+            fp, bo = pathway_flow[pathway], signed_group_flow[group]
+            score = {int(ids[i]): (float(np.sqrt(fp[i] * bo[i])) if bo[i] > 0 else 0.0) for i in candidate_i}
             top = top_by_score(score, budget)
             if not top:
                 _fail("E-PAIR-EMPTY", f"pair ({pathway}, {group}) has no candidate with a positive score")
@@ -306,6 +332,20 @@ def select_forager_v2(config, bodies, edges):
     offsets = np.zeros(count + 1, dtype=np.uint32)
     offsets[1:] = np.cumsum(np.bincount(src, minlength=count))
 
+    # FR-032/SC-012 (BUG-001): every output pool's admitted net synaptic weight per neuron must be positive --
+    # a pool that is net inhibitory or net zero can never drive its drive upward at any LIF setting (the root
+    # cause BUG-001 found for `forward`). Checked here, on the final CSR weights, after D13's sign * synapses.
+    output_net_weight = {}
+    for cid, members in outputs.items():
+        local_members = np.array(
+            sorted(int(local[int(np.searchsorted(ids, b))]) for b in members), dtype=np.int64)
+        per_neuron = float(weights[np.isin(dst, local_members)].sum()) / len(local_members)
+        output_net_weight[cid] = round(per_neuron, ROUND)
+        if per_neuron <= 0:
+            _fail("E-OUTPUT-SIGN",
+                  f"output pool {cid} has non-positive net admitted synaptic weight per neuron "
+                  f"({per_neuron:.3f})")
+
     pools = {}
     for cid in inputs:
         pools[cid] = [k for k, nr in enumerate(neurons) if nr["channel"] == cid]
@@ -318,6 +358,7 @@ def select_forager_v2(config, bodies, edges):
         "targets": dst.astype(np.uint32),
         "weights": weights,
         "synapses": raw.astype(np.uint16),
+        "outputNetWeight": output_net_weight,
         "edgeCount": int(src.size),
         "pools": pools,
     }

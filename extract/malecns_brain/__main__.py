@@ -196,6 +196,11 @@ def report_forager_v2(config, brain, output, size, self_check):
     lines.append(f"pair budget fill   (pathway × outputGroup) {pairs} pairs, perPair {config['budget']['perPair']}")
     lines.append("edges into outputs: " + ", ".join(
         f"{cid} {int(sum(incoming[pools[cid]]))}" for cid in config["outputs"]))
+    # FR-032/SC-012 (BUG-001): net admitted signed weight per neuron, every output pool, printed regardless of
+    # how comfortably positive it is -- select_forager_v2 already stops extraction (E-OUTPUT-SIGN) before this
+    # report runs if any pool is non-positive, so every value printed here is confirmed positive.
+    lines.append("output net weight/neuron: " + ", ".join(
+        f"{cid} {brain['outputNetWeight'][cid]:+g}" for cid in config["outputs"]))
     weights = brain["weights"]
     synapses = brain["synapses"]
     lines += [

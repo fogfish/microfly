@@ -13,6 +13,14 @@ description: "Task list for the Cautious Forager Brain (15K, LIF v2) feature"
 and `AGENTS.md` both make tests mandatory for this project (LIF core unit tests, extractor tests on a fixture,
 contract tests on both sides of any format/protocol change) — this is not the optional default.
 
+**Bugfix**: 2026-10-10 — [BUG-001](bugs/BUG-001.md): the shipped brain's `forward` output pool is net inhibitory
+(D11's pair-grid score has no sign term), so no `v2` world finds food at any LIF setting. T010, T012, T023, T053,
+T057 and T085 were reopened below; T091–T097 were added for the design decision, the code fix, re-extraction and
+re-verification. **2026-10-11**: T091–T095 are done — the sign-aware D11 fix and the narrowed `forward` pool are
+implemented, the real brain is re-extracted (`forward +3719`/neuron, was −867), and T010/T012/T023 are re-closed.
+T053/T057/T085/T096/T097 stay open, blocked on a fresh `/microfly-calibrate` pass on the new snapshot (a separate
+session, per AGENTS.md).
+
 **Organization**: Tasks are grouped by user story (spec.md's priorities P1–P3). Because every user story in this
 feature observes behaviour of **one** brain (the ADR 006 15K brain) running in **one** world, the extraction
 pipeline, the LIF/runner/protocol plumbing, and the declared-sense/world-config machinery are genuinely blocking
@@ -97,19 +105,23 @@ declared-sense/body-site/escape machinery the world needs to drive it.
 - [X] T009 Extend `extract/malecns_brain/selection_forager_v2.py` with D9's 6 output pools (`turn-left`,
   `turn-right`, `forward`, `backward`, `feed`, `escape`), admitted by the existing ADR 003 output rule (incoming
   edges only, `sign = 0` allowed).
-- [X] T010 Extend `extract/malecns_brain/selection_forager_v2.py` with D11's pair-grid selection: for every
-  `(pathway, outputGroup)` pair in the config, compute `score_{p,o}(i) = sqrt(F_p(i) * B_o(i))` over `flowSteps`
-  hops, take `top_k(score)` with `k = budget.perPair`, ties on ascending `bodyId`; raise `E-PAIR-EMPTY` for any
-  pair with no candidate above a positive score; union every pair's selection.
+- [X] T010 Extend `extract/malecns_brain/selection_forager_v2.py` with D11's pair-grid
+  selection: for every `(pathway, outputGroup)` pair in the config, compute `score_{p,o}(i) = sqrt(F_p(i) *
+  B_o(i))` over `flowSteps` hops, take `top_k(score)` with `k = budget.perPair`, ties on ascending `bodyId`;
+  raise `E-PAIR-EMPTY` for any pair with no candidate above a positive score; union every pair's selection.
+  **Re-closed (BUG-001, T092)**: `score_{p,o}(i)` now uses the signed backward flow (zeroed when non-positive);
+  everything else in this task is unchanged.
 - [X] T011 Extend `extract/malecns_brain/selection_forager_v2.py` with D12: add every body matching an `anchors`
   filter regardless of score (raise `E-ANCHOR-EMPTY` if a filter matches nothing), then remove every body whose
   `class` is in `excludeInterneuronClasses` or whose `superclass` ends with `excludeInterneuronSuperclassSuffix`.
-- [X] T012 Extend `extract/malecns_brain/selection_forager_v2.py` with D13 (`weight(i→j) = sign(i) *
-  synapses(i→j)` when `weightRule == "synapseCount"`, edges below `minSynapses` dropped before weights are
-  computed) and L10's per-neuron `region` field, written by the first-match rule: `input` (pool member) → `output`
-  (pool member) → `al` (`class ∈ {ALLN, ALPN, ALIN, ALON}`) → `vnc` (`superclass ∈ {vnc_intrinsic, vnc_motor,
-  vnc_efferent, ascending_neuron}`) → `dn` (`superclass = descending_neuron`) → `central` (everything else). Order
-  neurons input → output → interneuron-by-`bodyId`, as every existing container does.
+- [X] T012 Extend `extract/malecns_brain/selection_forager_v2.py` with D13 (`weight(i→j) =
+  sign(i) * synapses(i→j)` when `weightRule == "synapseCount"`, edges below `minSynapses` dropped before weights
+  are computed) and L10's per-neuron `region` field, written by the first-match rule: `input` (pool member) →
+  `output` (pool member) → `al` (`class ∈ {ALLN, ALPN, ALIN, ALON}`) → `vnc` (`superclass ∈ {vnc_intrinsic,
+  vnc_motor, vnc_efferent, ascending_neuron}`) → `dn` (`superclass = descending_neuron`) → `central` (everything
+  else). Order neurons input → output → interneuron-by-`bodyId`, as every existing container does.
+  **Re-closed (BUG-001, T093)**: the weight computation is unchanged; FR-032's per-output-pool net-weight check
+  now sits right after this step, on the final CSR weights.
 - [X] T013 Extend `extract/malecns_brain/container.py`: `FORMAT_VERSION_V5 = 5`, `SUPPORTED_VERSIONS = (3, 4, 5)`,
   and `_check_forager_v2` asserting every rule in `contracts/container-v5.md`'s `_check_forager_v2` section
   verbatim: "every input channel declares a non-empty `sense` and `site`", "every output channel's `drive` is one
@@ -148,10 +160,13 @@ declared-sense/body-site/escape machinery the world needs to drive it.
 - [X] T022 `extract/tests/bench_forager_v2.py`: Gate A peak-memory and wall-time measurement on the full dataset
   run (ADR 006 Annex A3's ~10 s / 2.7 GB prototype figures are the comparison baseline, not the pass/fail bar —
   the shipping extractor's own number is what gets recorded).
-- [X] T023 Run the real extraction: `cd extract && MALECNS_DIR=../data/malecns .venv/bin/python -m malecns_brain
-  extract --config configs/forager-brain-15k.json --out ../public/brains/forager-brain-15k.brain`. Confirm the
-  report's neuron count is within `[12000, 18000]`, every output is reached, every declared side-matched pool is
-  balanced, and the self-check reads `identical`. Commit the resulting `.brain` file.
+- [X] T023 Run the real extraction: `cd extract && MALECNS_DIR=../data/malecns
+  .venv/bin/python -m malecns_brain extract --config configs/forager-brain-15k.json --out
+  ../public/brains/forager-brain-15k.brain`. Confirm the report's neuron count is within `[12000, 18000]`, every
+  output is reached, every declared side-matched pool is balanced, and the self-check reads `identical`. Commit
+  the resulting `.brain` file. **Re-closed (BUG-001, T094)**: re-run with the sign-aware D11 fix and the
+  narrowed `forward` pool; 16,127 neurons, 1,839,129 edges, self-check `identical`, and every output pool's net
+  weight/neuron is now positive (`forward +3719`, was −867). New file committed.
 
 ### LIF core, runner, protocol, worker (JS)
 
@@ -269,10 +284,13 @@ run confirming leg-taste/touch precede mouth-taste.
 - [X] T052 [US1] Confirm `public/js/fly/metrics.js`'s existing `find`/`approach` functions make no `v1`-specific
   assumption (five fixed channels, a specific channel index) that would misread a `v2` fly's 12-channel
   declaration; adjust only if one is found (they are declared-channel-generic today per the plan's survey).
-- [X] T053 [US1] Calibrate `world/world-forager-15k.json`'s `flies.stimuli.odour:food` falloff/radius and
-  `flies.body.sites.front-leg` offset (T048) so a fly's front leg reaches a flower's cell noticeably before its
-  mouth does; record the chosen values in `specs/013-forager-brain-15k-lif-v2/calibration.md` (new file, T057
-  creates it; append this entry to it).
+- [ ] T053 ⚠️ Reopened (BUG-001) [US1] Calibrate `world/world-forager-15k.json`'s `flies.stimuli.odour:food`
+  falloff/radius and `flies.body.sites.front-leg` offset (T048) so a fly's front leg reaches a flower's cell
+  noticeably before its mouth does; record the chosen values in `specs/013-forager-brain-15k-lif-v2/calibration.md`
+  (new file, T057 creates it; append this entry to it). **(reopened — BUG-001)**: this can only be meaningfully
+  calibrated once a fly can actually walk toward a flower; with `walked: 0` at every setting tried
+  (`.claude/skills/microfly-calibrate/runs/v2-world-2026-10-10/world.json`), there is no approach behaviour to
+  tune the sensing offsets against yet. Re-run after T094's re-extraction and a fresh `/microfly-calibrate` pass.
 
 **Checkpoint**: User Story 1 is independently testable — a `v2` world finds food at least as well as `v1`, with
 leg-leading sensing visible.
@@ -299,10 +317,14 @@ lower than the size-matched random-graph arm's, and the fly eats.
 
 ### Implementation for User Story 2
 
-- [X] T057 [US2] Create `specs/013-forager-brain-15k-lif-v2/calibration.md` (pattern: `specs/008-hungry-forager-
-  brain/calibration.md`) recording the calibration-seed run that confirms SC-007 (brake ratio < 1 and lower than
-  the random-graph arm's) before any held-out-seed verdict is taken, per ADR 006's Calibration protocol section
-  and the project rule that calibration and held-out seeds never share a seed.
+- [ ] T057 ⚠️ Reopened (BUG-001) [US2] Create `specs/013-forager-brain-15k-lif-v2/calibration.md` (pattern:
+  `specs/008-hungry-forager-brain/calibration.md`) recording the calibration-seed run that confirms SC-007 (brake
+  ratio < 1 and lower than the random-graph arm's) before any held-out-seed verdict is taken, per ADR 006's
+  Calibration protocol section and the project rule that calibration and held-out seeds never share a seed.
+  **(reopened — BUG-001)**: the file was created and honestly records that SC-007 is not yet verified
+  (`calibration.md`'s own "Next steps" section) — but it could not have confirmed SC-007 at any `synapticScale`
+  because `forward` is structurally net-inhibitory, so BUG-001's root cause, not just more search, is why the
+  confirmation is still missing. Re-run after T094's re-extraction.
 
 **Checkpoint**: User Stories 1 and 2 both work independently — `v2` finds food and now also brakes and eats on it.
 
@@ -514,10 +536,13 @@ held-out seed count.
   (T058), touch (T062), escape (T062) and rest (T082) columns per arm, alongside the unchanged
   find/approach/eat/leave/hunger-dependence table; size-matched random-graph and random-walk arms are generated
   against the `v2` brain's neuron/edge count exactly as they already are for `v1`.
-- [X] T085 [US9] Run `node scripts/compare-baseline.mjs --world=world/world-forager-15k.json
+- [ ] T085 ⚠️ Reopened (BUG-001) [US9] Run `node scripts/compare-baseline.mjs --world=world/world-forager-15k.json
   --brains=mock,v0,v1,v2,random-matched,baseline` on held-out seeds; record the full table in
   `specs/013-forager-brain-15k-lif-v2/gate-c.md` (new file, pattern: `specs/008-hungry-forager-brain/gate-c.md`),
   stating each metric's measured value as it is, whether or not it passes (FR-028) — brake must pass (SC-007).
+  **(reopened — BUG-001)**: `gate-c.md` already states the illustrative run is "not a held-out verdict" and
+  defers the real run until calibration lands; BUG-001 is why calibration cannot land — re-run only after T094's
+  re-extraction and a fresh calibration pass.
 
 **Checkpoint**: every arm, every metric, reported — the comparison the feature exists to enable.
 
@@ -555,7 +580,55 @@ run the full validation guide end to end.
 
 ---
 
+## Bugfix Phase: BUG-001 — `forward` output pool is net-inhibitory
+
+**Added**: 2026-10-10, patching [BUG-001](bugs/BUG-001.md). **Purpose**: fix D11's sign-blind pair-grid selection
+(or D9's `forward` pool), re-extract, and re-verify every behavioural checkpoint BUG-001 found could not have
+passed. Blocks T010/T012/T023/T053/T057/T085 above from re-closing.
+
+- [X] T091 Decision (user sign-off 2026-10-10): **both (a) and (b)**. (a) Make `score_{p,o}(i)` in
+  `extract/malecns_brain/selection_forager_v2.py` sign-aware. (b) Resolve ADR 006 Q2 directly: a read-only
+  measurement against the full admitted connectome found `DNg100` itself net-inhibitory even outside the narrow
+  v2 subgraph (−2397/neuron), while the other high-scoring candidates had no literature-confirmed forward-walking
+  role — so `forward` narrows to `DNp09` alone rather than widening with unverified types. Recorded as `##
+  Amendment 2026-10-10` in `adrs/006-cautious-forager-brain-15k.md` (Decision + A4 sections), following ADR 002's
+  precedent.
+- [X] T092 Implemented the T091 decision: `selection_forager_v2.py` gains `_signed_flow` (a signed variant of
+  D11's backward flow — each hop multiplies by the transmitting neuron's sign) used only for `score_{p,o}(i)`
+  (zeroed when the signed backward flow is non-positive); `group_flow` (unsigned) is kept unchanged for the
+  header's `flowOutput` field. `extract/configs/forager-brain-15k.json`'s `outputs.forward.types` narrowed to
+  `["DNp09"]`. No config schema or container field changed, so no contract amendment was needed.
+- [X] T093 Added FR-032/SC-012's net-sign check and report line: `select_forager_v2` computes each output pool's
+  net admitted signed weight per neuron on the final CSR weights and raises `E-OUTPUT-SIGN` (added to
+  `errors.py`) when any pool's net sum is not positive; `report_forager_v2` prints `output net weight/neuron:
+  ...` for every pool on success. Tests: `test_selection_forager_v2.py::test_d11_score_is_sign_aware_bug_001`
+  (the fixture's GABA candidate 4004 is now excluded, 4006 admitted instead) and
+  `test_forager_v2_failures.py::test_e_output_sign_bug_001_when_a_pool_nets_inhibitory` (the ALLN anchor, which
+  bypasses D11's score entirely, flipped to GABA with a large direct edge into `escape`). Full extractor suite:
+  241/241 passing, including with `MALECNS_DIR` set (117 s, real dataset).
+- [X] T094 Re-ran the real extraction: 16,127 neurons (within [12000, 18000]), 1,839,129 edges, self-check
+  `identical`. **`output net weight/neuron: turn-left +9152, turn-right +9329, forward +3719, backward +2431,
+  feed +253, escape +7911`** — `forward` is now positive (was −867 before the fix). Committed the new
+  `public/brains/forager-brain-15k.brain` (23,956,272 bytes). `npm test`: 546/546 relevant tests pass (the
+  pre-existing, feature-unrelated `tests/activity.test.mjs` failures are unchanged from `main`); the full v2
+  integration suite (find/brake/avoid/touch/escape/snapshot-v5/worker-core-v2/world-validate-v2) re-run
+  explicitly against the new container: 40/40 passing.
+- [X] T095 Told the user (end of this implementation turn) to run `/microfly-calibrate` in a separate session on
+  the new snapshot — this session did not run a calibration search.
+- [ ] T096 Once `/microfly-calibrate` lands a setting: re-run T053 (leg-taste-before-mouth-taste offset
+  calibration) and T057 (`calibration.md`'s SC-007 brake-ratio confirmation) against the new snapshot and the
+  calibrated setting.
+- [ ] T097 Re-run T085 (Gate C, `scripts/compare-baseline.mjs` on held-out seeds) against the new snapshot and
+  calibrated setting; record the real verdict in `gate-c.md` in place of the illustrative run, including whether
+  SC-007's brake criterion now passes.
+
+---
+
 ## Dependencies & Execution Order
+
+**Bugfix ordering (BUG-001)**: T091 → T092 → T093 → T094 → T095 are done (2026-10-11); T010/T012/T023 re-closed
+on T094. T096, T097 remain, blocked on a fresh `/microfly-calibrate` pass (run by the user in a separate
+session, not this one); T053/T057/T085 re-close only once T096/T097 complete.
 
 ### Phase Dependencies
 

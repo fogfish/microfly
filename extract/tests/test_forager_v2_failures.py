@@ -123,6 +123,26 @@ class ForagerV2FailureCodesTest(unittest.TestCase):
         self.assertEqual(error.code, "E-PAIR-EMPTY")
         self.assertIn("heat", error.message)
 
+    def test_e_output_sign_bug_001_when_a_pool_nets_inhibitory(self):
+        # The anchor (4001, ALLN) is admitted regardless of score (D12), so it is the one path that bypasses
+        # D11's sign-aware score (BUG-001 Amendment A4) entirely. Flip it to GABA and give it a large direct
+        # edge into `escape` (3006): 4003/4005/4006 (acetylcholine) keep their existing +2-each edges into
+        # escape (so escape's pair-grid scoring still finds a positive candidate and the pair-grid stage itself
+        # succeeds), but the anchor's -20 outweighs their combined +6, leaving escape net inhibitory overall.
+        def flip_anchor_to_gaba(data):
+            for row in data["transmitters"]:
+                if row["body"] == 4001:
+                    row["predicted_nt"] = "gaba"
+
+        def add_large_inhibitory_anchor_edge(data):
+            data["edges"]["pre"].append(4001)
+            data["edges"]["post"].append(3006)
+            data["edges"]["synapses"].append(20)
+
+        error = attempt(self.data, mutate_rows=flip_anchor_to_gaba, mutate_edges=add_large_inhibitory_anchor_edge)
+        self.assertEqual(error.code, "E-OUTPUT-SIGN")
+        self.assertIn("escape", error.message)
+
     def test_e_modulator_when_a_target_is_undeclared(self):
         config = copy.deepcopy(self.data["config"])
         config["modulators"][0]["targets"] = ["feed"]

@@ -157,6 +157,16 @@ class SelectionTest(unittest.TestCase):
     def test_excluded_class_candidate_is_removed_despite_flow(self):
         self.assertNotIn(4007, self.body_of)
 
+    def test_d11_score_is_sign_aware_bug_001(self):
+        # 4004 is GABA (sign -1) and uniformly connected to every pathway and every output, exactly like
+        # 4003/4005/4006 (acetylcholine, sign +1) -- before the BUG-001 fix, D11's score was flow-magnitude-only
+        # and 4004 tied every pair, winning a budget slot on the ascending-bodyId tie-break. The signed score
+        # (score_{p,o}(i) = 0 when the signed backward flow to the group is not positive) now excludes it from
+        # every pair, so it never enters `chosen` at all; 4006 (previously squeezed out by the tie only because
+        # it shared 4004's score) is admitted instead.
+        self.assertNotIn(4004, self.body_of)
+        self.assertIn(4006, self.body_of)
+
     def test_every_output_pool_receives_an_edge(self):
         index_of = {body: i for i, body in enumerate(self.body_of)}
         targets = set(int(t) for t in self.brain["targets"])

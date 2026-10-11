@@ -99,7 +99,7 @@
       "drive": "turnRight"
     },
     "forward": {
-      "types": ["DNp09", "DNg100"],
+      "types": ["DNp09"],
       "drive": "forward"
     },
     "backward": {

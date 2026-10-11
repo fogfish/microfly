@@ -467,6 +467,69 @@ As always, a failed behaviour metric is a finding. The fix is config or paramete
 - `specs/008-hungry-forager-brain/bugs/BUG-002.md`: the brake diagnosis.
 - Shiu, P.K. et al. (2024) A Drosophila computational brain model reveals sensorimotor processing. *Nature* 634, 210–219.
 
+## Amendment 2026-10-10
+
+Recorded during implementation of feature 013 (`specs/013-forager-brain-15k-lif-v2/`), bug
+[BUG-001](../specs/013-forager-brain-15k-lif-v2/bugs/BUG-001.md). The decisions above are kept as written. The
+changes below take precedence where they differ.
+
+### A4. D11's pair-grid score has no sign term, and D9's `forward` pool is net-inhibitory in the shipped brain
+
+D11 (lines 126–145) ranks every `(pathway, outputGroup)` candidate by `score_{p,o}(i) = √(F_p(i)·B_o(i))` — flow
+*magnitude*, with no sign. D11's own prose states a signed "brake budget" ablation "changes nothing measurable,"
+but that ablation tested whether *adding* sign-aware candidates changes the selection, not whether the *existing*
+selection leaves an output pool's net weight positive. It does not, for `forward`.
+
+**Measured** (`/microfly-calibrate`'s world-stage runs,
+`.claude/skills/microfly-calibrate/runs/v2-world-2026-10-10/world.json` and
+`v2-narrow-2026-10-10/regime.json`): the shipped brain's `forward` pool (D9: `DNp09`, `DNg100`, 4 neurons) has a
+**net inhibitory** total admitted synaptic weight from the rest of the selected subgraph, **−867 signed
+weight/neuron**. Every other output pool is net excitatory: `turn-left` +4084, `turn-right` +3874, `backward`
++1093 per neuron. `forward`'s own dedicated pair-grid candidates (the `(pathway, forward)` pairs) score lower
+than `turn`'s dedicated candidates (max 0.0213 vs. 0.0369) — a real ~1.7× gap, not large enough alone to explain
+a net-negative sum — so most of what the induced-subgraph rule actually delivers to `DNp09`/`DNg100` is
+incidental input from neurons admitted to drive `turn`/`backward`/`escape`, and that incidental population is
+net-inhibitory. No `synapticScale`/`tauSyn`/`groupGain`/`outputScale` setting can correct this: all four scale or
+filter an already-fixed, signed weighted sum, none can flip its sign. Every calibration run tried
+(`v2-auto-2026-10-10/auto.json`'s full grid scan included) found `find.rate: 0`, `walked: 0`.
+
+**Q2 is superseded in part**: Q2 asked whether Gate A's report or a literature check supports `DNg100` as a
+forward DN, with DNp09-alone as the fallback if not. That question is moot until D11/D9 is fixed — DNp09 alone
+is still fed by the same sign-blind selection and the same incidental-inhibition mechanism, so falling back to
+DNp09 alone does not by itself fix this bug.
+
+**Decision (user sign-off 2026-10-10): both (a) and (b).**
+
+**(a) `score_{p,o}(i)` is now sign-aware**, for every `(pathway, outputGroup)` pair, not `forward` alone.
+`selection_forager_v2.py` gains `_signed_flow`: the same iterative propagation D11's `B_o(i)` already used, but
+each hop multiplies by the transmitting neuron's resolved sign, so a path through an even number of inhibitory
+synapses nets positive and an odd one nets negative, instead of the original `_flow`'s magnitude-only
+reachability. `score_{p,o}(i) = √(F_p(i)·B_o_signed(i))` when `B_o_signed(i) > 0`, else `0` — a net-inhibitory
+candidate can no longer out-rank a net-excitatory one for that pair. `top_by_score` already dropped non-positive
+scores (pre-existing code, unchanged), so this is a minimal, scoped change: `F_p(i)` (the pathway side) stays
+unsigned, `group_flow` (unsigned, the header's `flowOutput` field) is kept alongside the new signed variant used
+only for scoring.
+
+**(b) resolves Q2 directly, rather than widening the pool with unverified types.** A read-only measurement
+against the full admitted MaleCNS v1.0 connectome (not just the narrow v2 selection) found `DNg100` itself net
+inhibitory even before the v2 subgraph narrows anything — **−2397 signed weight/neuron**, direct 1-hop, against
+`DNp09`'s **+1897/neuron** (consistent with Bidaye et al. 2020's literature role for DNp09). Several other DN
+types scored far higher on this same measure (e.g. `DNp103`, `DNp06`, `DNb05`, `DNp03`, `DNp04`, all
++4000–12,000/neuron), but none has a literature-documented forward-walking role found in Namiki et al. 2018's
+catalog or Cande et al. 2018's optogenetic screen — adding them would be a connectome-only guess, not the
+literature-grounded addition this amendment asked for. **D9's `forward` pool is narrowed to `DNp09` alone**
+(`extract/configs/forager-brain-15k.json`'s `outputs.forward.types`), the fallback Q2 itself already named. Widening
+the pool with a verified additional type is left to a future, separately-scoped connectome search (the same
+precedent BUG-002/ADR 004 set for an unverified brake-neuron addition), not blocking this fix.
+
+**Standing check added**: every output pool's net admitted synaptic weight per neuron, signed, is now part of the
+extractor's report (FR-032/SC-012), and a pool with a non-positive net sum stops extraction with a named failure
+(`E-OUTPUT-SIGN`) instead of shipping silently.
+
+**Status**: (a) and (b) implemented in `selection_forager_v2.py` and `forager-brain-15k.json`
+(`specs/013-forager-brain-15k-lif-v2/tasks.md` T092). Re-extraction (T094) and a fresh `/microfly-calibrate` pass
+(T095, in a separate session per AGENTS.md) are still needed before SC-007/US1's held-out verdicts can be taken.
+
 ## Annex A: measurements
 
 All numbers come from `data/malecns` (v1.0, traced-only edges), measured on 2026-10-09 with read-only scratch scripts

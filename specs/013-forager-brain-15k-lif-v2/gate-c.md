@@ -56,3 +56,13 @@ not a meaningful escape-near-danger signal.
 Run `node scripts/compare-baseline.mjs --world=world/world-forager-15k.json --brains=mock,v0,v1,v2,random-matched,baseline --seeds=held-out`
 once `calibration.md`'s staged protocol has landed on a setting, and record the result in this file in place of
 the illustrative run above (the same way `specs/008-hungry-forager-brain/gate-c.md` records v1's).
+
+## Update 2026-10-11 — [BUG-001](bugs/BUG-001.md) fixed, brain re-extracted
+
+The illustrative run above used the **pre-fix** brain (12,996 neurons); its `find`/`walked` numbers for `v2` were
+genuinely 0 because the `forward` output pool was structurally net-inhibitory, not because the run was too short.
+`forward`'s selection (ADR 006 D11) is now sign-aware and `DNg100` has been dropped from the pool (Q2 resolved;
+see `calibration.md`'s own 2026-10-11 update and the ADR 006 Amendment); the real brain was re-extracted
+(16,127 neurons, every output pool's net weight/neuron now positive). The "What is not done here" list above is
+unchanged in substance — a real held-out run still needs a calibrated setting first — but that calibration can
+now actually succeed, which it structurally could not before this fix.

@@ -57,3 +57,23 @@ otherwise complete, not a blocker folded into this implementation pass.
 2. Compare the `synapseCount` and `postFractionAbsolute` weight rules through A1; take the more robust one to B.
 3. Verify the brake (SC-007) and find-rate-parity (US1) criteria on held-out seeds, recording the run exactly as
    this document's "Interim choice" sections (`specs/008-hungry-forager-brain/calibration.md`) do for v1.
+
+## Update 2026-10-11 — [BUG-001](bugs/BUG-001.md) fixed, brain re-extracted
+
+Everything above this line was measured against the **pre-fix** brain (12,996 neurons). `/microfly-calibrate`'s
+own runs (`.claude/skills/microfly-calibrate/runs/v2-*-2026-10-10/`) found `find.rate: 0`/`walked: 0` at every
+point in that brain's exploratory sweep, at both the calibrated-quiet end (`synapticScale` 0.011) and the
+saturated end. The root cause was not a parameter: `forward`'s pair-grid selection (D11) was sign-blind, so the
+induced subgraph it chose was net inhibitory (**−867 signed weight/neuron**) regardless of scale.
+
+The fix (ADR 006 Amendment 2026-10-10; `specs/013-forager-brain-15k-lif-v2/tasks.md` T091–T094) makes D11's
+score sign-aware and narrows `forward` to `DNp09` alone (dropping `DNg100`, itself measured net-inhibitory on the
+full connectome). The brain was re-extracted: **16,127 neurons, 1,839,129 edges**, every output pool's net
+weight/neuron now positive (`forward +3719`, `turn-left +9152`, `turn-right +9329`, `backward +2431`,
+`feed +253`, `escape +7911`). `public/brains/forager-brain-15k.brain` was replaced with this new extraction.
+
+**None of the numbers above (26.5% rest activity, the `synapticScale` sweep table) apply to the new brain** —
+its neuron count, edge count and admitted interneuron population are all different now. A fresh
+`/microfly-calibrate` pass on the new snapshot is still needed before SC-007 (brake) and US1 (find-rate parity)
+can be verified; this document's "Next steps" above are otherwise still the right next actions, just against the
+new file.
