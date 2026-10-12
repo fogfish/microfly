@@ -145,6 +145,8 @@
   "excludeInterneuronSuperclassSuffix": "_sensory",
   "weightRule": "synapseCount",
   "minSynapses": 1,
+  "ieDriftTolerance": {"central": 0.15, "dn": 0.15},
+  "inhibitoryClosure": {"central": 250, "dn": 50},
   "modulators": [
     {
       "id": "hunger",

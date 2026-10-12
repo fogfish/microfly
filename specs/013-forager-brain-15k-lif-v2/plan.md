@@ -44,6 +44,33 @@ setting. Phase 1 is reopened (T091–T097): a design decision (sign-aware D11 sc
 pool), a code fix, a re-extraction and a fresh calibration pass are all needed before Phases 3/4/11 (US1/US2/US9)
 can be re-validated. See the new Risk entry below.
 
+**Bugfix**: 2026-10-11 — [BUG-002](bugs/BUG-002.md) found that Phase 7's A1 gates (ADR 006 §Calibration protocol
+point 2, as implemented by the `microfly-calibrate` skill's `engine.mjs`/`profiles/v2.mjs`) are mis-specified in
+seven ways — an `output` region wrongly rest-gated, a per-tick activity unit that shifts with `stepsPerTick`, a
+rest floor that forces every non-`input` group onto the ignition edge, a brake/feed probe that compares the wrong
+conditions, no steering gate, no rest check on the fitted forward readout, and no return-to-rest check — which is
+why five `--stage=auto` runs against the post-BUG-001 brain scored 0 of 342 points with no robust pass. ADR 006
+gained `## Amendment 2026-10-11` (A5) restating point 2; T098–T101 fix the tooling and re-score the existing
+checkpoints with no new simulation. See the updated Risk entry below.
+
+**Bugfix**: 2026-10-11 — [BUG-003](bugs/BUG-003.md) found that Phase 7's own search is centred and scoped wrong,
+independent of BUG-002's gate fix: L11's `synapticScale` (0.04) quotes Shiu et al. 2024's synaptic weight without
+finishing their own conversion to net charge (`w · τ / t_mbr`), making it ≈4× too high (corrected value ≈ 0.0098);
+and `profiles/v2.mjs`'s grid has never varied `tauAdapt`/`adaptStep` (L2), `thresholdJitter` (L3) or
+`inhibitoryScale` (L8) — all already implemented in `lif-v1.js`, off by default, and the standard remedies for the
+all-or-nothing ignition cliff BUG-002's re-scoring still finds. T102–T104 amend ADR 006's L11 and widen the grid
+before any further `/microfly-calibrate` search is run. See the new Risk entry below.
+
+**Bugfix**: 2026-10-11 — [BUG-004](bugs/BUG-004.md) found that BUG-001's own fix (ADR 006 Amendment A4, making
+D11's score sign-aware for every `(pathway, outputGroup)` pair, not only `forward`'s) removed recurrent
+inhibition from the selection network-wide: inhibitory/excitatory admitted weight ratio 0.70→0.52 overall,
+`output` 0.82→0.19, `central` 0.74→0.48, `dn` 0.74→0.50 (measured directly against the brains T023 and T094
+produced). FR-033/SC-013 add a per-region coverage report and a new failure code (T105). **Resolved same day,
+by user sign-off**: a measurement-driven per-region `inhibitoryClosure` budget for `central`/`dn` only (ADR 006
+Q7/A7; `vnc` measured never thinned by A4, `al`'s own anchor-driven skew is unrelated, and anchoring/per-neuron/
+global-budget alternatives were each measured and rejected) — implemented and re-extracted (T107), ahead of the
+`/microfly-calibrate` pass this risk originally proposed waiting for. See the updated Risk entry below.
+
 ## Technical Context
 
 **Language/Version**: JavaScript ES2022 (browser ES modules, Node 20+ for tests). Python 3.14 with the extractor's
@@ -363,6 +390,43 @@ tasks.
   amendment (sign-aware scoring, or a widened `forward` pool per D9/spec Q2) before Phase 1's extraction can be
   trusted; FR-032/SC-012 add a standing check so the next brain generation catches this at Gate A, not after a
   multi-round calibration search.
+- **The Calibration protocol's own A1 gates are mis-specified** ([BUG-002](bugs/BUG-002.md), found after BUG-001's
+  fix, not anticipated here): an `output` rest-gate A2 overrides anyway, a per-tick activity unit that is not
+  comparable across the `stepsPerTick` axis, a rest floor that contradicts the zero-basal-firing regime L11 itself
+  cites, a brake/feed probe comparing taste alone against odour alone instead of odour-plus-taste against odour,
+  no steering gate, no rest check on the fitted forward readout, and no return-to-rest check — together the reason
+  five full `--stage=auto` grid runs (342 points) found no robust candidate. Mitigation: ADR 006 Amendment
+  2026-10-11 (A5) restates point 2; Phase 7's tooling (`engine.mjs`/`profiles/v2.mjs`) is fixed to match and the
+  five existing checkpoints are re-scored with no new simulation (T098–T101) before any further
+  `/microfly-calibrate` search is run.
+- **L11's `synapticScale` starting value is derived with the wrong unit, and the search never varies the
+  mechanisms that damp runaway excitation** ([BUG-003](bugs/BUG-003.md), found alongside BUG-002, independent of
+  its gate fix): Shiu et al. 2024's 0.275 mV synaptic weight is a step on their model's intermediate decaying
+  variable `g`, not net charge to `v`; the net charge is `w · τ / t_mbr ≈ 0.0688 mV`, so L11's `0.04` (from
+  `0.275 / 7`) is ≈4× the corrected `≈ 0.0098` (from `0.0688 / 7`). Separately, `profiles/v2.mjs`'s five-axis grid
+  has never tried `tauAdapt`/`adaptStep` (L2), `thresholdJitter` (L3) or `inhibitoryScale` (L8), despite all four
+  already existing in `lif-v1.js`, off by default — the shipped v1 brain's own cost-table baseline already uses
+  non-zero `tauAdapt`/`adaptStep` (ADR 006 Annex A6). Measured: at the single best point found across five runs,
+  food odour (0.5) raises `central`'s activity from 5.3% (rest) to 29.8% (odour) — a whole-network jump, the
+  expected signature of a model with no local damping. Mitigation: T102–T104 amend ADR 006's L11 and widen
+  `profiles/v2.mjs`'s axes before the fresh `/microfly-calibrate` search T096/T097 are blocked on is run.
+- **A4's own fix for BUG-001 (sign-aware D11 scoring) removed recurrent inhibition network-wide, not only from
+  `forward`'s paths** ([BUG-004](bugs/BUG-004.md), found while re-reading A4's scope, not anticipated when A4
+  shipped): measured inhibitory/excitatory admitted weight ratio 0.70→0.52 overall, `output` 0.82→0.19, `central`
+  0.74→0.48, `dn` 0.74→0.50 — a fixed-size per-pair budget (`budget.perPair`) reallocates toward excitatory
+  candidates once non-positive-signed ones score zero, for every pair, not only the six feeding `forward`.
+  **Resolved** (T105, T107): FR-033/SC-013's per-region coverage check landed first, independent of any fix.
+  Picking the fix itself needed two more rounds of measurement that changed the plan: anchoring (A4's own `al`
+  precedent) does not generalise — `al`'s dominant inhibitory class (ALLN) is 67.6% of its inhibitory weight,
+  but `central`'s top class is 2.7% with no bounded population to anchor — and neither a per-neuron budget
+  (~11,000 bodies at `k = 1`) nor one global top-k budget (overshoots `vnc` while undershooting `output`) scales
+  within `neuronCountRange`. The shipped fix is a per-region `inhibitoryClosure` budget for `central` (`250`) and
+  `dn` (`50`) only — `vnc` measured never actually thinned by A4 (its selected ratio, `0.904`, already exceeds
+  its real baseline, `0.735`, with zero closure). `dn`'s budget was tuned down from `100` after it broke a
+  real-brain wiring test (`tests/forager-v2-brake.test.mjs`); `50` keeps it passing. Re-extracted: 16,427
+  neurons, self-check `identical`, every output pool still net-positive, `npm test`/the extractor suite both
+  green. T096/T097 (and transitively T053/T057/T085) stay blocked on the still-unrun `/microfly-calibrate` pass
+  (T106) — this fix resolves Q7, it does not perform that search.
 
 ## Complexity Tracking
 

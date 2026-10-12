@@ -458,6 +458,11 @@ As always, a failed behaviour metric is a finding. The fix is config or paramete
 - **Q5. Mid- and hind-leg taste.** Left out because they drive forward up in the v1 brain. If eating needs a
   sustained "on food" signal after the front legs leave the flower, they come back as their own channel.
 - **Q6. Is the ALLN anchor needed?** Gate B's rest gate with and without it answers this.
+- ~~**Q7. Does the sign-aware D11 fix (A4) need scoping, an inhibitory closure, or wider anchors?**~~ **Resolved**
+  (A7): a per-region inhibitory-closure budget, for `central` (`250`) and `dn` (`50`) only — not `vnc` (measured
+  never actually thinned by A4), not a per-neuron or global-budget shape (both measured and rejected), and not
+  class anchoring beyond `al`'s existing ALLN (no comparably bounded inhibitory class exists for the other
+  regions). Re-extracted; see A7 for the full measurement and the real-brain wiring test that set `dn`'s budget.
 
 ## Related
 
@@ -529,6 +534,193 @@ extractor's report (FR-032/SC-012), and a pool with a non-positive net sum stops
 **Status**: (a) and (b) implemented in `selection_forager_v2.py` and `forager-brain-15k.json`
 (`specs/013-forager-brain-15k-lif-v2/tasks.md` T092). Re-extraction (T094) and a fresh `/microfly-calibrate` pass
 (T095, in a separate session per AGENTS.md) are still needed before SC-007/US1's held-out verdicts can be taken.
+
+## Amendment 2026-10-11
+
+Recorded during implementation of feature 013 (`specs/013-forager-brain-15k-lif-v2/`), bug
+[BUG-002](../specs/013-forager-brain-15k-lif-v2/bugs/BUG-002.md). The Calibration protocol section above is kept as
+written. The changes below take precedence where they differ.
+
+### A5. The Calibration protocol's A1 gates (point 2) are mis-specified in seven ways
+
+Point 2 states the A1 gates as "rest activity ≥ 0.002 and ≤ 0.1 in every group; odour response above rest in `al`
+and `central`; ... **brake** (mouth taste lowers the raw `forward` input) and **feed** (mouth taste raises `feed`
+above its rest value)." Five `/microfly-calibrate --stage=auto` runs against the post-BUG-001 brain (16,127
+neurons) scored 0 of 342 valid grid points against this text and found no robust pass
+(`specs/013-forager-brain-15k-lif-v2/calibration.md`'s "no A1 pass, one near-miss" section). BUG-002 found the text
+above, and the `microfly-calibrate` skill's `engine.mjs`/`profiles/v2.mjs` that implement it, wrong in seven ways,
+not the brain's regime:
+
+1. **No `output` exemption.** `output` neurons have no outgoing edges (D3), so their rest activity cannot affect
+   any other region, and A2 overrides their gain unconditionally afterward. Gating A1 on it anyway rejects
+   candidates for a property A2 fixes regardless. Re-scoring the five existing checkpoints (no new simulation)
+   with this gate removed finds 6 points whose only failing gate was `output`'s ceiling, none robust.
+2. **No stated unit.** "Rest activity" is ambiguous between a per-LIF-step rate and a per-tick union of spikes; the
+   grid varies `stepsPerTick` {5, 10}, so the two readings are different requirements at different grid points.
+   Gate on a per-LIF-step rate.
+3. **The floor over-applies.** "≥ 0.002 ... in every group" contradicts the zero-basal-firing regime L11 itself
+   quotes from Shiu et al. 2024 for every other group but `input` (whose own floor has its own justification, ADR
+   005 Annex B.3). The floor applies to `input` only; the other groups get a reactivity gate instead (point 2
+   restated below).
+4. **Brake and feed are under-specified.** "Mouth taste lowers the raw `forward` input" does not say against what
+   baseline. The implemented probe compared taste alone against odour alone, which only shows a fly tasting food
+   with no odour present has nothing to brake — not that an approaching fly brakes on contact. Both gates compare
+   an odour-plus-taste condition against odour alone.
+5. **No steering gate.** Point 2 never gates `lateral` (odour-side steering), so a candidate with no left/right
+   response could still pass every stated gate.
+6. **A2 never fits against rest.** The Calibration protocol does not require the fitted `outputScale.forward` to
+   leave near-zero forward drive with no stimulus present; A2's readout fit adds a check against the `rest`
+   condition for this.
+7. **No return-to-rest check.** Gate C item 6 asks a brain's rest activity be reported; A1 has no equivalent check
+   that activity *returns* to rest once a stimulus already probed is removed, so a runaway/bistable regime is
+   indistinguishable from a reactive-then-quiet one at this stage.
+
+**Point 2, restated** (supersedes the text quoted above): A1 gates are per group (L10), each measured brain-only on
+a clamped input, as a per-LIF-step rate: rest activity ≥ 0.002 and ≤ 0.1 in `input`; ≤ 0.1 in every other group (no
+floor); odour response above rest in `al` and `central`; steering (`lateral`, odour-left vs. odour-right) away from
+zero; **brake** (mouth taste added to food odour lowers the raw `forward` input, against food odour alone) and
+**feed** (the same addition raises `feed` above its food-odour-alone value); and **settle** (activity returns to
+its rest level once a probed stimulus is removed, in every group). `output` is exempt from every A1 gate; its gain
+is fit in A2 instead, which additionally requires near-zero fitted forward drive at `rest`.
+
+**Status**: implemented (`specs/013-forager-brain-15k-lif-v2/tasks.md` T099) and unit-tested
+(`tests/calibrate-engine.test.mjs`). The five existing checkpoints were re-scored (T100): the gates that are pure
+functions of stored data (the `output` exemption, the `input`-only floor, the per-step rate, steering, odour-gain)
+move 0/342 to 45/342 passing (34 robust) — but `brake`/`feed` (recorded under the pre-fix taste-alone probe) and
+the settle gate (never probed before this amendment) cannot be re-scored from storage and need a fresh probe.
+Recorded in `specs/013-forager-brain-15k-lif-v2/calibration.md` (T101). A fresh `/microfly-calibrate --stage=auto`
+pass against the fixed tooling, in a separate session per AGENTS.md, is still needed before SC-007/US1's held-out
+verdicts can be taken.
+
+### A6. L11's `synapticScale` quoted Shiu et al.'s synaptic weight without finishing their own conversion to net charge, and resolves Q1 for this row
+
+L11's starting value, `synapticScale: 0.04`, is derived as "0.275 mV per synapse against a 7 mV rest-to-threshold
+gap (Shiu et al. 2024), threshold = 1" — `0.275 / 7 ≈ 0.0393`, rounded to `0.04`. This skips a step in Shiu et
+al.'s own model (`github.com/philshiu/Drosophila_brain_model`, `model.py`): `dv/dt = (v0 − v + g)/t_mbr`, with
+`g += w` on a synaptic event and `g` itself decaying with `τ = 5 ms` (the same `τ` L11 already quotes for
+`tauSyn`), `t_mbr = 20 ms`. The quoted `w = 0.275 mV` is the step added to the intermediate variable `g`, not the
+net charge delivered to `v` — `g` drains into `v` scaled by `1/t_mbr` over its own `τ`-ms decay, so the net charge
+per synaptic event is `w · τ / t_mbr = 0.275 × 5 / 20 = 0.06875 mV`, not `0.275 mV` directly. Against the same
+7 mV gap: `0.06875 / 7 ≈ 0.0098`, not `0.0393`. **`0.04` is ≈4.08× the corrected value.**
+
+This matters in `lif-v1.js` specifically because its synaptic filter (`syn[i] = syn[i] * decaySyn + input[i] *
+(1 - decaySyn)`) is an exponential moving average with unit area: summed over all future steps, one arrival's
+total contribution to `drive` equals the arrival itself, regardless of `tauSyn`. Unlike Shiu et al.'s two-variable
+(`g`, `v`) pair, this core's `synapticScale` already *is* the net charge per synapse — there is no second,
+separate division by a membrane time constant left for the model to apply. L11's derivation reproduced Shiu et
+al.'s pre-decay `w` and divided it by 7 mV as if it already were net charge, stopping one conversion step short of
+what their own model does with that weight.
+
+**This is the check Q1 asks for** ("L11 quotes [Shiu et al.'s values] from the paper's methods and must be
+checked against it before calibration starts"), and it fails for `synapticScale`. **Q1 is resolved for this row**:
+`synapticScale`'s corrected starting value is `≈ 0.0098`. `tau`, `refractorySteps` and `tauSyn` are not re-derived
+here and keep their stated values.
+
+Independent of this correction, five `/microfly-calibrate --stage=auto` runs (342 points, re-scored under A5)
+have never varied `tauAdapt`/`adaptStep` (L2), `thresholdJitter` (L3) or `inhibitoryScale` (L8) — all already
+implemented in `lif-v1.js`, off by default, and the standard remedies for an all-or-nothing ignition cliff instead
+of a gradual transition (the shipped v1 brain's own cost-table baseline, Annex A6, already uses non-zero
+`tauAdapt 20`/`adaptStep 0.05`). At the single best point found across all five runs (`synapticScale 0.006`,
+`groupGain.al 0.4`), food odour (0.5) raises `central`'s activity from 0.0530 (rest) to 0.2979 (odour) — the whole
+network moving roughly together, the expected signature of a model with nothing to damp runaway recurrent
+excitation locally.
+
+**Decision**: `synapticScale`'s corrected value is adopted, and the Calibration protocol's grid is widened to
+include the three mechanisms above, centred as `synapticScale 0.0098 × {¼, ½, 1}`, `inhibitoryScale`
+`{1, 1.5, 2, 3}`, `tauAdapt {50, 100, 200}` paired with its own `adaptStep` value, and `thresholdJitter`
+`{0, 0.1, 0.2}`.
+
+**Status**: `.claude/skills/microfly-calibrate/scripts/profiles/v2.mjs` updated to match (L11's constant and the
+`axes`/`brainOf()` it builds grid points from), unit-tested in `tests/calibrate-profile-v2.test.mjs`
+(`specs/013-forager-brain-15k-lif-v2/tasks.md` T102–T103). No `--stage=auto` search has been run against the
+widened grid yet (T104) — per AGENTS.md this must happen in a separate session, not during implementation.
+
+### A7. A4's sign-aware D11 fix (BUG-001) thinned recurrent inhibition network-wide, not only at `forward`
+
+[BUG-004](../specs/013-forager-brain-15k-lif-v2/bugs/BUG-004.md) measured both shipped snapshots directly
+(`public/brains/forager-brain-15k.brain` before and after A4): A4's decision (a) — making `score_{p,o}(i)`
+sign-aware "for every `(pathway, outputGroup)` pair, not `forward` alone" — removed recurrent inhibition from the
+selection broadly, not only from the paths that reach `forward`. Per-L10-region inhibitory ÷ excitatory admitted
+synapse-weight ratio, pre- vs. post-A4:
+
+| Region | Pre-A4 | Post-A4 |
+|---|---|---|
+| overall | 0.704 | **0.523** |
+| `al` | 0.366 | 0.361 |
+| `central` | 0.739 | **0.477** |
+| `dn` | 0.735 | **0.496** |
+| `input` | 0.852 | 0.874 |
+| `output` | 0.818 | **0.187** |
+| `vnc` | 0.922 | 0.904 |
+
+`al` alone barely moved, because its dominant inhibitory source (the ALLN class) is a D12 anchor, exempt from
+D11's scoring entirely — direct, already-shipped evidence that anchoring (not scoring) is what protects a
+region's inhibitory supply. Every other region's inhibitory population is admitted only through D11's scored
+pair-grid, which the sign-aware rule now systematically disadvantages: `budget.perPair` is a fixed-size top-k, so
+zeroing every candidate with non-positive signed backward flow to a group does not shrink the selection, it
+reallocates each pair's budget toward excitatory candidates (admitted interneurons: excitatory +34 %, inhibitory
++10 %, same total budget). `calibration.md`'s own sweeps show the behavioural consequence: the pre-A4 brain's
+A1-robust point sat at `synapticScale 0.011`; the post-A4 brain is silent at `0.0025` and "ignites everything at
+once" by `0.003` — roughly a 3.7× drop in the scale that first saturates the network, sharpening the ignition
+cliff A5/A6 already diagnosed as missing local damping, now with a structural cause behind it.
+
+`E-OUTPUT-SIGN` (FR-032/SC-012, the standing check A4 itself added) cannot see this: it is a static, per-output,
+sign-only check, and every pool it tests reports positive on the post-A4 brain. It was scoped, correctly, to
+BUG-001's own symptom ("can this pool ever register positive drive") and was never meant to bound the selected
+population's overall inhibitory share — a different, network-level property.
+
+**Decision (user sign-off 2026-10-11): resolve Q7 now, ahead of a fresh calibration pass.** A4's own decision for
+BUG-001 was not re-litigated: the standing check (FR-033/SC-013: a per-region report line and `E-INHIBITION-DRIFT`
+against a declared, per-region tolerance) was added regardless, but the user chose to pick and implement a D11
+fix immediately rather than wait for a `/microfly-calibrate` pass to show parameters alone cannot compensate (the
+condition this Amendment originally stated as the trigger). The search still was not run in this session — AGENTS.md's
+separation holds regardless of this choice — the decision was simply to stop waiting on its result before fixing
+a structural property that measurement had already confirmed.
+
+**Q7 is resolved as (b), scoped per region, not (a) or (c), and not uniformly:**
+
+- **(c), anchoring, was measured and rejected beyond `al`.** A real-dataset measurement of each region's
+  dominant inhibitory *class* found none for `vnc`/`dn`/`central`: `al`'s ALLN is 67.6% of its inhibitory weight,
+  but `central`'s single largest contributing type (`Mi4`, an optic-lobe cell type) is 2.7%, and the top 15 types
+  combined reach only ~19% — inhibition there is spread across hundreds of small, distinct cell types with no
+  bounded class to anchor. Anchoring enough types to matter would mean admitting thousands of bodies, well past
+  `neuronCountRange`.
+- **(a), scoping the signed score to direct output inputs, was not needed once (b) was measured working.**
+- **(b), an inhibitory-closure budget, works — but only when scoped per L10 region, not per neuron and not as one
+  global budget.** Both of those shapes were tried first and rejected by direct measurement (see
+  `specs/013-forager-brain-15k-lif-v2/contracts/extract-config-forager-v2.md`'s Decision section for the numbers):
+  a per-neuron budget adds ~11,000 bodies at `k = 1` (almost every neuron's strongest real inhibitory partner is
+  distinct); a single global top-k hub ranking over-corrects `vnc` while leaving `output` under-corrected, because
+  regions need very different budgets to reach their own real ratio.
+- **`vnc` needs no fix at all.** Measured with zero closure, `vnc`'s selected ratio (`0.904`) already sits *above*
+  its real-admitted baseline (`0.735`) — confirming what this Amendment's own pre/post-A4 table already showed
+  (`vnc: 0.92 → 0.90`, the smallest move of the four scored regions): `vnc` was never meaningfully thinned by A4.
+  Closure there only pushes it further from its real baseline.
+
+**Implemented** (`specs/013-forager-brain-15k-lif-v2/tasks.md` T105, T107): `selection_forager_v2.py` gains the
+per-region `inhibitionCoverage` report/check (FR-033/SC-013) and a per-region `inhibitoryClosure` admission step
+— for each configured region, rank real-admitted inhibitory candidates by synapse weight already delivered into
+that region's already-selected targets, and admit the top-k unconditionally, after D11's pair-grid and D12's
+anchors, before D12's exclusions apply. `extract/configs/forager-brain-15k.json` declares
+`"ieDriftTolerance": {"central": 0.15, "dn": 0.15}` and `"inhibitoryClosure": {"central": 250, "dn": 50}`
+(`al`/`input`/`output`/`vnc` get neither — out of scope per the measurements above, and `output`'s own net sign
+stays separately guaranteed by `E-OUTPUT-SIGN`/FR-032).
+
+`dn`'s budget was tuned down from an initially tighter `100` (drift `0.008` against real) to `50` (drift
+`0.022`): `100` broke a real-brain wiring test (`tests/forager-v2-brake.test.mjs` — leg taste very slightly
+lowered `backward` drive below its no-taste baseline), because `dn`'s closure candidates overlap the circuitry
+feeding `backward` (MDN) closely enough that too large a budget there measurably changes it. `50` keeps that test
+passing. `central: 250` needed no such trade-off (drift `0.004`, no wiring test affected).
+
+**Status**: done. Real extraction re-run: **16,427 neurons, 2,078,088 edges, self-check `identical`**;
+`inhibitory/excitatory ratio, selected vs. real admitted: central 0.633/0.637, dn 0.687/0.665` (both within
+tolerance), every output pool still net-positive (`feed +195.5`, the tightest margin, was `+253` before any of
+BUG-001/BUG-004's fixes). `npm test`: 553/559, the same 6 pre-existing, feature-unrelated `activity.test.mjs`
+failures as every prior checkpoint on this branch — no new failures. `public/brains/forager-brain-15k.brain` is
+replaced in the working tree (not yet committed to git — left for the user, per this project's commit
+convention). T096/T097 (and transitively T053/T057/T085) stay blocked: this fix resolves Q7, it does not run
+`/microfly-calibrate` — that pass (T106) is still needed, now against this newest brain, before any LIF-parameter
+setting can be taken.
 
 ## Annex A: measurements
 

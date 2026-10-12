@@ -7,6 +7,8 @@ and unions each pair's own top-k. Every rule is a pure function of the admitted 
 table; every sort has an explicit key ending in bodyId, and every tie breaks on the smallest bodyId.
 """
 
+import math
+
 import numpy as np
 
 from .errors import ExtractError
@@ -214,6 +216,20 @@ def select_forager_v2(config, bodies, edges):
     post_i = np.searchsorted(ids, post)
     total_in_full = np.bincount(post_i, weights=syn, minlength=n)
 
+    # FR-033/SC-013 (BUG-004): each admitted body's real (pre-D11, post-D10/D13) input split by the
+    # presynaptic neuron's sign -- the baseline D11's own selection is compared against below, independent of
+    # which bodies D11 ends up choosing. `output_body_set`/`input_body_set` mirror resolve_pools' own channel
+    # membership so region_of's input/output branches agree with the rest of this function.
+    output_body_set = set(output_bodies)
+    input_body_set = pool_bodies - output_body_set
+    region_all = np.array([
+        region_of("input" if int(b) in input_body_set else "output" if int(b) in output_body_set else "other",
+                  bodies[int(b)])
+        for b in ids
+    ])
+    real_exc_in = np.bincount(post_i, weights=syn * (sign_dense[pre_i] > 0), minlength=n)
+    real_inh_in = np.bincount(post_i, weights=syn * (sign_dense[pre_i] < 0), minlength=n)
+
     def dense(members):
         return np.searchsorted(ids, np.array(members, dtype=np.int64))
 
@@ -252,6 +268,45 @@ def select_forager_v2(config, bodies, edges):
             _fail("E-ANCHOR-EMPTY", f"anchor {anchor} matches no admitted body")
         anchor_bodies.update(matched)
     chosen |= anchor_bodies
+
+    # ADR 006 Q7/A7 (BUG-004): D11's pair-grid is a fixed-size top-k per pair, so A4's sign-aware score (BUG-001)
+    # does not just exclude net-inhibitory candidates -- it reallocates the same budget toward excitatory ones,
+    # thinning recurrent inhibition across the whole selection, not only at `forward`. Unlike `al` (whose
+    # dominant inhibitory source, ALLN, is a D12 anchor), `vnc`/`dn`/`central`'s real inhibitory input is spread
+    # across hundreds of small cell types with no single class to anchor (measured: `al`'s top inhibitory class
+    # is 67.6% of its inhibitory weight; `central`'s is 2.7%) -- a per-neuron closure (each selected body's own
+    # top-k missing inhibitory input) was tried and rejected: even one per neuron adds ~11,000 bodies, because
+    # almost every admitted neuron's strongest inhibitory partner is distinct. A single *global* top-k hub budget
+    # was also tried and rejected: regions differ enormously in how many hub neurons it takes to close their gap
+    # (measured: `vnc` overshoots past a 200-neuron global budget while `output` is still under-corrected at
+    # 500), so one global ranking over- and under-shoots different regions at the same time. `inhibitoryClosure`
+    # is keyed per L10 region instead: for each named region, rank real-admitted inhibitory candidates by how
+    # much synapse weight they deliver specifically into that region's already-selected targets (D11 candidates,
+    # anchors, and the fixed input/output pools), and admit that region's own declared top-k, unconditionally.
+    closure = config.get("inhibitoryClosure", {})
+    if closure:
+        selected_dense = np.fromiter((int(np.searchsorted(ids, b)) for b in (chosen | pool_bodies)), dtype=np.int64)
+        selected_mask = np.zeros(n, dtype=bool)
+        selected_mask[selected_dense] = True
+        closure_bodies = set()
+        for region, region_budget in closure.items():
+            if region_budget <= 0:
+                continue
+            target_in_region = selected_mask & (region_all == region)
+            inh_into_region = (sign_dense[pre_i] < 0) & target_in_region[post_i]
+            contribution = np.bincount(pre_i[inh_into_region], weights=syn[inh_into_region], minlength=n)
+            candidate_i = np.where(~selected_mask & (contribution > 0))[0]
+            ranked = sorted(candidate_i.tolist(), key=lambda i: (-contribution[i], int(ids[i])))
+            picked = 0
+            for i in ranked:
+                if picked >= region_budget:
+                    break
+                body = int(ids[i])
+                if body in closure_bodies or _excluded(bodies[body], config):
+                    continue
+                closure_bodies.add(body)
+                picked += 1
+        chosen |= closure_bodies
 
     interneurons = sorted(b for b in chosen if b not in pool_bodies and not _excluded(bodies[b], config))
 
@@ -346,6 +401,37 @@ def select_forager_v2(config, bodies, edges):
                   f"output pool {cid} has non-positive net admitted synaptic weight per neuron "
                   f"({per_neuron:.3f})")
 
+    # FR-033/SC-013 (BUG-004): A4's sign-aware D11 score (BUG-001 Amendment) was found to thin recurrent
+    # inhibition network-wide, not only at `forward` -- undetectable by the FR-032 check above, which is
+    # per-output-pool and sign-only. Compare each L10 region's selected inhibitory/excitatory *synapse-count*
+    # ratio (not `weights`, so the comparison is independent of `weightRule`) against the same ratio over the
+    # region's real admitted input (`real_exc_in`/`real_inh_in`, computed above before D11 narrows anything);
+    # stop extraction, named, when any region drifts past the declared tolerance.
+    group_of_final = np.array([nr["group"] for nr in neurons])
+    tgt_group = group_of_final[dst]
+    sign_src = sign_of[src]
+    ie_tolerance = config.get("ieDriftTolerance", {})
+    inhibition_coverage = {}
+    for region in sorted(set(region_all.tolist()) | set(group_of_final.tolist())):
+        real_exc = float(real_exc_in[region_all == region].sum())
+        real_inh = float(real_inh_in[region_all == region].sum())
+        region_mask = tgt_group == region
+        sel_exc = float(raw[region_mask & (sign_src > 0)].sum())
+        sel_inh = float(raw[region_mask & (sign_src < 0)].sum())
+        if real_exc <= 0 or (sel_exc + sel_inh) <= 0:
+            continue  # no real baseline, or nothing selected here, to compare
+        real_ratio = real_inh / real_exc
+        sel_ratio = sel_inh / sel_exc if sel_exc > 0 else math.inf
+        drift = abs(sel_ratio - real_ratio)
+        inhibition_coverage[region] = {"real": round(real_ratio, ROUND),
+                                        "selected": round(sel_ratio, ROUND) if math.isfinite(sel_ratio) else None}
+        region_tolerance = ie_tolerance.get(region)
+        if region_tolerance is not None and drift > region_tolerance:
+            _fail("E-INHIBITION-DRIFT",
+                  f"region {region} has selected inhibitory/excitatory ratio "
+                  f"{'inf' if not math.isfinite(sel_ratio) else f'{sel_ratio:.3f}'} vs. real-admitted "
+                  f"{real_ratio:.3f} (drift {drift:.3f} exceeds ieDriftTolerance.{region} {region_tolerance})")
+
     pools = {}
     for cid in inputs:
         pools[cid] = [k for k, nr in enumerate(neurons) if nr["channel"] == cid]
@@ -359,6 +445,7 @@ def select_forager_v2(config, bodies, edges):
         "weights": weights,
         "synapses": raw.astype(np.uint16),
         "outputNetWeight": output_net_weight,
+        "inhibitionCoverage": inhibition_coverage,
         "edgeCount": int(src.size),
         "pools": pools,
     }

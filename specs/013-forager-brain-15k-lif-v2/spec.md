@@ -13,6 +13,18 @@ inhibitory (measured −867 signed weight/neuron), so the `v2` brain cannot regi
 LIF setting. Adds FR-032/SC-012 (no output pool may ship net-inhibitory) and reclassifies the Assumptions' Q2 from
 "left to calibration" to "blocking" below.
 
+**Bugfix**: 2026-10-11 — [BUG-004](bugs/BUG-004.md): BUG-001's own fix (ADR 006 Amendment A4, making D11's score
+sign-aware for every pair) removed recurrent inhibition network-wide, not only from `forward`'s own paths —
+measured inhibitory/excitatory admitted weight ratio 0.70→0.52 overall, `output` 0.82→0.19, `central` 0.74→0.48,
+`dn` 0.74→0.50. Adds FR-033/SC-013 (per-region inhibitory/excitatory input coverage against the real connectome,
+reported and bounded by a declared, per-region tolerance). **Resolved 2026-10-11 (user sign-off, ahead of the
+calibration pass this bug's own report had proposed waiting for)**: ADR 006 Q7/A7 adds a per-region
+`inhibitoryClosure` admission step for `central`/`dn` only (not `vnc`, measured never actually thinned by A4;
+not `al`, a pre-existing, unrelated anchor property). Re-extracted: `central`/`dn` both land within tolerance of
+their real-admitted ratio, every output pool stays net-positive, and `npm test`/the extractor suite both pass
+with no new failures. Does not change FR-032/SC-012 or reopen any user story — US1/US2/US9's held-out verdicts
+still need the separate, still-pending `/microfly-calibrate` pass (T106) against this newest brain.
+
 **Governing decisions**: [ADR 006 (cautious forager brain, 15K)](../../adrs/006-cautious-forager-brain-15k.md) defines the
 brain, the input and output pools, the admission and selection rules, the LIF and runner extensions, and the world
 and contract changes. It extends [ADR 003](../../adrs/003-hungry-forager-brain.md), [ADR 004](../../adrs/004-output-pool-synaptic-scale.md)
@@ -377,7 +389,7 @@ the held-out seed count, including the random-graph and random-walk arms.
 - **FR-031**: The panel for `mock`, `v0` and `v1` flies MUST show exactly the rows and state those brains showed
   before this feature, with no v2-only row appearing for them.
 
-**Extraction (added by [BUG-001](bugs/BUG-001.md), 2026-10-10)**
+**Extraction (added by [BUG-001](bugs/BUG-001.md), 2026-10-10; extended by [BUG-004](bugs/BUG-004.md), 2026-10-11)**
 
 - **FR-032**: For every declared output pool, the extractor MUST compute the pool's total admitted net synaptic
   weight per neuron (the signed sum D13 already computes, aggregated per pool) and MUST stop with a named failure
@@ -385,6 +397,16 @@ the held-out seed count, including the random-graph and random-walk arms.
   report (FR-011) MUST print this signed total per pool regardless of outcome. "Every output reached" (FR-007,
   SC-001) is a coverage check, not a sign check, and BUG-001 found a brain that satisfied the former while being
   behaviourally inert on one output — this requirement closes that gap.
+- **FR-033** (added by [BUG-004](bugs/BUG-004.md), 2026-10-11): For every declared L10 region, the extractor MUST
+  compute the selected subgraph's inhibitory ÷ excitatory admitted input-synapse-weight ratio alongside the same
+  ratio over that region's real admitted input from the full connectome (independent of D11's selection), and
+  MUST print both per region in its report (FR-011). The extractor MUST stop with a named failure and write no
+  file when any region's selected ratio departs from its real-connectome ratio by more than that region's own
+  declared tolerance; a region with no declared tolerance is reported but not gated (a region's expected drift
+  differs in kind — `al`'s own anchor-driven skew is not the property this requirement targets).
+  FR-032 bounds a single output pool's own net sign; BUG-004 found a brain that satisfied FR-032 on every pool
+  while its surrounding network's recurrent inhibition had been structurally thinned — a population-level property
+  FR-032 cannot see, closed here the same way FR-032 closed SC-001's coverage-only gap.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -436,6 +458,10 @@ the held-out seed count, including the random-graph and random-walk arms.
 - **SC-012** (added by [BUG-001](bugs/BUG-001.md), 2026-10-10): the extractor's report states each output pool's
   net admitted synaptic weight per neuron, signed, for every format it supports; no shipped `.brain` file has a
   net-inhibitory output pool.
+- **SC-013** (added by [BUG-004](bugs/BUG-004.md), 2026-10-11): the extractor's report states each L10 region's
+  selected and real-connectome inhibitory/excitatory input-weight ratio side by side, for every format it
+  supports; no shipped `.brain` file has a region whose selected ratio departs from its real-connectome ratio by
+  more than the declared tolerance.
 
 ## Assumptions
 
@@ -453,6 +479,13 @@ the held-out seed count, including the random-graph and random-walk arms.
   (−867 signed weight/neuron), so no LIF setting can produce forward locomotion, and this blocks US1/US2/US9
   until ADR 006's D11 selection rule (or D9's pool) is fixed and the brain re-extracted. The other five open
   questions (Q1, Q3–Q6) are unaffected and remain config changes left to calibration, not blockers.
+  **Extended by [BUG-004](bugs/BUG-004.md), then resolved 2026-10-11**: ADR 006 gained **Q7** — whether the
+  sign-aware D11 fix (A4) that resolved Q2 needs scoping, an inhibitory-closure budget, or wider anchors, since
+  it thinned recurrent inhibition network-wide, not only at `forward`. Per the user's sign-off, Q7 was resolved
+  without waiting for a calibration pass: ADR 006 A7 adds a per-region inhibitory-closure budget for
+  `central`/`dn` only (measurement ruled out anchoring beyond `al` and found `vnc` was never actually thinned),
+  and the brain was re-extracted. The other five open questions (Q1, Q3–Q6) remain config changes left to
+  calibration, not blockers.
 - **Avoidance is reported, not required to pass**: the avoid metric (danger odour, heat) is measured and reported
   with its sign; this feature does not require the brain to avoid danger more than the random walk does, only that
   the behaviour is measured (ADR 006 Gate C).

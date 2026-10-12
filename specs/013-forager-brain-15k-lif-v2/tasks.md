@@ -21,6 +21,39 @@ implemented, the real brain is re-extracted (`forward +3719`/neuron, was −867)
 T053/T057/T085/T096/T097 stay open, blocked on a fresh `/microfly-calibrate` pass on the new snapshot (a separate
 session, per AGENTS.md).
 
+**Bugfix**: 2026-10-11 — [BUG-002](bugs/BUG-002.md): the `microfly-calibrate` skill's A1 gates (ADR 006
+§Calibration protocol point 2, `engine.mjs`/`profiles/v2.mjs`) are mis-specified in seven ways — an `output`
+rest-gate A2 overrides anyway, a per-tick activity unit that is not comparable across `stepsPerTick`, a rest floor
+that forces every non-`input` group onto the ignition edge, a brake/feed probe comparing the wrong conditions, no
+steering gate, no rest check on the fitted forward readout, and no return-to-rest check — which is why five
+`--stage=auto` runs (342 points) found no robust pass. T098–T101 added: restate the protocol (ADR 006 Amendment
+2026-10-11, A5), fix the tooling, re-score the five existing checkpoints with no new simulation, and update
+`calibration.md`. T096/T097 are additionally blocked on T098–T101 completing before any further
+`/microfly-calibrate` pass is worth running.
+
+**Bugfix**: 2026-10-11 — [BUG-003](bugs/BUG-003.md): independent of BUG-002's gate fix, the search itself is
+centred and scoped wrong. ADR 006 L11's `synapticScale` (0.04) quotes Shiu et al. 2024's synaptic weight without
+finishing their own conversion to net charge (`w · τ / t_mbr`), ≈4× too high against the corrected ≈ 0.0098; and
+`profiles/v2.mjs`'s grid has never varied `tauAdapt`/`adaptStep` (L2), `thresholdJitter` (L3) or `inhibitoryScale`
+(L8) — mechanisms already implemented in `lif-v1.js`, off by default, that are the standard remedies for the
+all-or-nothing ignition cliff every `--stage=auto` run so far has found. T102–T104 added: amend ADR 006's L11,
+widen the grid, and update `calibration.md`'s next-step guidance. Additionally blocks T096/T097 until done.
+
+**Bugfix**: 2026-10-11 — [BUG-004](bugs/BUG-004.md): BUG-001's own fix (T092, ADR 006 Amendment A4) made D11's
+score sign-aware for every `(pathway, outputGroup)` pair, not only `forward`'s, which removed recurrent
+inhibition from the selection network-wide — inhibitory/excitatory admitted weight ratio 0.70→0.52 overall,
+`output` 0.82→0.19, `central` 0.74→0.48, `dn` 0.74→0.50, measured directly against the brains T023 and T094
+produced; `al` alone was protected because its dominant inhibitory source (ALLN) is a D12 anchor, exempt from
+D11's scoring. T092/T093/T094 are not reopened — they correctly implemented what was asked. T105 adds a
+per-region coverage report and a new failure code (`E-INHIBITION-DRIFT`). **Resolved 2026-10-11, by user
+sign-off, ahead of the `/microfly-calibrate` pass this bug's own report proposed waiting for**: T107 implements
+a per-region `inhibitoryClosure` budget for `central`/`dn` only (not `vnc`, measured never thinned by A4; not
+anchoring, measured not to generalise past `al`'s ALLN; not a per-neuron or global budget, each measured and
+rejected at real scale) and re-runs the real extraction. T106 (telling the user to run `/microfly-calibrate --stage=auto`) was already
+done; the pass itself is still pending and now needs to run against *this* newest brain — this bug's fix is
+structural (which neurons are selected), not a calibration search, and AGENTS.md's separation holds regardless
+of how Q7 was resolved.
+
 **Organization**: Tasks are grouped by user story (spec.md's priorities P1–P3). Because every user story in this
 feature observes behaviour of **one** brain (the ADR 006 15K brain) running in **one** world, the extraction
 pipeline, the LIF/runner/protocol plumbing, and the declared-sense/world-config machinery are genuinely blocking
@@ -598,6 +631,8 @@ passed. Blocks T010/T012/T023/T053/T057/T085 above from re-closing.
   (zeroed when the signed backward flow is non-positive); `group_flow` (unsigned) is kept unchanged for the
   header's `flowOutput` field. `extract/configs/forager-brain-15k.json`'s `outputs.forward.types` narrowed to
   `["DNp09"]`. No config schema or container field changed, so no contract amendment was needed.
+  **Known cost (BUG-004)**: applying this sign-aware score to every `(pathway, outputGroup)` pair, not only
+  `forward`'s, thins recurrent inhibition network-wide (I/E ratio 0.70→0.52 overall). Not reopened — see T105–T107.
 - [X] T093 Added FR-032/SC-012's net-sign check and report line: `select_forager_v2` computes each output pool's
   net admitted signed weight per neuron on the final CSR weights and raises `E-OUTPUT-SIGN` (added to
   `errors.py`) when any pool's net sum is not positive; `report_forager_v2` prints `output net weight/neuron:
@@ -617,10 +652,156 @@ passed. Blocks T010/T012/T023/T053/T057/T085 above from re-closing.
   the new snapshot — this session did not run a calibration search.
 - [ ] T096 Once `/microfly-calibrate` lands a setting: re-run T053 (leg-taste-before-mouth-taste offset
   calibration) and T057 (`calibration.md`'s SC-007 brake-ratio confirmation) against the new snapshot and the
-  calibrated setting.
+  calibrated setting. **Blocked further (BUG-002)**: no further `/microfly-calibrate` pass is worth running until
+  T098–T101 fix the gates it scores against.
 - [ ] T097 Re-run T085 (Gate C, `scripts/compare-baseline.mjs` on held-out seeds) against the new snapshot and
   calibrated setting; record the real verdict in `gate-c.md` in place of the illustrative run, including whether
-  SC-007's brake criterion now passes.
+  SC-007's brake criterion now passes. **Blocked further (BUG-002)**: same as T096.
+
+---
+
+## Bugfix Phase: BUG-002 — calibration A1 gates are mis-specified
+
+**Added**: 2026-10-11, patching [BUG-002](bugs/BUG-002.md). **Purpose**: fix the seven A1 gate defects in
+`.claude/skills/microfly-calibrate/scripts/engine.mjs`/`profiles/v2.mjs`, record the corrected protocol as ADR 006
+Amendment 2026-10-11 (A5), re-score the five existing `--stage=auto` checkpoints under the corrected gates with no
+new simulation, and update `calibration.md` with the result. Blocks T096/T097 (and transitively T053/T057/T085)
+from being worth re-running against a fresh `/microfly-calibrate` search.
+
+- [X] T098 Recorded `## Amendment 2026-10-11` (A5) in `adrs/006-cautious-forager-brain-15k.md`, restating
+  §Calibration protocol point 2: exempt `output` from the A1 rest/ceiling gate (A2 fits its gain regardless); gate
+  on a per-LIF-step rate, not the per-tick union `regionFractionsOf` returns; keep the ≥ 0.002 rest floor for
+  `input` only; define brake/feed against an odour-plus-taste condition compared to odour alone, not taste alone
+  against odour alone; add a steering gate on `lateral`; require A2's forward fit to leave near-zero drive at
+  `rest`; and add a settle gate (activity returns to rest once a probed stimulus is removed).
+- [X] T099 Updated `.claude/skills/microfly-calibrate/scripts/engine.mjs` and `profiles/v2.mjs` to match A5.
+  `engine.mjs` gained `perStepRateFromUnion()` (the per-tick-to-per-step conversion), a shared `restGateFails()`
+  helper (opt-in `gates.floorGroups`/`ceilingExemptGroups`/`rateBasis`, defaulting to the pre-A5 behaviour so v1's
+  profile, which sets none of them, is unaffected), a `lateralMin` steering gate, `probeSettle()` plus `regime()`'s
+  new `settleGroups` check, a `rest` probe added to `readout()`'s runs (purely additive), and `rescoreStoredRow()`
+  for T100. `profiles/v2.mjs` opts in via `gates.floorGroups: ['input']`, `ceilingExemptGroups: ['output']`,
+  `rateBasis: 'perStep'`, `lateralMin: 0.05`, `settleGroups`/`settleCondition`; its `taste` condition now also sets
+  food odour (matching `profiles/v1.mjs`'s own `taste` condition, which already did this) so brake/feed read as
+  odour-plus-taste vs. odour, not taste alone vs. odour alone; `fitReadout()` gained `restDriveMax`/`restOk`
+  (A2's rest check). Unit-tested in `tests/calibrate-engine.test.mjs` (8 tests: the per-step round-trip, the
+  `output` exemption, the `input`-only floor, the lateral gate, and that a profile not opting into A5's keys — v1
+  — keeps its exact pre-BUG-002 behaviour) against synthetic rows, not the real brain. `npm test`: 554/554 run,
+  548 pass; the 6 failures are the pre-existing, feature-unrelated `tests/activity.test.mjs` failures already
+  noted at T094, confirmed unchanged against the unmodified tree.
+- [X] T100 Re-scored the five existing checkpoints (`runs/v2-auto-20261011/`, `runs/v2-auto-narrow-20261011/`,
+  `runs/v2-auto-algain-fixed-20261011/`, `runs/v2-auto-algain-fine-20261011/`; the invalid pre-fix
+  `runs/v2-auto-algain-20261011/` excluded as already noted) with `rescoreStoredRow()` against each run's own
+  recorded `rows` and `axes` — **no new simulation**. Found the gates that are pure functions of stored data
+  (`output` exemption, `input`-only floor, per-step rate, lateral, odour-gain) are fully re-scorable, but
+  `brake`/`feed` are **not** (recorded under the old taste-alone probe this fix changed) and the settle gate was
+  never probed by these runs at all — narrower than T098/T099's "no new simulation" framing assumed; corrected in
+  `calibration.md`. Result: 45 of 342 rows now pass the re-scorable gates (0 did before), 34 of those robust
+  (>= 50% of axis-neighbours), concentrated at `synapticScale 0.005, groupGain.al 0.1–0.2`.
+- [X] T101 Updated `specs/013-forager-brain-15k-lif-v2/calibration.md`'s "no A1 pass, one near-miss" section with
+  a new "BUG-002: the A1 gates above were mis-specified; re-scored, no new simulation" entry: the 45/34 result,
+  why `brake`/`feed`/`settle` could not be re-scored from storage, and that none of this is a verdict (SC-007 is
+  exactly the brake/feed/settle gates not yet re-evaluated). Told the user (end of this implementation turn) to
+  run `/microfly-calibrate --stage=auto` again on the fixed `engine.mjs`/`profiles/v2.mjs`, narrowed to
+  `synapticScale` near 0.005 and `groupGain.al` 0.05–0.3, in a separate session per AGENTS.md — this session did
+  not run a calibration search.
+
+---
+
+## Bugfix Phase: BUG-003 — calibration grid is centred on the wrong scale and omits damping mechanisms
+
+**Added**: 2026-10-11, patching [BUG-003](bugs/BUG-003.md). **Purpose**: correct ADR 006 L11's `synapticScale`
+derivation (Shiu et al. 2024's synaptic weight is a step on their model's intermediate decaying variable, not net
+charge — the corrected value is `w · τ / t_mbr ÷ 7 mV ≈ 0.0098`, not `0.04`) and widen `profiles/v2.mjs`'s grid to
+include the LIF mechanisms (`tauAdapt`/`adaptStep`, `thresholdJitter`, `inhibitoryScale`) that damp the
+all-or-nothing ignition cliff every `--stage=auto` run has found so far, independent of BUG-002's gate fix. Blocks
+T096/T097 (and transitively T053/T057/T085) the same way T098–T101 did: a fresh `/microfly-calibrate` pass is not
+worth running against the uncorrected centre and the incomplete axis set.
+
+- [X] T102 Recorded `### A6` under `## Amendment 2026-10-11` in `adrs/006-cautious-forager-brain-15k.md`: L11's
+  `synapticScale` (`0.04`) quoted Shiu et al. 2024's synaptic weight `w` without finishing their own model's
+  conversion to net charge (`w · τ / t_mbr`, since `w` is a step on their intermediate decaying variable `g`, not
+  a direct addition to `v`); corrected value `0.06875 / 7 ≈ 0.0098`, ≈4.08× lower than `0.04`. Q1 marked resolved
+  for this row (`tau`/`refractorySteps`/`tauSyn` unaffected, not re-derived). Also records the decision to widen
+  the Calibration protocol's grid with `inhibitoryScale`/`adapt`/`thresholdJitter` (T103).
+- [X] T103 Updated `.claude/skills/microfly-calibrate/scripts/profiles/v2.mjs`: `L11.synapticScale` corrected to
+  `0.0098`; `axes.synapticScale` re-centred to `[0.00245, 0.0049, 0.0098]` (×{¼,½,1}); `classifyScan` re-anchored
+  to the same ratios (`[0.00245, 0.0049, 0.0098, 0.0196, 0.0392]`); added `inhibitoryScale: [1, 1.5, 2, 3]`,
+  `adapt: [[0,0],[50,0.05],[100,0.05],[200,0.05]]` (paired `[tauAdapt, adaptStep]`, the same pattern v1's own
+  `noise` axis already uses for its two parameters, instead of an independent cross), and
+  `thresholdJitter: [0, 0.1, 0.2]`. `brainOf()` destructures `point.adapt` and forwards all three new fields
+  into the `lif` config object, defaulting to each parameter's own no-op when a point omits them.
+  `referencePoint()` gained matching no-op defaults so classify-phase single-axis scans vary only their own axis.
+  Unit-tested in new `tests/calibrate-profile-v2.test.mjs` (5 tests: the forwarding, the defaults, the axes
+  themselves, `referencePoint()`'s defaults, and that `profiles/v1.mjs`'s `brainOf()` — untouched — still returns
+  exactly its original five fields). `npm test`: 559/559 run, 553 pass; the 6 failures are the pre-existing,
+  feature-unrelated `tests/activity.test.mjs` failures already noted at T094/T099, confirmed unchanged.
+- [X] T104 Updated `specs/013-forager-brain-15k-lif-v2/calibration.md`'s "Next step, not done here" text (end of
+  the BUG-002 update section) to describe T102's corrected centre and T103's widened axes in place of the
+  uncorrected `synapticScale 0.005` / `groupGain.al 0.05–0.3` narrowing it previously proposed. Told the user (end
+  of this implementation turn) to run `/microfly-calibrate --stage=auto` again on the corrected, widened profile,
+  in a separate session per AGENTS.md — this session did not run a calibration search.
+
+## Bugfix Phase: BUG-004 — A4's sign-aware D11 fix thins recurrent inhibition network-wide
+
+**Added**: 2026-10-11, patching [BUG-004](bugs/BUG-004.md). **Purpose**: add a per-region inhibitory/excitatory
+input-coverage report and a new failure code (`E-INHIBITION-DRIFT`), then — by user sign-off, ahead of the
+`/microfly-calibrate` pass originally proposed as the trigger — measure and implement a D11 fix. T092/T093/T094
+(BUG-001's own fix) are not reopened — they correctly implemented what was asked; this is a cost of that fix,
+not an error in it.
+
+- [X] T105 Added FR-033/SC-013's per-region coverage check to `extract/malecns_brain/selection_forager_v2.py`:
+  extended `total_in_full`'s underlying arrays with a sign split (`real_exc_in`/`real_inh_in`, from
+  `sign_dense[pre_i]`), classified every admitted body's region (`region_all`, `region_of` applied body-wide,
+  independent of D11's selection), and compared each L10 region's real-admitted ratio against the selected
+  subgraph's own ratio (computed from the final CSR's raw synapse counts and `sign_of[src]`, not `weights`, so
+  the comparison does not depend on `weightRule`). Added `ieDriftTolerance` (per L10 region, optional, default
+  `{}` — a region absent from the object is not checked; `extract/configs/forager-brain-15k.json` declares
+  `{"central": 0.15, "dn": 0.15}`, per Principle IV) and `E-INHIBITION-DRIFT` (`errors.py`). `report_forager_v2`
+  prints `inhibitory/excitatory ratio, selected vs. real admitted: ...` per region. `extract-config-forager-v2.md`
+  documents the new key/code and, picked up while touching that table, the pre-existing, undocumented
+  `E-OUTPUT-SIGN` entry from BUG-001. Unit tests: `test_config_forager_v2.py` (`ieDriftTolerance`'s per-region
+  shape, unknown-region and non-negative checks), `test_forager_v2_failures.py` (zero tolerance on `output`
+  raises, a looser one or an undeclared region does not), `test_selection_forager_v2.py` (the `inhibitionCoverage`
+  dict itself: `output` shows a real-vs-selected gap from the fixture's one excluded GABA candidate, 4004).
+- [X] T106 Tell the user (end of this implementation turn) to run `/microfly-calibrate --stage=auto` in
+  a separate session, per AGENTS.md, against the current brain — now that both A5's gates and A6's grid
+  (including its `inhibitoryScale` axis) are fixed. This session does not run that search. Record whichever
+  outcome results in `calibration.md` as a finding. (The pass itself is still pending, and now needs to run
+  against T107's newest brain, not the one this note originally pointed at.)
+- [X] T107 **User sign-off 2026-10-11: resolve Q7 now, not after T106's pass.** Measured against the real
+  dataset before implementing (`MALECNS_DIR` set; selection re-run directly, no re-simulation per trial, so each
+  measurement cost seconds not a full extraction):
+  - **(c), class anchoring, does not generalise past `al`.** `al`'s dominant inhibitory class (ALLN) is 67.6% of
+    its inhibitory weight; `central`'s single largest contributing type (`Mi4`, optic-lobe) is 2.7%, the top 15
+    types combined only ~19% — no bounded class exists for `vnc`/`dn`/`central`.
+  - **A per-neuron closure budget** (every selected body admits its own top-k missing inhibitory input) adds
+    ~11,000 bodies at `k = 1` — rejected, blows `neuronCountRange`.
+  - **A single global top-k hub budget** over-corrects `vnc` (overshoots past 200) while under-correcting
+    `output` (still short at 500) — rejected, one ranking cannot fit every region.
+  - **`vnc` needs no fix.** Measured with zero closure: selected `0.904` already exceeds real `0.735` — `vnc`
+    was never actually thinned by A4 (consistent with its own pre/post-A4 move being the smallest of the four
+    scored regions, `0.92 → 0.90`).
+  - Landed on **(b), a per-region closure budget**, implemented in `selection_forager_v2.py` right after D12's
+    anchors are merged: for each region named in `inhibitoryClosure`, rank real-admitted inhibitory candidates by
+    synapse weight already delivered into that region's already-selected targets, admit the top-k
+    unconditionally (skipping `_excluded` bodies). Tuned against the real dataset: `central: 250` (drift `0.004`
+    against real), `dn: 100` first (drift `0.008`) then reduced to `dn: 50` (drift `0.022`) after `100` broke
+    `tests/forager-v2-brake.test.mjs` (leg taste very slightly lowered `backward` below its no-taste baseline —
+    `dn`'s closure candidates overlap the circuitry feeding `backward`/MDN closely enough that too large a
+    budget there measurably changes it). `extract/configs/forager-brain-15k.json` declares
+    `"inhibitoryClosure": {"central": 250, "dn": 50}`.
+  - **Re-ran the real extraction**: 16,427 neurons (within [12000, 18000]), 2,078,088 edges, self-check
+    `identical`. `inhibitory/excitatory ratio, selected vs. real admitted: central 0.633/0.637, dn 0.687/0.665`
+    (both within tolerance); every output pool stays net-positive (`feed +195.5`, the tightest margin). New
+    `public/brains/forager-brain-15k.brain` written to the working tree (26,300,628 bytes) — not committed to
+    git in this session, per this project's "only commit when asked" convention.
+  - Extractor suite: 255/255 passing (was 246; 9 new, across `test_config_forager_v2.py`,
+    `test_forager_v2_failures.py`, `test_selection_forager_v2.py`). `npm test`: 553/559, the same 6 pre-existing,
+    feature-unrelated `tests/activity.test.mjs` failures as every prior checkpoint on this branch, including the
+    new `forager-v2-brake.test.mjs` wiring test that originally caught the `dn: 100` regression, now passing.
+  - Does not touch T096/T097/T053/T057/T085: this fix is structural (which neurons D11 selects), not a
+    calibration search. T106's `/microfly-calibrate --stage=auto` pass is still needed, now against this newest
+    brain, before any of those can close.
 
 ---
 
@@ -629,6 +810,25 @@ passed. Blocks T010/T012/T023/T053/T057/T085 above from re-closing.
 **Bugfix ordering (BUG-001)**: T091 → T092 → T093 → T094 → T095 are done (2026-10-11); T010/T012/T023 re-closed
 on T094. T096, T097 remain, blocked on a fresh `/microfly-calibrate` pass (run by the user in a separate
 session, not this one); T053/T057/T085 re-close only once T096/T097 complete.
+
+**Bugfix ordering (BUG-002)**: T098 → T099 → T100 → T101 are done (2026-10-11). T096/T097 (and transitively
+T053/T057/T085) stay blocked: T100 found 34 robust candidates against the re-scorable gates, but `brake`/`feed`/
+`settle` still need a fresh `/microfly-calibrate --stage=auto` run against the fixed engine (a separate session,
+per AGENTS.md) before any of them is a real A1 pass.
+
+**Bugfix ordering (BUG-003)**: T102 → T103 → T104 are done (2026-10-11), independent of BUG-002's T098–T101
+(different defect, same files). T096/T097 (and transitively T053/T057/T085) stay blocked: the corrected, widened
+`profiles/v2.mjs` has not yet been run through `/microfly-calibrate --stage=auto` (a separate session, per
+AGENTS.md) — T098–T104 together fix the gates, the centre and the search space, but none of them is the search
+itself.
+
+**Bugfix ordering (BUG-004)**: T105 → T106 → T107 are done (2026-10-11). T105 and T106 ran as originally planned
+(the report/check landed independent of any fix; T106 told the user to run a fresh calibration pass separately).
+T107 did not wait for that pass's result, by user sign-off — it measured, picked and implemented a per-region D11
+fix, then re-ran the real extraction directly. T096/T097 (and transitively T053/T057/T085) stay blocked exactly
+as before: T107 is a structural fix to which neurons D11 selects, not a calibration search: the
+`/microfly-calibrate --stage=auto` pass T106 asked for is still pending, and now needs to run against T107's
+newest brain (16,427 neurons), not the one T095/T104 last pointed it at.
 
 ### Phase Dependencies
 

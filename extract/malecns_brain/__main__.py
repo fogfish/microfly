@@ -201,6 +201,15 @@ def report_forager_v2(config, brain, output, size, self_check):
     # report runs if any pool is non-positive, so every value printed here is confirmed positive.
     lines.append("output net weight/neuron: " + ", ".join(
         f"{cid} {brain['outputNetWeight'][cid]:+g}" for cid in config["outputs"]))
+    # FR-033/SC-013 (BUG-004): per-region inhibitory/excitatory synapse-count ratio, selected vs. real admitted
+    # input -- printed for every region select_forager_v2 could compare (E-INHIBITION-DRIFT already stopped
+    # extraction above if any of them exceeded ieDriftTolerance, so every value printed here is within it).
+    coverage = brain["inhibitionCoverage"]
+    coverage_parts = []
+    for region, entry in sorted(coverage.items()):
+        selected = "inf" if entry["selected"] is None else f"{entry['selected']:.3f}"
+        coverage_parts.append(f"{region} {selected}/{entry['real']:.3f}")
+    lines.append("inhibitory/excitatory ratio, selected vs. real admitted: " + ", ".join(coverage_parts))
     weights = brain["weights"]
     synapses = brain["synapses"]
     lines += [

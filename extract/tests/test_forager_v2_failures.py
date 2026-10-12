@@ -143,6 +143,28 @@ class ForagerV2FailureCodesTest(unittest.TestCase):
         self.assertEqual(error.code, "E-OUTPUT-SIGN")
         self.assertIn("escape", error.message)
 
+    def test_e_inhibition_drift_when_a_region_drifts_past_tolerance(self):
+        # The intact fixture already has a real/selected inhibitory-vs-excitatory gap in `output` (D12's
+        # exclusion of 4007 removes a real-admitted excitatory edge from the selected side, and the fixture's
+        # only inhibitory hub, 4004, is not split evenly across outputs) -- a tolerance of 0 for that region
+        # makes that gap, by itself, enough to raise (BUG-004, FR-033). Keyed per region, so an unlisted region
+        # (e.g. `central`) drifting is not checked.
+        def zero_tolerance(config):
+            config["ieDriftTolerance"] = {"output": 0.0}
+        error = attempt(self.data, mutate_config=zero_tolerance)
+        self.assertEqual(error.code, "E-INHIBITION-DRIFT")
+        self.assertIn("output", error.message)
+
+    def test_e_inhibition_drift_does_not_raise_within_a_looser_tolerance(self):
+        def loose_tolerance(config):
+            config["ieDriftTolerance"] = {"output": 0.5}
+        self.assertIsNone(attempt(self.data, mutate_config=loose_tolerance))
+
+    def test_e_inhibition_drift_is_not_checked_for_an_undeclared_region(self):
+        def no_tolerance_declared(config):
+            config["ieDriftTolerance"] = {}
+        self.assertIsNone(attempt(self.data, mutate_config=no_tolerance_declared))
+
     def test_e_modulator_when_a_target_is_undeclared(self):
         config = copy.deepcopy(self.data["config"])
         config["modulators"][0]["targets"] = ["feed"]

@@ -8,6 +8,7 @@ import re
 
 from .capabilities import FORAGER_DRIVES, FORAGER_DRIVES_V2, validate_capabilities, validate_capabilities_v4, \
     validate_capabilities_v5
+from .container import REGIONS as L10_REGIONS
 from .dataset import TRANSMITTER_SOURCE_COLUMNS
 from .errors import ExtractError
 
@@ -345,9 +346,11 @@ FORAGER_KEYS_V2 = {
     "formatVersion", "kind", "datasetRelease", "edgeVariant", "expect", "transmitterSign", "transmitterSource",
     "minConfidence", "inputs", "sideMatch", "outputs", "pathways", "outputGroups", "flowSteps", "budget",
     "anchors", "excludeInterneuronClasses", "excludeInterneuronSuperclassSuffix", "weightRule", "minSynapses",
-    "modulators", "capabilities", "neuronCountRange",
+    "modulators", "capabilities", "neuronCountRange", "ieDriftTolerance", "inhibitoryClosure",
 }
-FORAGER_KEYS_V2_OPTIONAL = {"excludeInterneuronSuperclassSuffix", "minSynapses"}
+FORAGER_KEYS_V2_OPTIONAL = {
+    "excludeInterneuronSuperclassSuffix", "minSynapses", "ieDriftTolerance", "inhibitoryClosure",
+}
 INPUT_KEYS_V2 = {"class", "rootSide", "types", "subclasses", "typePrefixes", "entryNerve"}
 
 
@@ -511,6 +514,35 @@ def validate_forager_v2(config):
     min_synapses = config.get("minSynapses", 1)
     if not _is_int(min_synapses) or min_synapses < 1:
         _fail("minSynapses must be a positive integer")
+
+    # BUG-004/FR-033: how far a region's selected inhibitory/excitatory ratio may depart from its real-admitted-
+    # connectome ratio before E-INHIBITION-DRIFT stops extraction. Keyed per L10 region, not a single global
+    # number: `al`'s own real-vs-selected gap is structurally different in kind (D12's ALLN anchor forces in a
+    # fixed inhibitory population while the rest of `al` is budget-limited, a pre-existing property this bug does
+    # not touch) from `vnc`/`dn`/`central`'s gap (A4's sign-aware score thinning their *scored* inhibitory
+    # candidates, the property `inhibitoryClosure` closes) -- measured close enough in magnitude that one shared
+    # tolerance cannot tell a region's expected drift apart from a real regression. A region missing from this
+    # dict is not checked, per Principle IV (declared, not guessed): the default is no check anywhere.
+    ie_tolerance = config.get("ieDriftTolerance", {})
+    if not isinstance(ie_tolerance, dict):
+        _fail("ieDriftTolerance must be an object")
+    for region, tolerance in ie_tolerance.items():
+        if region not in L10_REGIONS:
+            _fail(f"ieDriftTolerance key {region} is not an L10 region ({', '.join(sorted(L10_REGIONS))})")
+        if not _is_number(tolerance) or tolerance < 0:
+            _fail(f"ieDriftTolerance.{region} must be a number ≥ 0")
+
+    # ADR 006 Q7/A7 (BUG-004): off by default (Principle IV: new mechanisms declared, not guessed) -- a region
+    # whose real inhibitory input has no single class to anchor (vnc/dn/central) closes its gap this way instead.
+    # Keyed per L10 region (a global budget over- and under-shoots different regions unevenly, measured).
+    closure = config.get("inhibitoryClosure", {})
+    if not isinstance(closure, dict):
+        _fail("inhibitoryClosure must be an object")
+    for region, region_budget in closure.items():
+        if region not in L10_REGIONS:
+            _fail(f"inhibitoryClosure key {region} is not an L10 region ({', '.join(sorted(L10_REGIONS))})")
+        if not _is_int(region_budget) or region_budget < 0:
+            _fail(f"inhibitoryClosure.{region} must be a non-negative integer")
 
     _check_modulators(config["modulators"], inputs)
 

@@ -186,6 +186,34 @@ class SelectionTest(unittest.TestCase):
         for n in self.neurons:
             self.assertIn(n["group"], ("input", "output", "al", "vnc", "dn", "central"))
 
+    def test_inhibition_coverage_reports_a_real_vs_selected_gap_bug_004(self):
+        # 4004 (GABA) is D11-excluded (test_d11_score_is_sign_aware_bug_001): the "real" (pre-D11) baseline
+        # still counts its inhibitory edges into `output`'s region (feed), but the selected subgraph does not,
+        # exactly the real-vs-selected inhibition gap BUG-004/FR-033 reports. `al`/`central`/`dn`/`vnc` have no
+        # such gap in this fixture (their only inhibitory candidate, if any, is excluded on both sides alike).
+        coverage = self.brain["inhibitionCoverage"]
+        self.assertIn("output", coverage)
+        self.assertGreater(coverage["output"]["real"], coverage["output"]["selected"])
+        for region in ("al", "central", "dn", "vnc"):
+            if region in coverage:
+                self.assertAlmostEqual(coverage[region]["real"], coverage[region]["selected"], places=6)
+
+    def test_inhibitory_closure_readmits_the_excluded_gaba_candidate_bug_004(self):
+        # ADR 006 Q7/A7 (BUG-004): a budget on `output` ranks real-admitted inhibitory candidates by how much
+        # weight they deliver into `output`'s already-selected targets. 4004 is the only inhibitory body with a
+        # direct edge to every output (2 synapses each), so a budget of 1 re-admits exactly it, closing the gap
+        # the previous test measured.
+        config = copy.deepcopy(self.data["config"])
+        config["inhibitoryClosure"] = {"output": 1}
+        closed = run(self.data, config)
+        body_of = [n["bodyId"] for n in closed["neurons"]]
+        self.assertIn(4004, body_of)
+        before = self.brain["inhibitionCoverage"]["output"]
+        after = closed["inhibitionCoverage"]["output"]
+        drift_before = abs(before["real"] - before["selected"])
+        drift_after = abs(after["real"] - after["selected"])
+        self.assertLess(drift_after, drift_before)
+
     def test_synapse_count_weights_are_sign_times_synapses_unnormalised(self):
         offsets, weights, synapses = self.brain["offsets"], self.brain["weights"], self.brain["synapses"]
         for pre in range(len(self.neurons)):

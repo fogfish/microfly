@@ -32,6 +32,34 @@ export const PROBE_HUNGER = 0.5;
 const fmt = (v, d = 3) => (v === null || v === undefined ? '-' : Number(v).toFixed(d));
 export const keyOf = (v) => JSON.stringify(v);
 
+// BUG-002 item 2: a per-tick union-of-spikes fraction is not comparable across the stepsPerTick axis (more steps
+// per tick means more chances for a neuron to be counted active, independent of its actual per-step firing rate).
+// Converts the recorded fraction back to an approximate per-LIF-step rate, assuming independent per-step firing
+// at a stable rate across the tick: fraction = 1 - (1 - rate)^stepsPerTick. Opt-in per profile (`gates.rateBasis
+// === 'perStep'`) so v1's already-concluded calibration, which never varies stepsPerTick, is unaffected.
+export function perStepRateFromUnion(fraction, stepsPerTick) {
+  if (!(stepsPerTick > 0)) return fraction;
+  return 1 - (1 - Math.min(Math.max(fraction, 0), 1)) ** (1 / stepsPerTick);
+}
+
+// The A1 rest/ceiling gate (ADR 006 Amendment 2026-10-11, A5), shared between a live regime() probe and
+// rescoreStoredRow()'s replay of a stored checkpoint row, so the two can never drift apart. `floorGroups`
+// (default: every region, matching the pre-A5 behaviour) and `ceilingExemptGroups` (default: none) let a profile
+// opt into A5's `input`-only floor and `output` exemption without changing a profile that does not set them.
+function restGateFails(profile, restActivity, stepsPerTick) {
+  const rateOf = (fraction) => (profile.gates.rateBasis === 'perStep' ? perStepRateFromUnion(fraction, stepsPerTick) : fraction);
+  const floorGroups = profile.gates.floorGroups ?? profile.regionNames;
+  const ceilingExempt = profile.gates.ceilingExemptGroups ?? [];
+  const fails = [];
+  for (const r of profile.regionNames) {
+    if (!(r in restActivity)) continue;
+    const rest = rateOf(restActivity[r]);
+    if (floorGroups.includes(r) && !(rest >= profile.gates.restFloor)) fails.push(`silent:${r}`);
+    if (!ceilingExempt.includes(r) && rest > profile.gates.restCeiling) fails.push(`ignited:${r}`);
+  }
+  return fails;
+}
+
 function ensureDir(dir) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }
@@ -80,8 +108,44 @@ export function probe(profile, ctx, brainOverrides, values) {
   return { activity, drive: byId(drive), raw: byId(raw) };
 }
 
-// A1: the regime of one grid point, against the profile's per-region gates plus the two structural gates every
+// Settle gate (ADR 006 Amendment 2026-10-11, A5 item 7): clamps `clampValues` for PROBE_TICKS after warmup, then
+// releases to zero input for another PROBE_TICKS on the same brain instance, and reports each phase's per-tick
+// union activity. A brain that stays ignited after its stimulus is removed (runaway/bistable) is indistinguishable
+// from a reactive-then-quiet one without this. Opt-in per profile (`gates.settleGroups`), so v1's profile, which
+// does not set it, is unaffected.
+export function probeSettle(profile, ctx, brainOverrides, clampValues) {
+  const { snapshot, f } = ctx;
+  const zero = new Float32Array(clampValues.length);
+  const phases = {
+    during: Object.fromEntries(profile.regionNames.map((r) => [r, 0])),
+    after: Object.fromEntries(profile.regionNames.map((r) => [r, 0])),
+  };
+  const samples = { during: 0, after: 0 };
+  for (const seed of PROBE_SEEDS) {
+    const brain = createFlyBrain({ ...f.brain, ...brainOverrides, snapshot, version: profile.brainVersion }, seed);
+    for (let t = 0; t < PROBE_WARMUP + PROBE_TICKS * 2; t++) {
+      const phase = t < PROBE_WARMUP ? null : (t < PROBE_WARMUP + PROBE_TICKS ? 'during' : 'after');
+      const out = brain.step({ inputs: phase === 'after' ? zero : clampValues, hunger: PROBE_HUNGER });
+      if (!phase) continue;
+      const frac = profile.regionFractions(out.spikes, ctx);
+      for (const r of profile.regionNames) phases[phase][r] += frac[r] ?? 0;
+      samples[phase]++;
+    }
+  }
+  for (const phase of ['during', 'after']) for (const r of profile.regionNames) phases[phase][r] /= samples[phase];
+  return phases;
+}
+
+// A1: the regime of one grid point, against the profile's per-region gates plus the structural gates every
 // version shares (brake: mouth/food taste lowers raw forward; feed: taste raises raw feed above its odour value).
+// A profile's `taste` condition decides what "mouth taste" is compared against — v1's and (since BUG-002) v2's
+// both combine it with food odour, so brake/feed read as "odour-plus-taste vs. odour alone", not "taste alone
+// vs. odour alone" (the latter only shows a fly with no odour present has nothing to brake).
+// `gates.requireFeed` (default true, so v1 is unaffected) lets a profile stop treating `feed` as a hard A1 gate.
+// v2's own regime sweep (2026-10-11, specs/013 calibration.md) found feedContrast pinned at exactly 0 across its
+// whole viable low-scale window -- the feed output never discriminates taste from odour there at all, a separate,
+// still-open problem from the brake/lateral movement gates -- so by user decision movement is prioritised and
+// feed is tracked but no longer blocks a candidate.
 export function regime(profile, ctx, point) {
   const brain = profile.brainOf(point);
   const named = profile.conditions(point, ctx);
@@ -94,20 +158,44 @@ export function regime(profile, ctx, point) {
   const brake = fwd !== 0 ? (p.taste.raw.forward - fwd) / Math.abs(fwd) : 0;
   const feedSize = Math.abs(p.taste.raw.feed) + Math.abs(p.odour.raw.feed);
   const feedContrast = feedSize > 0 ? (p.taste.raw.feed - p.odour.raw.feed) / feedSize : 0;
-  const fails = [];
-  for (const r of profile.regionNames) {
-    const rest = p.rest.activity[r];
-    if (!(rest >= profile.gates.restFloor)) fails.push(`silent:${r}`);
-    if (rest > profile.gates.restCeiling) fails.push(`ignited:${r}`);
-  }
+  const stepsPerTick = point.stepsPerTick ?? 1;
+  const fails = restGateFails(profile, p.rest.activity, stepsPerTick);
   for (const r of profile.gates.odourGroups) {
     if (!(p.odour.activity[r] >= profile.gates.odourGain * p.rest.activity[r])) fails.push(`gain:${r}`);
   }
   if (!(brake < 0)) fails.push('brake');
-  if (!(feedContrast > 0)) fails.push('feed');
+  if ((profile.gates.requireFeed ?? true) && !(feedContrast > 0)) fails.push('feed');
+  if (profile.gates.lateralMin !== undefined && !(Math.abs(lateral) >= profile.gates.lateralMin)) fails.push('lateral');
+  let settleAfter;
+  if (profile.gates.settleGroups) {
+    settleAfter = probeSettle(profile, ctx, brain, named[profile.gates.settleCondition ?? 'odour']).after;
+    for (const r of profile.gates.settleGroups) {
+      if (restGateFails(profile, { [r]: settleAfter[r] }, stepsPerTick).length) fails.push(`settle:${r}`);
+    }
+  }
   return {
     point, rest: p.rest.activity, odour: p.odour.activity, lateral, forwardRaw: fwd, brake, feedContrast,
+    ...(settleAfter ? { settleAfter } : {}),
     pass: fails.length === 0, fails,
+  };
+}
+
+// Re-scores a previously recorded regime() row under the profile's CURRENT gates, using only the per-tick
+// `rest`/`odour`/`lateral` fields a checkpoint already stores (BUG-002 T100: no new simulation). This can apply
+// the `output` exemption, the `input`-only floor, the per-step rate conversion and the lateral gate, all of which
+// are pure functions of stored data — but it CANNOT re-evaluate `brake`/`feedContrast` (recorded under the old
+// taste-alone probe, not the corrected odour-plus-taste one) or the settle gate (never probed by `--stage=auto`
+// before A5). Callers must treat `partialPass` as necessary, not sufficient: a full verdict still needs a fresh
+// `regime()` run with the corrected profile.
+export function rescoreStoredRow(profile, row) {
+  const stepsPerTick = row.point.stepsPerTick ?? 1;
+  const fails = restGateFails(profile, row.rest, stepsPerTick);
+  for (const r of profile.gates.odourGroups) {
+    if (!(row.odour[r] >= profile.gates.odourGain * row.rest[r])) fails.push(`gain:${r}`);
+  }
+  if (profile.gates.lateralMin !== undefined && !(Math.abs(row.lateral) >= profile.gates.lateralMin)) fails.push('lateral');
+  return {
+    ...row, partialFails: fails, partialPass: fails.length === 0, notReevaluated: ['brake', 'feed', 'settle'],
   };
 }
 
@@ -178,6 +266,9 @@ export function readout(profile, ctx, point, forwardTarget) {
       s,
       odour: probe(profile, ctx, withScale, named.odour).drive,
       taste: probe(profile, ctx, withScale, named.taste).drive,
+      // A5 item 6: lets a profile's fitReadout() require near-zero fitted forward drive with no stimulus present.
+      // Purely additive (v1's fitReadout ignores the extra field) so v1's already-concluded result is unchanged.
+      rest: probe(profile, ctx, withScale, named.rest).drive,
     };
   });
   return profile.fitReadout(runs, forwardTarget, ctx);

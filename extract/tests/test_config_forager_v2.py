@@ -90,6 +90,66 @@ class ConfigForagerV2Test(unittest.TestCase):
             validate_forager_v2(config)
         self.assertEqual(caught.exception.code, "E-CONFIG")
 
+    def test_ie_drift_tolerance_is_optional_and_defaults(self):
+        config = base()
+        config.pop("ieDriftTolerance", None)
+        validate_forager_v2(config)  # must not raise
+
+    def test_ie_drift_tolerance_is_keyed_per_region(self):
+        config = base()
+        config["ieDriftTolerance"] = {"central": 0.1, "dn": 0.2}
+        validate_forager_v2(config)  # must not raise
+
+    def test_ie_drift_tolerance_must_be_an_object(self):
+        config = base()
+        config["ieDriftTolerance"] = 0.1
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager_v2(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("ieDriftTolerance", caught.exception.message)
+
+    def test_ie_drift_tolerance_rejects_an_unknown_region(self):
+        config = base()
+        config["ieDriftTolerance"] = {"forward": 0.1}
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager_v2(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("forward", caught.exception.message)
+
+    def test_ie_drift_tolerance_value_must_be_non_negative(self):
+        config = base()
+        config["ieDriftTolerance"] = {"central": -0.1}
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager_v2(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("central", caught.exception.message)
+
+    def test_inhibitory_closure_is_optional_and_defaults(self):
+        config = base()
+        config.pop("inhibitoryClosure", None)
+        validate_forager_v2(config)  # must not raise
+
+    def test_inhibitory_closure_is_keyed_per_region(self):
+        config = base()
+        config["inhibitoryClosure"] = {"central": 100, "dn": 50}
+        validate_forager_v2(config)  # must not raise
+
+    def test_inhibitory_closure_rejects_an_unknown_region(self):
+        config = base()
+        config["inhibitoryClosure"] = {"forward": 10}
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager_v2(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("forward", caught.exception.message)
+
+    def test_inhibitory_closure_value_must_be_non_negative(self):
+        config = base()
+        config["inhibitoryClosure"] = {"central": -1}
+        with self.assertRaises(ExtractError) as caught:
+            validate_forager_v2(config)
+        self.assertEqual(caught.exception.code, "E-CONFIG")
+        self.assertIn("central", caught.exception.message)
+
     def test_budget_is_an_object_with_per_pair(self):
         config = base()
         config["budget"] = {"odour": 1500}
