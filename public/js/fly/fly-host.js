@@ -5,7 +5,7 @@
 import * as P from '../brain/protocol.js';
 import * as P3 from '../brain/protocol-v3.js';
 import { checkBrainVersion, parseSnapshot } from '../brain/snapshot.js';
-import { BASELINE_CAPABILITIES, TOY_CAPABILITIES } from '../brain/capabilities.js';
+import { BASELINE_CAPABILITIES, TOY_CAPABILITIES, withDerivedSignals } from '../brain/capabilities.js';
 import { createActivity } from '../brain/activity.js';
 import { neuronPositions, somaPositions } from '../brain/layout.js';
 import { stepBody } from './body.js';
@@ -55,8 +55,18 @@ export async function loadSnapshot(brain, root) {
     release: provenance?.datasetRelease ?? 'unknown release',
     createdAt: provenance?.createdAt ?? 'unknown date',
     neuronCount: snapshot.neuronCount,
-    capabilities: snapshot.capabilities,
-    neurons: snapshot.manifest.neurons.map((n) => ({ soma: n.soma ?? null, superclass: n.superclass ?? null })),
+    capabilities: withDerivedSignals(snapshot.capabilities, snapshot.manifest),
+    neurons: snapshot.manifest.neurons.map((n) => ({
+      soma: n.soma ?? null, superclass: n.superclass ?? null, origin: n.origin ?? null, transmitter: n.transmitter ?? null,
+      bodyId: n.bodyId ?? null, type: n.type ?? null, class: n.class ?? null,
+    })),
+    // Raw passthrough; the panel model (model.js) is where this is gated on capabilities.signals, per
+    // panel-provenance-signals.md's rule against re-deciding on the header directly.
+    provenance: {
+      selection: snapshot.manifest.selection, admission: snapshot.manifest.admission,
+      minSynapses: snapshot.manifest.minSynapses,
+    },
+    fidelity: snapshot.manifest.fidelity ?? null,
   };
 }
 
@@ -140,6 +150,11 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
       neuronCount,
       activity: state.mode === 'baseline' ? null : createActivity(neuronCount),
       ...(state.mode === 'baseline' ? { positions: null, drawn: null } : positionsFor(state, neuronCount)),
+      // Per-neuron identity (bodyId/type/class/origin/transmitter), for the brain activity view's legend and
+      // hover/selection (panel-provenance-signals.md); null for a toy/baseline brain with no snapshot.
+      neurons: snapshot && state.mode === 'toy' ? snapshot.neurons : null,
+      provenance: snapshot && state.mode === 'toy' ? snapshot.provenance : null,
+      fidelity: snapshot && state.mode === 'toy' ? snapshot.fidelity : null,
     };
   });
 

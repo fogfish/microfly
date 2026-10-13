@@ -13,12 +13,13 @@ import numpy as np
 
 from . import __version__
 from . import dataset
-from .admission import admit_forager
+from .admission import admit_all_traced, admit_forager
 from .config import config_hash, format_of, load_config
 from .container import write_container
 from .errors import ExtractError
 from .selection import admit, select_brain
 from .selection_forager import select_forager
+from .selection_class_seed import select_class_seed
 
 
 def build_header(config, brain, created_at):
@@ -65,6 +66,42 @@ def build_header_forager(config, brain, created_at):
         "neurons": brain["neurons"],
         "capabilities": capabilities,
         "modulators": config["modulators"],
+        # Optional (container-v4-additions.md): written only for the "v1 selection under D10-D12" ablation
+        # arm (ADR 006 Gate C), which opts a format-3 config into D10/D11 instead of the ADR 002 rule.
+        **({"admission": config["admission"], "minSynapses": config.get("minSynapses", 1)}
+           if config.get("admission") == "allTraced" else {}),
+    }
+
+
+def build_header_class_seed(config, brain, created_at):
+    """The version 4 container header for a class-seeded forager brain (ADR 006 D14, W7): the forager header
+    plus minSynapses/selection/admission/fidelity, and per-neuron transmitter/origin (already on brain['neurons']).
+    `synapseCap` is a required container-v4 header field (container-v4.md); classSeed's postFractionAbsolute
+    weights do not clip by it (D12), so it is fixed at the uint16 ceiling rather than taken from config."""
+    capabilities = copy.deepcopy(config["capabilities"])
+    for channel in capabilities["channels"]["inputs"] + capabilities["channels"]["outputs"]:
+        channel["neurons"] = brain["pools"][channel["id"]]
+    return {
+        "provenance": {
+            "datasetRelease": config["datasetRelease"],
+            "edgeVariant": config["edgeVariant"],
+            "configHash": config_hash(config),
+            "toolVersion": __version__,
+            "createdAt": created_at,
+            "positionSource": "body-annotations-male-cns-v1.0-minconf-0.5.feather:somaLocation",
+        },
+        "kind": config["kind"],
+        "selection": config["selection"],
+        "admission": config["admission"],
+        "minSynapses": config["minSynapses"],
+        "synapseCap": 65535,
+        "weightRule": config["weightRule"],
+        "neuronCount": len(brain["neurons"]),
+        "edgeCount": brain["edgeCount"],
+        "neurons": brain["neurons"],
+        "capabilities": capabilities,
+        "modulators": config["modulators"],
+        "fidelity": brain["fidelity"],
     }
 
 
@@ -143,18 +180,82 @@ def report_forager(config, brain, output, size, self_check):
     return "\n".join(lines)
 
 
+def report_class_seed(config, brain, output, size, self_check):
+    """Per pool, the seed/fill split, the fidelity probe's two checks and the self-check."""
+    neurons = brain["neurons"]
+    pools = brain["pools"]
+    incoming = np.bincount(brain["targets"].astype(np.int64), minlength=len(neurons))
+    fidelity = brain["fidelity"]
+    lines = [
+        f"dataset        {config['datasetRelease']} ({config['edgeVariant']}), classSeed, "
+        f"minSynapses={config['minSynapses']}",
+        f"neurons        {len(neurons)}   (seeds {brain['seedCount']}, fill {brain['fillCount']})",
+        f"edges          {brain['edgeCount']}",
+        "pools:",
+    ]
+    for cid in pools:
+        lines.append(f"  {cid:<14} {len(pools[cid]):>5} neurons, {int(sum(incoming[pools[cid]])):>7} edges in")
+    steering, feeding = fidelity["steering"], fidelity["feeding"]
+    lines.append(
+        f"fidelity       steering  {steering['brainContrast']:+.3g} vs whole graph {steering['wholeGraphContrast']:+.3g}"
+        f" ({steering['fraction']:.0%}) -> {'pass' if steering['pass'] else 'FAIL'}"
+    )
+    lines.append(
+        f"               feeding   {feeding['brainValue']:+.3g} vs whole graph {feeding['wholeGraphValue']:+.3g}"
+        f" -> {'pass' if feeding['pass'] else 'FAIL'}"
+    )
+    weights = brain["weights"]
+    synapses = brain["synapses"]
+    lines += [
+        f"weights        min {float(weights.min()):g}, max {float(weights.max()):g}; "
+        f"synapses min {int(synapses.min())}, max {int(synapses.max())}",
+        f"output         {output} ({size} bytes)",
+        f"self-check     {self_check}",
+    ]
+    return "\n".join(lines)
+
+
+def extract_class_seed(config, dataset_dir, out_path):
+    """The class-seeded forager kind (ADR 006 D8-D13): whole-class seeds, shared-weight fill, allTraced
+    admission, the minSynapses threshold, the fidelity probe, container version 4."""
+    dataset.check_files(dataset_dir)
+    dataset.check_rows(dataset_dir, config["expect"])
+
+    annotations = dataset.load_annotations(dataset_dir, dataset.FORAGER_ANNOTATION_COLUMNS)
+    transmitters = dataset.load_neurotransmitter_table(dataset_dir, config["transmitterColumn"])
+    bodies = admit_all_traced(annotations, transmitters, config)
+    if not bodies:
+        raise ExtractError("E-POOL-EMPTY", "no body is admitted")
+    edges = dataset.stream_edges(dataset_dir, sorted(bodies), min_synapses=config["minSynapses"])
+
+    brain = select_class_seed(config, bodies, edges)
+
+    # Self-check (as the forager brain): a second run must match byte for byte, except provenance.createdAt.
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    header = build_header_class_seed(config, brain, created_at)
+    again = select_class_seed(config, bodies, edges)
+    again_header = build_header_class_seed(config, again, created_at)
+    if not (_same_body(brain, again) and _same_header(header, again_header)):
+        raise ExtractError("E-NONDETERMINISTIC", "the second selection run differs from the first")
+
+    size = write_container(out_path, header, brain["offsets"], brain["targets"],
+                           brain["weights"], brain["synapses"])
+    return report_class_seed(config, brain, out_path, size, "identical")
+
+
 def extract_forager(config, dataset_dir, out_path):
     """The forager kind (ADR 003): pools, side matching, flow ranking, weights, container version 4."""
     dataset.check_files(dataset_dir)
     dataset.check_rows(dataset_dir, config["expect"])
 
     annotations = dataset.load_annotations(dataset_dir, dataset.FORAGER_ANNOTATION_COLUMNS)
-    transmitters = dataset.load_neurotransmitters(dataset_dir)
+    transmitters = (dataset.load_neurotransmitter_table(dataset_dir, config["transmitterColumn"])
+                    if config.get("admission") == "allTraced" else dataset.load_neurotransmitters(dataset_dir))
     pool_types = {t for spec in config["outputs"].values() for t in spec["types"]}
     bodies = admit_forager(annotations, transmitters, config, pool_types)
     if not bodies:
         raise ExtractError("E-POOL-EMPTY", "no body is admitted")
-    edges = dataset.stream_edges(dataset_dir, sorted(bodies))
+    edges = dataset.stream_edges(dataset_dir, sorted(bodies), min_synapses=config.get("minSynapses", 1))
 
     brain = select_forager(config, bodies, edges)
 
@@ -173,8 +274,11 @@ def extract_forager(config, dataset_dir, out_path):
 
 def extract(config_path, dataset_dir, out_path):
     config = load_config(config_path)
-    if format_of(config) == "forager":
+    kind = format_of(config)
+    if kind == "forager":
         return extract_forager(config, dataset_dir, out_path)
+    if kind == "classSeed":
+        return extract_class_seed(config, dataset_dir, out_path)
     dataset.check_files(dataset_dir)
     dataset.check_rows(dataset_dir, config["expect"])
 

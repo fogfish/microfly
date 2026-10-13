@@ -145,6 +145,28 @@ def _check_position(neuron, index):
         _reject(f"snapshot neuron {index} has a malformed superclass")
 
 
+FIDELITY_KEYS = ("table", "steering", "feeding")
+
+
+def _check_v4_additions(neuron, index):
+    """Rules 11-12 of contracts/container-v4-additions.md: optional per-neuron transmitter/origin."""
+    transmitter = neuron.get("transmitter")
+    if transmitter is not None and not isinstance(transmitter, str):
+        _reject(f"snapshot neuron {index} has a malformed transmitter")
+    origin = neuron.get("origin")
+    if origin is not None and not isinstance(origin, str):
+        _reject(f"snapshot neuron {index} has a malformed origin")
+
+
+def _check_fidelity(header):
+    """Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report."""
+    if "fidelity" not in header:
+        return
+    fidelity = header["fidelity"]
+    if not (isinstance(fidelity, dict) and all(key in fidelity for key in FIDELITY_KEYS)):
+        _reject("snapshot fidelity report is malformed")
+
+
 def _check_modulators(modulators, input_ids):
     """Rules M1–M3 of container-v4.md. The messages match public/js/brain/snapshot.js."""
     if not isinstance(modulators, list):
@@ -226,8 +248,10 @@ def _check_forager(header, neuron_count):
         if sign == 0 and neuron.get("role") != "output":
             _reject(f"snapshot neuron {index} has sign 0 but is not an output")
         _check_position(neuron, index)
+        _check_v4_additions(neuron, index)
 
     _check_modulators(header.get("modulators"), {ch["id"] for ch in inputs})
+    _check_fidelity(header)
 
 
 def _check_inflow(targets, weights, neuron_count):

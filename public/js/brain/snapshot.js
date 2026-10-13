@@ -57,7 +57,8 @@ function checkRoles(neurons, neuronCount) {
   if (!ok) reject('snapshot roles out of order: expected sensory, left, right');
 }
 
-// Optional per-neuron fields (contracts/snapshot-header-additions.md, rules 8 and 9). Missing or null is allowed.
+// Optional per-neuron fields (contracts/snapshot-header-additions.md, rules 8 and 9; contracts/
+// container-v4-additions.md, rules 11 and 12). Missing or null is allowed throughout.
 const isPosition = (value) => Array.isArray(value) && value.length === 3 && value.every(Number.isInteger);
 
 function checkPositions(neurons) {
@@ -68,7 +69,22 @@ function checkPositions(neurons) {
     if (neuron.superclass != null && typeof neuron.superclass !== 'string') {
       reject(`snapshot neuron ${index} has a malformed superclass`);
     }
+    if (neuron.transmitter != null && typeof neuron.transmitter !== 'string') {
+      reject(`snapshot neuron ${index} has a malformed transmitter`);
+    }
+    if (neuron.origin != null && typeof neuron.origin !== 'string') {
+      reject(`snapshot neuron ${index} has a malformed origin`);
+    }
   });
+}
+
+// Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report.
+function checkFidelity(manifest) {
+  if (!('fidelity' in manifest)) return;
+  const fidelity = manifest.fidelity;
+  const ok = fidelity && typeof fidelity === 'object'
+    && 'table' in fidelity && 'steering' in fidelity && 'feeding' in fidelity;
+  if (!ok) reject('snapshot fidelity report is malformed');
 }
 
 // Version 4 neuron rules N1, N2 and N4 (container-v4.md). The roles follow the declaration: input pool neurons
@@ -138,6 +154,7 @@ function checkForager(manifest, neuronCount) {
   checkForagerNeurons(manifest.neurons, manifest.capabilities, neuronCount);
   const inputIds = new Set(manifest.capabilities.channels.inputs.map((ch) => ch.id));
   checkModulators(manifest.modulators, inputIds);
+  checkFidelity(manifest);
 }
 
 export function parseSnapshot(arrayBuffer) {

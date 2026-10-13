@@ -304,6 +304,36 @@ runs with no console errors.
 - Record every run that changes a value, and every run that would have changed one but failed.
 - A new LIF mechanism added for calibration is off by default and keeps `tests/lif-golden.test.mjs` green.
 
+### 5.6 The generic `microfly-calibrate` skill (for a new brain generation)
+
+Sections 5.1–5.5 describe the ad hoc `scripts/calibrate-forager.mjs` script, written for `v1` alone. A second
+brain generation needs the same staged search (diagnose → screen → select → validate → record), so that search
+is now a reusable, deterministic Node program: `.claude/skills/microfly-calibrate/scripts/calibrate.mjs` plus
+`scripts/engine.mjs` (the generic A1 "regime" → A2 "readout" → B "world" protocol of ADR 005 Annex B) and one
+`scripts/profiles/<id>.mjs` per brain generation. `profiles/v1.mjs` is this brain's own profile — a ported,
+corrected known-answer case for the generic engine, not a new calibration of `v1` — and
+`profiles/class-seed-11k.mjs` is the new one, for the class-seeded forager brain (ADR 006; `public/world/
+world-forager-11k.json`).
+
+```bash
+# Quick look: which regions (if any) stay ignited no matter the scale scanned
+node .claude/skills/microfly-calibrate/scripts/calibrate.mjs --version=class-seed-11k --stage=classify \
+  --out=.claude/skills/microfly-calibrate/runs/class-seed-11k-quicklook
+
+# The real search (classify -> regime -> robustness -> A2), on calibration seeds only
+node .claude/skills/microfly-calibrate/scripts/calibrate.mjs --version=class-seed-11k --stage=auto \
+  --budget-minutes=60 --out=.claude/skills/microfly-calibrate/runs/class-seed-11k-auto-<date>
+```
+
+The skill's own `SKILL.md` asks the human for a brain profile, how much of the protocol to run and a compute
+budget before running anything, and never promotes a result into a shipped world config itself — the same
+section 4.2/5.4/5.5 rules apply (calibration seeds only, held-out validation separate, a failure is a finding,
+record every run). Its `--version` flag selects a profile module, a different axis from the worker-protocol/
+container `version` used elsewhere in this project; `class-seed-11k` is a profile id, not a new `flies.brain.
+version` value (that stays `v0`/`v1`, AGENTS.md). See `specs/012-class-seeded-forager-brain/contracts/
+calibration-profile.md` for the profile shape, and "Extending to a new brain profile" in `SKILL.md` for adding a
+third one.
+
 ## 6. Current status and open questions
 
 - **Eating is not solved by calibration alone.** The shipped brain finds food above the random walk on held-out seeds.

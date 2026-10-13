@@ -9,7 +9,7 @@ import { indexCatalog } from '../public/js/world/catalog.js';
 const load = (file) => JSON.parse(readFileSync(new URL(`../public/world/${file}`, import.meta.url), 'utf8'));
 const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL('../public/assets/atlas/catalog.json', import.meta.url), 'utf8')));
 const everything = (c) => [...validateConfig(c), ...validateArt(c, catalog)];
-const SHIPPED = ['world.json', 'world-forager.json', 'world-connectome.json', 'world-antennal-lobe.json'];
+const SHIPPED = ['world.json', 'world-forager.json', 'world-forager-11k.json', 'world-connectome.json', 'world-antennal-lobe.json'];
 
 test('refuses version 2 and names the version found and the one expected', () => {
   const c = load('world.json');
@@ -90,5 +90,13 @@ for (const file of SHIPPED) {
 
 test('world-forager-bad.json passes the format check; it fails on its snapshot version at run time', () => {
   const errors = everything(load('world-forager-bad.json'));
+  assert.deepEqual(errors.filter((e) => e.path === 'version' || e.path === 'format'), []);
+});
+
+// US3 (spec FR-002): the class-seeded brain is reached only by a new world file; flies.brain.version keeps
+// taking only mock/v0/v1. A world naming the new (version 4) snapshot under v0 is refused the same way
+// world-forager-bad.json already is, not because of anything specific to this brain.
+test('world-forager-11k-bad.json passes the format check; it fails on its snapshot version at run time', () => {
+  const errors = everything(load('world-forager-11k-bad.json'));
   assert.deepEqual(errors.filter((e) => e.path === 'version' || e.path === 'format'), []);
 });

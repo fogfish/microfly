@@ -95,8 +95,24 @@ if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
     const small = readFileSync(new URL('brains/smallest-functional-brain.brain', webRoot));
     v0Snapshot = parseSnapshot(small.buffer.slice(small.byteOffset, small.byteOffset + small.byteLength));
   }
+  // Named v1-style arms (ADR 006 Gate C) beyond the world's own snapshot: each is its own container v4 file,
+  // loaded the same way as the world's snapshot above. Reused as-is when an arm's file happens to be the one
+  // the world already names (avoids parsing it twice).
+  const ARM_SNAPSHOT_FILES = {
+    v1: 'brains/forager-brain.brain',
+    'class-seed-11k': 'brains/forager-brain-11k.brain',
+    'v1-selection-rules': 'brains/forager-brain-v1-rules.brain',
+  };
+  const snapshots = {};
+  for (const arm of arms) {
+    const file = ARM_SNAPSHOT_FILES[arm];
+    if (!file) continue;
+    if (file === snapshotPath) { snapshots[arm] = snapshot; continue; }
+    const bytes = readFileSync(new URL(file, webRoot));
+    snapshots[arm] = parseSnapshot(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  }
   const result = runForagerArms({
-    f, world, expConfig, snapshot, v0Snapshot, arms, seeds, ticks: forageTicks,
+    f, world, expConfig, snapshot, v0Snapshot, snapshots, arms, seeds, ticks: forageTicks,
     capabilities: snapshot.capabilities,
   });
   const metrics = armMetrics(arms, result, f.stimulus.radius, 1);

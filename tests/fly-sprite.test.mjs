@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const SHIPPED = ['world.json', 'world-forager.json', 'world-connectome.json', 'world-antennal-lobe.json', 'world-forager-bad.json'];
+const SHIPPED = ['world.json', 'world-forager.json', 'world-forager-11k.json', 'world-connectome.json', 'world-antennal-lobe.json', 'world-forager-bad.json', 'world-forager-11k-bad.json'];
 const load = (file) => JSON.parse(readFileSync(new URL(`../public/world/${file}`, import.meta.url), 'utf8'));
 const SPRITE_IDS = ['fly-female', 'fly-female-baseline', 'fly-male', 'fly-male-baseline'];
 const SEXES = ['female', 'male'];

@@ -148,7 +148,7 @@ def select_forager(config, bodies, edges):
     ids = np.array(sorted(bodies), dtype=np.int64)
     n = len(ids)
     pre, post, syn = (np.asarray(a, dtype=np.int64) for a in edges)
-    keep = np.isin(pre, ids) & np.isin(post, ids) & (syn >= 1)
+    keep = np.isin(pre, ids) & np.isin(post, ids) & (syn >= config.get("minSynapses", 1))
     pre, post, syn = pre[keep], post[keep], syn[keep]
     _check_unique_edges(pre, post)
 
@@ -225,7 +225,8 @@ def select_forager(config, bodies, edges):
             "superclass": b["superclass"],
             "soma": b["soma"],
             "transmitter": b["transmitter"],
-            "transmitterConfidence": b["transmitterConfidence"],
+            # Meaningless under allTraced admission (D10 has no confidence gate); admit_all_traced omits it.
+            "transmitterConfidence": b.get("transmitterConfidence", 1.0),
             "sign": b["sign"],
             "flowInput": round(float(max(f_odour[dense_i], f_taste[dense_i])), ROUND),
             "flowOutput": round(float(b_flow[dense_i]), ROUND),

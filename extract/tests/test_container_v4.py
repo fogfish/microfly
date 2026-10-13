@@ -174,6 +174,44 @@ class ContainerV4RoundTripTest(unittest.TestCase):
             self.write(header=bad)
         self.assertFalse(os.path.exists(self.path))
 
+    # Container v4 additions (specs/012-class-seeded-forager-brain/contracts/container-v4-additions.md),
+    # rules 11-13: round trip with every field present, and the exact rejection message for each malformed case.
+    def test_round_trip_keeps_the_optional_additions(self):
+        header = copy.deepcopy(self.header)
+        header["minSynapses"] = 5
+        header["selection"] = "classSeed"
+        header["admission"] = "allTraced"
+        header["fidelity"] = {
+            "table": {"odour-L→turn-left": {"brain": 1e-7, "wholeGraph": 8e-7}},
+            "steering": {"pass": True, "brainContrast": 1e-7, "wholeGraphContrast": 8e-7, "fraction": 0.13},
+            "feeding": {"pass": True, "brainValue": 3e-6, "wholeGraphValue": 4e-6},
+        }
+        header["neurons"][13]["transmitter"] = "acetylcholine"
+        header["neurons"][13]["origin"] = "seed:ALPN"
+        self.write(header=header)
+        result = self.read()
+        self.assertEqual(result["header"]["minSynapses"], 5)
+        self.assertEqual(result["header"]["selection"], "classSeed")
+        self.assertEqual(result["header"]["fidelity"]["steering"]["pass"], True)
+        self.assertEqual(result["header"]["neurons"][13]["origin"], "seed:ALPN")
+
+    def test_rule_11_malformed_transmitter_is_rejected(self):
+        bad = copy.deepcopy(self.header)
+        bad["neurons"][13]["transmitter"] = 7
+        self.rejects(bad, "snapshot neuron 13 has a malformed transmitter")
+
+    def test_rule_12_malformed_origin_is_rejected(self):
+        bad = copy.deepcopy(self.header)
+        bad["neurons"][13]["origin"] = 7
+        self.rejects(bad, "snapshot neuron 13 has a malformed origin")
+
+    def test_rule_13_malformed_fidelity_is_rejected_absent_fidelity_is_valid(self):
+        bad = copy.deepcopy(self.header)
+        bad["fidelity"] = {"table": {}, "steering": {}}
+        self.rejects(bad, "snapshot fidelity report is malformed")
+        self.write()  # self.header has no "fidelity" key at all; must not raise
+        self.read()
+
 
 def _header_of(data):
     length = struct.unpack("<I", data[8:12])[0]

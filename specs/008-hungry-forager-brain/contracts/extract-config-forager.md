@@ -3,6 +3,13 @@
 **Owner**: `extract/malecns_brain/config.py` validates; `extract/configs/forager-brain.json` is the shipped config.
 **Amends**: `extract/configs/*.json` format 2 (ADR 002). A config without `kind` and with `formatVersion: 2` is an
 ADR 002 config and is handled as today (small brain, container version 3).
+**Amended by**: [../../012-class-seeded-forager-brain/contracts/extract-config-classseed.md](../../012-class-seeded-forager-brain/contracts/extract-config-classseed.md)
+adds the sibling `formatVersion: 4`/`selection: "classSeed"` dispatch value (a different selection strategy
+entirely), and this format's own optional `admission`/`transmitterColumn`/`defaultSign`/`minSynapses` keys (ADR
+006 Gate C arm 3, `forager-brain-v1-rules.json`): absent, this format keeps its ADR 002/003 meaning exactly;
+present, `admission: "allTraced"` swaps the ADR 002 confidence gate for D10's rule and `minSynapses` applies
+D11's edge threshold, while `pathways`/`flowSteps`/`budget` (this format's own flow-ranked selection) are
+unchanged either way.
 
 ## Dispatch
 

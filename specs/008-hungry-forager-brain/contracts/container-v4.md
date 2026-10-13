@@ -3,6 +3,9 @@
 **Owner**: extractor (`extract/malecns_brain/container.py`) writes; browser (`public/js/brain/snapshot.js`) reads.
 **Amends**: [snapshot-format-v3.md](../../006-fly-status-panel/contracts/snapshot-format-v3.md). Version 3 files stay
 readable with their current rules.
+**Amended by**: [../../012-class-seeded-forager-brain/contracts/container-v4-additions.md](../../012-class-seeded-forager-brain/contracts/container-v4-additions.md)
+(optional `minSynapses`/`selection`/`admission`/`fidelity` header fields and optional per-neuron
+`transmitter`/`origin`; format version stays 4, every rule below is unchanged).
 
 ## Binary layout
 

@@ -1,0 +1,659 @@
+{
+  "annotations": [
+    {
+      "bodyId": 101,
+      "class": "olfactory",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_DM1"
+    },
+    {
+      "bodyId": 201,
+      "class": "olfactory",
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_DM1"
+    },
+    {
+      "bodyId": 301,
+      "class": "gustatory",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "labellar bristle",
+      "superclass": "sensory",
+      "type": "LgLG1"
+    },
+    {
+      "bodyId": 302,
+      "class": "gustatory",
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "labellar bristle",
+      "superclass": "sensory",
+      "type": "LgLG1"
+    },
+    {
+      "bodyId": 401,
+      "class": "descending",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": "L",
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNa01"
+    },
+    {
+      "bodyId": 402,
+      "class": "descending",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": "R",
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNa01"
+    },
+    {
+      "bodyId": 403,
+      "class": "descending",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNp09"
+    },
+    {
+      "bodyId": 404,
+      "class": "descending",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "MDN"
+    },
+    {
+      "bodyId": 405,
+      "class": "motor",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "motor",
+      "type": "MN9"
+    },
+    {
+      "bodyId": 601,
+      "class": "SEEDCLS",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "SC_A"
+    },
+    {
+      "bodyId": 602,
+      "class": "SEEDCLS",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "SC_B"
+    },
+    {
+      "bodyId": 603,
+      "class": "OTHERCLS",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "seed_super",
+      "type": "SS_A"
+    },
+    {
+      "bodyId": 701,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_701"
+    },
+    {
+      "bodyId": 702,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_702"
+    },
+    {
+      "bodyId": 703,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_703"
+    },
+    {
+      "bodyId": 704,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_704"
+    },
+    {
+      "bodyId": 705,
+      "class": "olfactory",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_X"
+    },
+    {
+      "bodyId": 706,
+      "class": "vncmotorcls",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "vnc_motor",
+      "type": "MN_X"
+    },
+    {
+      "bodyId": 707,
+      "class": "weirdcls",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "foo_sensory",
+      "type": "WX"
+    },
+    {
+      "bodyId": 708,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_708"
+    },
+    {
+      "bodyId": 709,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_709"
+    },
+    {
+      "bodyId": 710,
+      "class": "intrinsic",
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Orphan",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_710"
+    }
+  ],
+  "config": {
+    "admission": "allTraced",
+    "capabilities": {
+      "channels": {
+        "inputs": [
+          {
+            "id": "odour-left",
+            "label": "Odour left",
+            "range": [
+              0,
+              1
+            ],
+            "side": "L"
+          },
+          {
+            "id": "odour-right",
+            "label": "Odour right",
+            "range": [
+              0,
+              1
+            ],
+            "side": "R"
+          },
+          {
+            "id": "taste-left",
+            "label": "Taste left",
+            "range": [
+              0,
+              1
+            ],
+            "side": "L"
+          },
+          {
+            "id": "taste-right",
+            "label": "Taste right",
+            "range": [
+              0,
+              1
+            ],
+            "side": "R"
+          }
+        ],
+        "outputs": [
+          {
+            "drive": "turnLeft",
+            "id": "turn-left",
+            "label": "Turn left",
+            "range": [
+              0,
+              1
+            ],
+            "side": "L"
+          },
+          {
+            "drive": "turnRight",
+            "id": "turn-right",
+            "label": "Turn right",
+            "range": [
+              0,
+              1
+            ],
+            "side": "R"
+          },
+          {
+            "drive": "forward",
+            "id": "forward",
+            "label": "Forward",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          },
+          {
+            "drive": "backward",
+            "id": "backward",
+            "label": "Backward",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          },
+          {
+            "drive": "feed",
+            "id": "feed",
+            "label": "Feed",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          }
+        ]
+      },
+      "signals": [
+        "spikes"
+      ]
+    },
+    "datasetRelease": "synthetic",
+    "defaultSign": 1,
+    "edgeVariant": "traced-only",
+    "expect": {
+      "annotationRows": 0,
+      "edgeRows": 0,
+      "neurotransmitterRows": 0
+    },
+    "fidelity": {
+      "minContrastFraction": 0.1,
+      "require": false,
+      "steps": 8
+    },
+    "fill": {
+      "excludeClasses": [
+        "olfactory",
+        "gustatory"
+      ],
+      "excludeSuperclassSuffix": "_sensory",
+      "excludeSuperclasses": [
+        "vnc_motor",
+        "cb_motor"
+      ],
+      "neuronCount": 14
+    },
+    "formatVersion": 4,
+    "inputs": {
+      "odour-left": {
+        "class": "olfactory",
+        "rootSide": "L",
+        "types": [
+          "ORN_DM1"
+        ]
+      },
+      "odour-right": {
+        "class": "olfactory",
+        "rootSide": "R",
+        "types": [
+          "ORN_DM1"
+        ]
+      },
+      "taste-left": {
+        "class": "gustatory",
+        "rootSide": "L",
+        "subclasses": [
+          "labellar bristle"
+        ]
+      },
+      "taste-right": {
+        "class": "gustatory",
+        "rootSide": "R",
+        "subclasses": [
+          "labellar bristle"
+        ]
+      }
+    },
+    "kind": "forager",
+    "minSynapses": 5,
+    "modulators": [
+      {
+        "gain": [
+          0.5,
+          1.5
+        ],
+        "id": "hunger",
+        "label": "Hunger",
+        "range": [
+          0,
+          1
+        ],
+        "targets": [
+          "odour-left",
+          "odour-right"
+        ]
+      }
+    ],
+    "neuronCountRange": [
+      1,
+      100
+    ],
+    "outputs": {
+      "backward": {
+        "drive": "backward",
+        "types": [
+          "MDN"
+        ]
+      },
+      "feed": {
+        "drive": "feed",
+        "types": [
+          "MN9"
+        ]
+      },
+      "forward": {
+        "drive": "forward",
+        "types": [
+          "DNp09"
+        ]
+      },
+      "turn-left": {
+        "drive": "turnLeft",
+        "somaSide": "L",
+        "types": [
+          "DNa01"
+        ]
+      },
+      "turn-right": {
+        "drive": "turnRight",
+        "somaSide": "R",
+        "types": [
+          "DNa01"
+        ]
+      }
+    },
+    "seeds": [
+      {
+        "class": [
+          "SEEDCLS"
+        ]
+      },
+      {
+        "superclass": [
+          "seed_super"
+        ]
+      }
+    ],
+    "selection": "classSeed",
+    "sideMatch": {
+      "odour": true,
+      "taste": false
+    },
+    "transmitterColumn": "consensus_nt",
+    "transmitterSign": {
+      "gaba": -1,
+      "glutamate": -1
+    },
+    "weightRule": "postFractionAbsolute"
+  },
+  "edges": {
+    "post": [
+      401,
+      402,
+      405,
+      403,
+      404,
+      601,
+      701,
+      602,
+      603,
+      603,
+      601,
+      602,
+      708,
+      601,
+      601,
+      601,
+      601,
+      601
+    ],
+    "pre": [
+      101,
+      201,
+      301,
+      601,
+      602,
+      701,
+      601,
+      702,
+      703,
+      704,
+      708,
+      708,
+      602,
+      709,
+      705,
+      706,
+      707,
+      710
+    ],
+    "synapses": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      10,
+      5,
+      6,
+      5,
+      5,
+      4,
+      4,
+      4,
+      5,
+      20,
+      20,
+      20,
+      20
+    ]
+  },
+  "note": "Hand-built class-seed fixture (Constitution III). Not connectome data. See make_class_seed_fixture.py.",
+  "synthetic": true,
+  "transmitters": [
+    {
+      "body": 101,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 201,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 301,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 302,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 401,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 402,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 403,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 404,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 405,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 601,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 602,
+      "consensus_nt": "gaba"
+    },
+    {
+      "body": 603,
+      "consensus_nt": "dopamine"
+    },
+    {
+      "body": 701,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 702,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 703,
+      "consensus_nt": "glutamate"
+    },
+    {
+      "body": 704,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 705,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 706,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 707,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 708,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 709,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 710,
+      "consensus_nt": "acetylcholine"
+    }
+  ]
+}

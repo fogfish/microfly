@@ -13,7 +13,7 @@ import { GRASS_RULES } from '../public/js/world/shore.js';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const { catalog } = indexCatalog(JSON.parse(read('../public/assets/atlas/catalog.json')));
-const FILES = ['world.json', 'world-forager.json', 'world-connectome.json', 'world-antennal-lobe.json'];
+const FILES = ['world.json', 'world-forager.json', 'world-forager-11k.json', 'world-connectome.json', 'world-antennal-lobe.json'];
 const REMOVED = ['jungle-plant-016', 'jungle-plant-017', 'jungle-bush-018'];
 const YELLOW = ['trees-plant-001', 'trees-plant-002', 'trees-plant-003'];
 const FOOD = ['trees-plant-005', 'jungle-plant-010', 'jungle-plant-015']; // red_flower_plant, medium, large
@@ -138,7 +138,7 @@ for (const file of FILES) {
 }
 
 test('no removed sprite appears in any shipped world file (SC-004, FR-009)', () => {
-  for (const file of [...FILES, 'world-forager-bad.json']) {
+  for (const file of [...FILES, 'world-forager-bad.json', 'world-forager-11k-bad.json']) {
     const text = read(`../public/world/${file}`);
     for (const id of REMOVED) assert.ok(!text.includes(`"${id}"`), `${id} in ${file}`);
   }

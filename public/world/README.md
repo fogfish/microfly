@@ -70,3 +70,15 @@ calibration. The choices and grids are in `specs/008-hungry-forager-brain/calibr
 change: `brain.stepsPerTick` (5), `body.energy`, `food` (`consumeRate`, `regrowth`, `eatSpeed`, `feedThreshold`, `sated`),
 `stimulus.antennaOffset` and `thresholdJitter` (0). `brain.lif.tauSyn` (0) was on the regime grid and stays 0. The modulator gains in the snapshot are fixed by
 ADR 003 D5.
+
+## The class-seeded forager world: `world-forager-11k.json`
+
+The same map, body, food and stimulus as `world-forager.json`, with the class-seeded brain
+(`brains/forager-brain-11k.brain`, from `extract/configs/forager-brain-11k.json`, ADR 006). `flies.brain.version`
+is still `"v1"` — this brain runs under the unchanged `v1` stack; only the snapshot differs. Open it with
+`?world=world/world-forager-11k.json`. Its `brain.lif` block is this brain's own calibration result, found with
+the `microfly-calibrate` skill's `class-seed-11k` profile, not a copy of `world-forager.json`'s. Its
+`experiment.seeds`/`heldOut` split is the same as `world-forager.json`'s own (calibration 6–10, held-out
+101–130); nothing requires the two worlds' seed sets to differ. `world-forager-11k-bad.json` is a test fixture
+that names this brain's (version 4) snapshot under `v0`, so it must refuse to start — the same mechanism
+`world-forager-bad.json` already exercises for the shipped forager brain.

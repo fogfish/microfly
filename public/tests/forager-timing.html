@@ -15,11 +15,13 @@
 <body>
   <h1>Forager timing (ADR 003 Gate B)</h1>
   <p>
-    Six <code>v1</code> flies from <code>world/world-forager.json</code> run in their own workers for 60 seconds
-    of visible time. The page reports, per fly, the mean and 95th percentile of the interval between ticks, and the
-    <code>stepsPerTick</code> used. The brain runs in the worker, so the interval is the timing a visitor sees.
+    Six <code>v1</code> flies from a forager world (<code>world/world-forager.json</code> by default) run in
+    their own workers for 60 seconds of visible time. The page reports, per fly, the mean and 95th percentile of
+    the interval between ticks, and the <code>stepsPerTick</code> used. The brain runs in the worker, so the
+    interval is the timing a visitor sees.
   </p>
-  <p>Open this page from the static server root with <code>?seconds=60</code> (default 60).</p>
+  <p>Open this page from the static server root with <code>?seconds=60</code> (default 60) and
+    <code>?world=world/world-forager-11k.json</code> (default <code>world/world-forager.json</code>).</p>
   <pre id="out">starting…</pre>
   <script type="module">
     import { parseSnapshot } from '../js/brain/snapshot.js';
@@ -31,8 +33,9 @@
     import { resolveFlies } from '../js/fly/fly-config.js';
 
     const out = document.getElementById('out');
-    const seconds = Number(new URLSearchParams(location.search).get('seconds') ?? 60);
-    const worldUrl = new URL('../world/world-forager.json', import.meta.url);
+    const params = new URLSearchParams(location.search);
+    const seconds = Number(params.get('seconds') ?? 60);
+    const worldUrl = new URL(`../${params.get('world') ?? 'world/world-forager.json'}`, import.meta.url);
     const root = new URL('../', import.meta.url);
 
     const config = await (await fetch(worldUrl)).json();

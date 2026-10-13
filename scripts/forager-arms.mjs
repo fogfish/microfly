@@ -102,11 +102,17 @@ function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
 }
 
 // Runs every arm over the seeds. Returns { rows, arms } where rows is one entry per seed and arms the metrics per arm.
-export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms, seeds, ticks, capabilities }) {
+// snapshots is an optional { armName: snapshot } map for named v1-style arms beyond 'v1' itself (ADR 006 Gate C:
+// e.g. 'class-seed-11k', 'v1-selection-rules' — each its own container v4 snapshot, run with the unchanged v1
+// cohort logic below). 'v1' falls back to the primary `snapshot` when it is not in the map, so every existing
+// caller (which never passes `snapshots`) keeps running exactly as before.
+export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snapshots = {}, arms, seeds, ticks, capabilities }) {
   // The v0 arm runs the small snapshot (version 3) with the v0 runner, passed as v0Snapshot. It is not the forager one.
   if (arms.includes('v0') && (v0Snapshot === undefined || v0Snapshot.version !== 3)) {
     throw new Error('the v0 arm needs the small snapshot (version 3), brains/smallest-functional-brain.brain');
   }
+  const v1StyleArms = new Set(['v1', 'random-matched', ...Object.keys(snapshots)]);
+  const snapshotFor = (arm) => snapshots[arm] ?? snapshot;
   const ctx = {
     f,
     world,
@@ -136,10 +142,10 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, arms
         for (const state of spawnFlies(seeded, world, 'baseline')) bucket.flies.push(runBaselineFly(state, ctx));
         continue;
       }
-      if (arm === 'v1' || arm === 'random-matched') {
-        const brainConfig = arm === 'v1'
-          ? { ...f.brain, snapshot }
-          : { ...f.brain, snapshot: rewire(snapshot, seed + 1) };
+      if (v1StyleArms.has(arm)) {
+        const brainConfig = arm === 'random-matched'
+          ? { ...f.brain, snapshot: rewire(snapshot, seed + 1) }
+          : { ...f.brain, snapshot: snapshotFor(arm) };
         for (const [cohort, energy] of [['main', f.body.energy.initial], ['hungry', COHORT_ENERGY.hungry], ['sated', COHORT_ENERGY.sated]]) {
           const flies = runV1Cohort(seeded, energy, { ...brainConfig, version: 'v1' }, ctx);
           (bucket.cohorts[cohort] ??= []).push(...flies);

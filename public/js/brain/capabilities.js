@@ -125,6 +125,22 @@ const KIND_DRIVES = Object.freeze({ forager: FORAGER_DRIVES, tank: TANK_DRIVES }
 const INPUT_FIELDS_V4 = ['id', 'label', 'side', 'neurons', 'range'];
 const DECLARATION_FIELDS_V4 = [...INPUT_FIELDS_V4, 'drive'];
 
+// Derived capability signals (specs/012-class-seeded-forager-brain/contracts/panel-provenance-signals.md):
+// computed once from a snapshot's header/neurons, after container-v4-additions.md's optional fields are
+// parsed, and appended to the existing `signals` array (additive — unknown ids are kept, rule 18). A header
+// with none of minSynapses/selection/admission/fidelity, and no neuron with a non-null origin, derives nothing,
+// so `capabilities.signals` is exactly what it is today (mock, v0, the shipped v1 forager).
+export function withDerivedSignals(capabilities, header) {
+  const derived = [];
+  if (header.minSynapses !== undefined || header.selection !== undefined || header.admission !== undefined) {
+    derived.push('provenance');
+  }
+  if (header.fidelity !== undefined) derived.push('fidelity');
+  if (Array.isArray(header.neurons) && header.neurons.some((n) => n && n.origin != null)) derived.push('origin');
+  if (derived.length === 0) return capabilities;
+  return { ...capabilities, signals: [...capabilities.signals, ...derived] };
+}
+
 export function validateCapabilitiesV4(decl, neuronCount, kind, subject = 'snapshot') {
   const fail = (message) => [message];
 

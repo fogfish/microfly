@@ -1,5 +1,12 @@
 # Changelog
 
+# 2026-10-12
+
+/speckit-specify Extract the brain as defined by ADR 006-class-seeded-forager-brain.md This ADR defines a brain made of whole functional classes (all ORN, PN, LN, LHN, all KC, MBON, DAN, all DNs, motor neurons, GRN, JO). It is compatible with LIF v1 protocol and does not increase input / output sensorts. Keep existing LIF, brains available under the versions mock, v0 and v1, keep same mechanism to choose the configuration. Make sure the extractor is able to produce multiple brain formats and application is able to operate them. Integrate the visualization of new input / output and state channels into the side panel on UI.
+
+/speckit-plan Write an utility to parse malecns dataset, extract the brain as defined by ADR 006-class-seeded-forager-brain.md The brain development requires brain calibration skills `microfly-calibrate`. Extract only the skills from the branch `013-forager-brain-15k-lif-v2` and adopt it for the purpose of calibrating for newly extract brain.Preserve compatibility of the simulator with previous versions allowing user to choose between previous versions.
+
+
 # 2026-10-09
 
 Apply the dynamical-regime improvements: per-role noise (L7′ `noiseBulkScale`), inhibitory gain (L8 `inhibitoryScale`), regime gates as a calibration stage before world runs, `tauSyn` and `motorSmoothing` on the calibration grid. Keep the best candidate even if it never brakes; the next brain iteration adds brake neurons and changes the path selection.

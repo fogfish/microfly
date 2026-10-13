@@ -14,6 +14,30 @@ import { setText } from '../dom.js';
 // const BASE_COLOUR = [0.55, 0.8, 1];
 // const BASE_COLOUR = [0.3, 0.9, 1];
 const BASE_COLOUR = [0.1, 0.4, 1];
+// Seed-vs-fill colour channel (specs/012-class-seeded-forager-brain contracts/panel-provenance-signals.md),
+// independent of the spike-brightness envelope above: shown only when capabilities.signals has "origin".
+const SEED_COLOUR = [0.95, 0.65, 0.15];
+const FILL_COLOUR = [0.25, 0.85, 0.45];
+
+// One base colour per drawn point: the uniform BASE_COLOUR unless the model carries per-neuron origin data.
+function baseColoursFor(model) {
+  if (!model.neurons || !model.capabilities.signals.includes('origin')) return BASE_COLOUR;
+  const indices = model.drawn ?? Array.from({ length: model.neuronCount }, (_, i) => i);
+  const out = new Float32Array(indices.length * 3);
+  indices.forEach((neuronIndex, k) => {
+    const origin = model.neurons[neuronIndex]?.origin ?? null;
+    const colour = origin == null ? BASE_COLOUR : origin === 'fill' ? FILL_COLOUR : SEED_COLOUR;
+    out[3 * k] = colour[0]; out[3 * k + 1] = colour[1]; out[3 * k + 2] = colour[2];
+  });
+  return out;
+}
+
+function identityLine(neuron) {
+  if (!neuron) return '';
+  const parts = [`body ${neuron.bodyId}`, neuron.type, neuron.class].filter(Boolean);
+  if (neuron.transmitter) parts.push(`transmitter ${neuron.transmitter}`);
+  return parts.join(' · ');
+}
 
 
 export const neuronMapSection = {
@@ -30,10 +54,18 @@ export const neuronMapSection = {
     canvas.className = 'neuron-canvas';
     const counts = document.createElement('p');
     counts.className = 'neuron-counts';
-    body.replaceChildren(canvas, counts);
+    const hasOrigin = model.capabilities.signals.includes('origin');
+    const legend = document.createElement('ul');
+    legend.className = 'neuron-legend';
+    if (hasOrigin) {
+      legend.innerHTML = '<li class="seed">Seed</li><li class="fill">Fill</li>';
+    }
+    const identity = document.createElement('p');
+    identity.className = 'neuron-identity';
+    body.replaceChildren(canvas, counts, ...(hasOrigin ? [legend, identity] : []));
 
     const cloud = createPointCloud(canvas);
-    cloud.setPoints(model.positions, BASE_COLOUR);
+    cloud.setPoints(model.positions, baseColoursFor(model));
     const buffer = new Float32Array(model.neuronCount);
     // One brightness per drawn point. A snapshot brain draws a subset of the neurons (FR-030), so the
     // per-neuron brightness is picked through model.drawn; with no list, every neuron is a point.
@@ -44,6 +76,16 @@ export const neuronMapSection = {
       for (let k = 0; k < drawn.length; k++) pointBrightness[k] = all[drawn[k]];
       return pointBrightness;
     };
+    // Click-to-identify (panel-provenance-signals.md): a picked point's bodyId/type/class, plus transmitter
+    // when the brain carries per-neuron origin data. Independent of the spike-brightness/colour channels above.
+    const onClick = (event) => {
+      const picked = cloud.pick(event.clientX, event.clientY);
+      if (picked == null || !model.neurons) return;
+      const neuronIndex = drawn ? drawn[picked] : picked;
+      setText(identity, identityLine(model.neurons[neuronIndex]));
+    };
+    if (hasOrigin) canvas.addEventListener('click', onClick);
+
     let activity = model.activity;
     let loop = 0;
     // True when the canvas shows an old frame (just mounted, resized or shown again).
@@ -88,6 +130,7 @@ export const neuronMapSection = {
       update,
       dispose() {
         observer.disconnect();
+        if (hasOrigin) canvas.removeEventListener('click', onClick);
         cancelAnimationFrame(loop);
         loop = 0;
         cloud.dispose();

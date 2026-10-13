@@ -41,12 +41,17 @@ export function buildStatusModel(record, nowMs) {
       : null,
     neuronCount,
     capabilities: record.capabilities,
+    // Gated on the derived signal, not on whether the header happens to have the key (panel-provenance-signals.md).
+    provenance: record.capabilities.signals?.includes('provenance') ? record.provenance : undefined,
+    fidelity: record.capabilities.signals?.includes('fidelity') ? record.fidelity : undefined,
     activeCount: counts ? activeCount(counts) : 0,
     // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,
     leftOut: record.positions ? neuronCount - record.positions.length / 3 : 0,
     positions: record.positions ?? null,
     drawn: record.drawn ?? null,
+    // Per-neuron identity in the same (original) index order as positions/drawn; null for a toy/baseline brain.
+    neurons: record.neurons ?? null,
     activity: record.activity ?? null,
     brightness: record.activity ? record.activity.brightness(nowMs) : null,
     // A forager entry has one value per declared input; a v0 entry has the single sensory value for every row.

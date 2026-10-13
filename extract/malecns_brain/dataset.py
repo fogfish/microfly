@@ -81,10 +81,27 @@ def load_neurotransmitters(directory):
     return load_rows(dataset_path(directory, NEUROTRANSMITTERS), NEUROTRANSMITTER_COLUMNS)
 
 
-def stream_edges(directory, admitted_ids):
-    """Traced-only edges whose both ends are admitted, as (pre, post, synapses) int64 arrays.
+def load_neurotransmitter_table(directory, column):
+    """Body plus a configured transmitter column (ADR 006 D10's transmitterColumn).
 
-    Each batch is read column by column and filtered before the next one is read.
+    Raises E-TRANSMITTER-COLUMN, not E-DATASET-MISSING, when the column does not exist: the column name is
+    config, not a fixed extractor requirement (contracts/extract-config-classseed.md).
+    """
+    path = dataset_path(directory, NEUROTRANSMITTERS)
+    reader = _open(path)
+    if column not in set(reader.schema.names):
+        raise ExtractError("E-TRANSMITTER-COLUMN", f'"{column}" is not a column of the neurotransmitter table')
+    table = reader.read_all().select(["body", column])
+    return table.to_pylist()
+
+
+def stream_edges(directory, admitted_ids, min_synapses=1):
+    """Traced-only edges whose both ends are admitted and whose synapse count is at least min_synapses, as
+    (pre, post, synapses) int64 arrays.
+
+    Each batch is read column by column and filtered before the next one is read. The threshold is applied here,
+    not only by selection_class_seed.apply_threshold, so a classSeed extraction (which admits nearly every traced
+    body) never materialises the full ~25M-row traced edge table in memory (ADR 006 D11, constitution IV).
     """
     path = dataset_path(directory, EDGES)
     reader = _open(path)
@@ -96,7 +113,7 @@ def stream_edges(directory, admitted_ids):
         pre = batch.column("body_pre").to_numpy(zero_copy_only=False).astype(np.int64)
         post = batch.column("body_post").to_numpy(zero_copy_only=False).astype(np.int64)
         syn = np.rint(batch.column("weight").to_numpy(zero_copy_only=False)).astype(np.int64)
-        keep = np.isin(pre, ids) & np.isin(post, ids)
+        keep = np.isin(pre, ids) & np.isin(post, ids) & (syn >= min_synapses)
         pre_parts.append(pre[keep])
         post_parts.append(post[keep])
         syn_parts.append(syn[keep])
