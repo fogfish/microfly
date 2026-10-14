@@ -120,10 +120,14 @@ export function validateCapabilities(decl, neuronCount, subject = 'snapshot') {
 // neurons (a pool) in place of one neuron. kind is the header kind: "forager" carries the five forager drives.
 // Returns [] when valid, or [message] with the first error. extract/malecns_brain/capabilities.py applies the same rules.
 export const FORAGER_DRIVES = Object.freeze(['turnLeft', 'turnRight', 'forward', 'backward', 'feed']);
+// kind "forager-wide" (ADR 007 D17/W11, channel-declaration-v5.md R10): the five forager drives plus escape.
+export const FORAGER_WIDE_DRIVES = Object.freeze(['turnLeft', 'turnRight', 'forward', 'backward', 'feed', 'escape']);
 const TANK_DRIVES = Object.freeze(['left', 'right']);
-const KIND_DRIVES = Object.freeze({ forager: FORAGER_DRIVES, tank: TANK_DRIVES });
+const KIND_DRIVES = Object.freeze({ forager: FORAGER_DRIVES, tank: TANK_DRIVES, 'forager-wide': FORAGER_WIDE_DRIVES });
 const INPUT_FIELDS_V4 = ['id', 'label', 'side', 'neurons', 'range'];
 const DECLARATION_FIELDS_V4 = [...INPUT_FIELDS_V4, 'drive'];
+const INPUT_FIELDS_V5 = [...INPUT_FIELDS_V4, 'sense', 'site'];
+// Outputs are unchanged in shape (channel-declaration-v5.md): only inputs gain sense/site.
 
 // Derived capability signals (specs/012-class-seeded-forager-brain/contracts/panel-provenance-signals.md):
 // computed once from a snapshot's header/neurons, after container-v4-additions.md's optional fields are
@@ -213,6 +217,96 @@ export function validateCapabilitiesV4(decl, neuronCount, kind, subject = 'snaps
   // R8: no fields beyond the declaration (inputs take no drive).
   for (const { ch, kind: role } of everything) {
     const allowed = role === 'input' ? INPUT_FIELDS_V4 : DECLARATION_FIELDS_V4;
+    for (const key of Object.keys(ch)) {
+      if (!allowed.includes(key)) return fail(`${subject} channel ${ch.id} has unknown field ${key}`);
+    }
+  }
+
+  return [];
+}
+
+// Channel declaration, version 5 (contracts/channel-declaration-v5.md): applies only when the container header's
+// kind is "forager-wide". R1-R6 and R8 of v4 stay exactly as they are (a kind: "forager" declaration is still
+// checked by validateCapabilitiesV4, untouched); this adds R9 (sense/site), R10 (the six forager-wide drives,
+// generalising R7) and R11 (allowed fields, generalising R8). extract/malecns_brain/capabilities.py mirrors this.
+export function validateCapabilitiesV5(decl, neuronCount, subject = 'snapshot') {
+  const fail = (message) => [message];
+
+  // R1: present and an object.
+  if (!isObject(decl)) return fail(`${subject} capabilities are missing`);
+
+  // R2: signals are a list of unique strings; inputs and outputs are lists.
+  const { signals, channels } = decl;
+  if (!Array.isArray(signals) || !signals.every((s) => typeof s === 'string') || new Set(signals).size !== signals.length) {
+    return fail(`${subject} signals are malformed`);
+  }
+  if (!isObject(channels) || !Array.isArray(channels.inputs) || !Array.isArray(channels.outputs)) {
+    return fail(`${subject} channels are malformed`);
+  }
+  const inputs = channels.inputs;
+  const outputs = channels.outputs;
+  const everything = [...inputs.map((ch) => ({ ch, kind: 'input' })), ...outputs.map((ch) => ({ ch, kind: 'output' }))];
+
+  // R3: ids match the pattern and are unique across inputs and outputs.
+  const seen = new Set();
+  for (const { ch } of everything) {
+    const id = nameOf(ch);
+    if (typeof id !== 'string' || !ID_PATTERN.test(id)) return fail(`${subject} channel ${id} has a malformed id`);
+    if (seen.has(id)) return fail(`duplicate id ${id}`);
+    seen.add(id);
+  }
+
+  // R4: label, side, neurons (non-empty, distinct integers) and range.
+  for (const { ch } of everything) {
+    const { id, label, side, neurons } = ch;
+    if (!(typeof label === 'string' && [...label].length > 0 && [...label].length <= LABEL_MAX)) {
+      return fail(`${subject} channel ${id} is malformed: label`);
+    }
+    if (!SIDES.includes(side)) return fail(`${subject} channel ${id} is malformed: side`);
+    const listed = Array.isArray(neurons) && neurons.length > 0 && neurons.every(isInt);
+    if (!listed || new Set(neurons).size !== neurons.length) {
+      return fail(`${subject} channel ${id} is malformed: neurons`);
+    }
+    const range = 'range' in ch ? ch.range : DEFAULT_RANGE;
+    if (!(Array.isArray(range) && range.length === 2 && range.every(isFiniteNumber) && range[0] < range[1])) {
+      return fail(`${subject} channel ${id} is malformed: range`);
+    }
+  }
+
+  // R5: every neuron index is at least 0 and below neuronCount.
+  for (const { ch } of everything) {
+    for (const n of ch.neurons) {
+      if (!(n >= 0 && n < neuronCount)) {
+        return fail(`${subject} channel ${ch.id} references neuron ${n} outside neuronCount`);
+      }
+    }
+  }
+
+  // R6: no two input channels share a neuron.
+  const owner = new Map();
+  for (const ch of inputs) {
+    for (const n of ch.neurons) {
+      if (owner.has(n)) return fail(`${subject} input channels ${owner.get(n)} and ${ch.id} share neuron ${n}`);
+      owner.set(n, ch.id);
+    }
+  }
+
+  // R9: every input channel carries a non-empty sense and site.
+  for (const ch of inputs) {
+    if (!(typeof ch.sense === 'string' && ch.sense.length > 0)) return fail(`${subject} channel ${ch.id} is malformed: sense`);
+    if (!(typeof ch.site === 'string' && ch.site.length > 0)) return fail(`${subject} channel ${ch.id} is malformed: site`);
+  }
+
+  // R10: the outputs carry exactly the six forager-wide drives, each once.
+  const wanted = KIND_DRIVES['forager-wide'];
+  const drives = outputs.map((ch) => ch.drive);
+  if (drives.length !== wanted.length || !wanted.every((d) => drives.includes(d))) {
+    return fail(`${subject} outputs must have exactly one of each forager-wide drive`);
+  }
+
+  // R11: no fields beyond the declaration (inputs take sense and site; outputs are unchanged from v4).
+  for (const { ch, kind: role } of everything) {
+    const allowed = role === 'input' ? INPUT_FIELDS_V5 : DECLARATION_FIELDS_V4;
     for (const key of Object.keys(ch)) {
       if (!allowed.includes(key)) return fail(`${subject} channel ${ch.id} has unknown field ${key}`);
     }

@@ -3,7 +3,7 @@
 // worker and applies the motor reply; the experiment calls stepForagerFly with a synchronous brain.
 
 import * as P3 from '../brain/protocol-v3.js';
-import { stepForagerBody } from './body.js';
+import { applyEscape, stepForagerBody } from './body.js';
 import { senseBilateral } from './stimulus.js';
 import { canEat, closeBout, eat, hunger as hungerOf, metabolise, startBout, updateBout } from './energy.js';
 
@@ -34,6 +34,9 @@ export function initForagerFly(fly, initialEnergy) {
   fly.bout = null;
   fly.bouts = [];
   fly.eating = false;
+  // Escape cooldown (ADR 007 W10): irrelevant and untouched for any brain whose declaration has no escape
+  // output (v1, 11K); applyEscape is a no-op for them (body.js) regardless of this field's value.
+  fly.body.escapeCooldown = 0;
   return fly;
 }
 
@@ -66,6 +69,8 @@ export function applyForagerMotor(fly, motor, env) {
   const cx = Math.floor(fly.body.x);
   const cy = Math.floor(fly.body.y);
   stepForagerBody(fly.body, drives, env);
+  // Escape physics (ADR 007 W10): a no-op for every v1/11K call site (env.escape is undefined there).
+  applyEscape(fly.body, drives, env);
 
   const cell = flowers.cellOf(cx, cy);
   const stock = flowers.stockAt(cx, cy);

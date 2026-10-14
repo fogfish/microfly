@@ -18,6 +18,10 @@
     {
       "file": "forager-brain-11k.brain",
       "label": "Class-seeded forager brain (ADR 006, 11K)"
+    },
+    {
+      "file": "forager-brain-wide.brain",
+      "label": "Wide-I/O forager brain (ADR 007, v2)"
     }
   ]
 }

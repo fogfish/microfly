@@ -19,7 +19,9 @@ export const profile = {
   id: string,                 // CLI --version=<id> selector; NOT the same axis as container/protocol "version"
   label: string,               // human-readable, shown in reports
   worldPath: string,            // relative to public/, the world config this profile calibrates
-  brainVersion: 'v0' | 'v1',    // flies.brain.version this profile's world/snapshot pair declares (FR-001 values only)
+  brainVersion: 'v0' | 'v1' | 'v2', // flies.brain.version this profile's world/snapshot pair declares (FR-001 values only)
+  armName?: string,              // scripts/forager-arms.mjs's stage=world dispatch key (default: brainVersion --
+                                  // only needed when brainVersion is not itself a recognised arm name, e.g. "v2")
 
   prepareContext(ctx): void,              // per-run bookkeeping stashed on ctx (world, snapshot, capabilities already loaded)
   regionNames: string[],                   // gate-able regions; ["all"] for a brain with no per-neuron group

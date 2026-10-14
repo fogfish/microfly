@@ -66,3 +66,55 @@ export function walkedShare(bouts) {
 export function hungerDependence(hungryFlies, satedFlies) {
   return findRate(hungryFlies).rate - findRate(satedFlies).rate;
 }
+
+// Gate C additions, wide-I/O brain (ADR 007 Acceptance; contracts/experiment-metrics-wide.md).
+
+// Metric 6. Brake: median raw forward drive with the mouth site on a flower, divided by the median raw forward
+// drive off any flower, for hungry-start flies. records: [{ forward, onFlower }], one per tick.
+// Null when either side has no samples, or the off-flower median is too close to 0 for the ratio to mean
+// anything (a near-zero denominator blows the ratio up to a number with no interpretable magnitude, which is
+// noise, not a finding, to report alongside the metrics that do have one).
+const BRAKE_DENOMINATOR_FLOOR = 1e-6;
+export function brakeMedian(records) {
+  const on = median(records.filter((r) => r.onFlower).map((r) => r.forward));
+  const off = median(records.filter((r) => !r.onFlower).map((r) => r.forward));
+  return (on === null || off === null || Math.abs(off) < BRAKE_DENOMINATOR_FLOOR) ? null : on / off;
+}
+
+// Metric 7. Stay: median ticks per closed bout (fly.bouts, unchanged closeBout shape).
+export function stayMedian(bouts) {
+  return median(bouts.map((b) => b.ticks));
+}
+
+// Metric 8. Avoid: the fraction of ticks a fly spends within `radius` tiles of a hazard.
+// records: [{ distance }], one per tick (distance to the nearest hazard of one kind).
+export function avoidFraction(records, radius) {
+  if (records.length === 0) return 0;
+  return records.filter((r) => r.distance <= radius).length / records.length;
+}
+
+// Metric 9. Touch: mean turnLeft − turnRight over the `window` ticks following a one-sided touch event (a tick
+// whose touchLeft or touchRight input exceeds 0, but not both). records: [{ touchLeft, touchRight, turnLeft,
+// turnRight }], one per tick, in order. Null when no touch event occurred (nothing to average).
+export function touchTurn(records, window = 10) {
+  const deltas = [];
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i];
+    const oneSided = (r.touchLeft > 0) !== (r.touchRight > 0);
+    if (!oneSided) continue;
+    for (let k = i + 1; k <= Math.min(i + window, records.length - 1); k++) {
+      deltas.push(records[k].turnLeft - records[k].turnRight);
+    }
+  }
+  return deltas.length ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;
+}
+
+// Metric 10 (telemetry only, never gated — ADR 007 D17). Escape: mean escape output drive while within the
+// danger radius versus outside it. records: [{ escape, inDanger }], one per tick.
+export function escapeMean(records) {
+  const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  return {
+    inside: mean(records.filter((r) => r.inDanger).map((r) => r.escape)),
+    outside: mean(records.filter((r) => !r.inDanger).map((r) => r.escape)),
+  };
+}

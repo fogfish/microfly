@@ -6,7 +6,11 @@ E-OUTPUT-UNREACHED, E-NODE-RANGE, E-MODULATOR. ADR 002 codes are unchanged.
 Class-seed codes (ADR 006 D14, contracts/extract-config-classseed.md): E-SEED-EMPTY (a seed filter matches no
 traced body), E-SEED-OVERFLOW (seeds, pools included, exceed fill.neuronCount), E-TRANSMITTER-COLUMN
 (transmitterColumn is not a column of the neurotransmitter table), E-FIDELITY (fidelity.require is true and the
-steering or feeding check fails; names the check and both compared values).
+steering or feeding check fails, or, for format 5, any declared fidelity.checks entry fails; names the check and
+both compared values).
+
+Wide-I/O codes (ADR 007 D19/D20, contracts/extract-config-forager-wide.md): E-PAIR (a side-matched or
+probe-checked `pair` does not resolve to exactly one left and one right channel id).
 """
 
 

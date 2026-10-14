@@ -3,7 +3,7 @@
 // specs/008-hungry-forager-brain/contracts/container-v4.md (the forager brain). Both share the section code.
 // The rules and messages match extract/malecns_brain/container.py.
 
-import { validateCapabilities, validateCapabilitiesV4 } from './capabilities.js';
+import { validateCapabilities, validateCapabilitiesV4, validateCapabilitiesV5 } from './capabilities.js';
 
 const MAGIC = 'MFBR';
 const FORMAT_VERSIONS = [3, 4];
@@ -38,12 +38,23 @@ export function sectionTable(headerLength, neuronCount, edgeCount) {
   return { table, end: cursor };
 }
 
-// The brain version a world asks for must match the container version of its snapshot (spec FR-003).
-// v0 reads version 3, v1 reads version 4. mock has no snapshot, so it is not checked.
-export function checkBrainVersion(brainVersion, containerVersion, path = 'snapshot') {
-  const expected = { v0: 3, v1: 4 }[brainVersion];
-  if (expected === undefined || expected === containerVersion) return;
-  reject(`flies.brain.version "${brainVersion}" needs a version ${expected} snapshot; ${path} is version ${containerVersion}`);
+// The brain version a world asks for must match the container version of its snapshot (spec FR-003), and, for
+// v1/v2, the snapshot's declared kind (channel-declaration-v5.md "Brain-version / kind cross-check"). v0 reads
+// version 3, with no kind to check; v1 reads version 4, kind "forager"; v2 reads version 4, kind "forager-wide".
+// mock has no snapshot, so it is not checked.
+const EXPECTED_CONTAINER_VERSION = { v0: 3, v1: 4, v2: 4 };
+const EXPECTED_KIND = { v1: 'forager', v2: 'forager-wide' };
+
+export function checkBrainVersion(brainVersion, containerVersion, kind, path = 'snapshot') {
+  const expected = EXPECTED_CONTAINER_VERSION[brainVersion];
+  if (expected === undefined) return;
+  if (expected !== containerVersion) {
+    reject(`flies.brain.version "${brainVersion}" needs a version ${expected} snapshot; ${path} is version ${containerVersion}`);
+  }
+  const expectedKind = EXPECTED_KIND[brainVersion];
+  if (expectedKind !== undefined && kind !== expectedKind) {
+    reject(`flies.brain.version "${brainVersion}" needs a "${expectedKind}" snapshot; ${path} is kind "${kind}"`);
+  }
 }
 
 function checkRoles(neurons, neuronCount) {
@@ -78,17 +89,20 @@ function checkPositions(neurons) {
   });
 }
 
-// Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report.
+// Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report. A format-4 report carries
+// table, steering and feeding (ADR 006 D13, unchanged); a format-5 report (ADR 007 D19) carries table and
+// checks instead.
 function checkFidelity(manifest) {
   if (!('fidelity' in manifest)) return;
   const fidelity = manifest.fidelity;
-  const ok = fidelity && typeof fidelity === 'object'
-    && 'table' in fidelity && 'steering' in fidelity && 'feeding' in fidelity;
-  if (!ok) reject('snapshot fidelity report is malformed');
+  const hasTable = fidelity && typeof fidelity === 'object' && 'table' in fidelity;
+  const legacy = hasTable && 'steering' in fidelity && 'feeding' in fidelity;
+  const wide = hasTable && 'checks' in fidelity;
+  if (!(legacy || wide)) reject('snapshot fidelity report is malformed');
 }
 
-// Version 4 neuron rules N1, N2 and N4 (container-v4.md). The roles follow the declaration: input pool neurons
-// first (in channel order), then output pool neurons, then interneurons.
+// Version 4 neuron rules N1, N2 and N4 (container-v4.md), shared by kind "forager" and "forager-wide". The roles
+// follow the declaration: input pool neurons first (in channel order), then output pool neurons, then interneurons.
 function checkForagerNeurons(neurons, capabilities, neuronCount) {
   const inputs = capabilities.channels.inputs;
   const outputs = capabilities.channels.outputs;
@@ -140,9 +154,8 @@ function checkModulators(modulators, inputIds) {
   }
 }
 
-// Version 4 header rules: kind, weight rule, synapse cap, roles, the forager declaration and modulators.
+// Version 4 header rules: weight rule, synapse cap, roles, the forager declaration and modulators.
 function checkForager(manifest, neuronCount) {
-  if (manifest.kind !== 'forager') reject(`snapshot kind "${manifest.kind}" is not supported`);
   if (!['postFraction', 'postFractionAbsolute'].includes(manifest.weightRule)) {
     reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
   }
@@ -155,6 +168,31 @@ function checkForager(manifest, neuronCount) {
   const inputIds = new Set(manifest.capabilities.channels.inputs.map((ch) => ch.id));
   checkModulators(manifest.modulators, inputIds);
   checkFidelity(manifest);
+}
+
+// Kind "forager-wide" header rules (ADR 007 D20, channel-declaration-v5.md): the v5 declaration in place of v4's;
+// weight rule, synapse cap, roles, signs and modulators are otherwise identical to checkForager.
+function checkForagerWide(manifest, neuronCount) {
+  if (!['postFraction', 'postFractionAbsolute'].includes(manifest.weightRule)) {
+    reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
+  }
+  if (!(Number.isInteger(manifest.synapseCap) && manifest.synapseCap >= 1 && manifest.synapseCap <= 65535)) {
+    reject('snapshot synapseCap must be an integer from 1 to 65535');
+  }
+  const [capabilityError] = validateCapabilitiesV5(manifest.capabilities, neuronCount);
+  if (capabilityError) reject(capabilityError);
+  checkForagerNeurons(manifest.neurons, manifest.capabilities, neuronCount);
+  const inputIds = new Set(manifest.capabilities.channels.inputs.map((ch) => ch.id));
+  checkModulators(manifest.modulators, inputIds);
+  checkFidelity(manifest);
+}
+
+// Dispatch on header.kind: "forager" keeps the v4 rules, "forager-wide" (ADR 007) applies v5 instead. Any other
+// kind is rejected.
+function checkForagerHeader(manifest, neuronCount) {
+  if (manifest.kind === 'forager') return checkForager(manifest, neuronCount);
+  if (manifest.kind === 'forager-wide') return checkForagerWide(manifest, neuronCount);
+  reject(`snapshot kind "${manifest.kind}" is not supported`);
 }
 
 export function parseSnapshot(arrayBuffer) {
@@ -196,7 +234,7 @@ export function parseSnapshot(arrayBuffer) {
     const [capabilityError] = validateCapabilities(manifest.capabilities, neuronCount);
     if (capabilityError) reject(capabilityError);
   } else {
-    checkForager(manifest, neuronCount);
+    checkForagerHeader(manifest, neuronCount);
   }
 
   const { table, end } = sectionTable(headerLength, neuronCount, edgeCount);

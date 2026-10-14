@@ -55,3 +55,37 @@ export function senseBilateral(points, fly, stimulus) {
   };
   return { left: sample(left), right: sample(right) };
 }
+
+// The world position of a declared body site (ADR 007 W8/W9, contracts/world-config-wide-io.md): rotate
+// (forward, lateral) by the fly's heading and add it to the body centre. lateral is mirrored per the channel's
+// declared side (R negates it); a "both" channel reads lateral 0, generalising antennaPoints (forward 0).
+// The same (sin θ, −cos θ) "left" convention as antennaPoints fixes the sign.
+export function sitePoint(fly, site, side) {
+  const sin = Math.sin(fly.heading);
+  const cos = Math.cos(fly.heading);
+  const lateral = side === 'R' ? -site.lateral : side === 'both' ? 0 : site.lateral;
+  return {
+    x: fly.x + site.forward * cos + lateral * sin,
+    y: fly.y + site.forward * sin - lateral * cos,
+  };
+}
+
+// A distance sense at a world point (ADR 007 W8): Σ falloff(d, point.reach ?? radius) × (point.fraction ?? 1),
+// clamped to [0, 1] (every declared forager-wide channel's own range).
+export function senseDistance(at, points, radius) {
+  let sum = 0;
+  for (const p of points) {
+    sum += falloff(Math.hypot(p.x - at.x, p.y - at.y), p.reach ?? radius) * (p.fraction ?? 1);
+  }
+  return Math.min(1, sum);
+}
+
+// The generic declared-sense sampler (ADR 007 W8, research.md R8): builds the one raw value for an input
+// channel from its declared sense's spec (world flies.stimuli[sense]) and a sampler built for that sense by the
+// caller (forager-step-wide.js), which already knows whether the sense reads world object points (edibles/
+// dangers) or world walkability directly (contact, from: "blocked"). `at` is the channel's site point
+// (sitePoint), already resolved for the channel's side.
+export function senseDeclared(spec, at, sampler) {
+  if (spec.contact) return sampler.contactAt(Math.floor(at.x), Math.floor(at.y));
+  return senseDistance(at, sampler.points(), spec.radius);
+}

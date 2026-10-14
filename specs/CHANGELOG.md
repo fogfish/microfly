@@ -1,5 +1,14 @@
 # Changelog
 
+# 2026-10-13
+
+/speckit-specify Build new brain version 2 that uses the 11K brain (ADR 006) fixed the topology but request interface is 12 inputs (food odour, danger odour, heat, mouth taste, leg taste and touch, each L/R) and 6
+outputs (turn L/R, forward, backward, feed, escape). Three of the six senses are not in the 11K brain. Danger ORNs, heat receptors and front-leg touch neurons are sensory classes. ADR 006 excludes them from fill, and they are not pools, so the shipped snapshot has none of them (Annex A1, A3). This feature needs a re-extraction. The topology rule does not change, and 10,410 of 11,000 neurons stay the same. The ADR 007-wide-io-forager-brain.md defines the required brain version 2architecture. Preserve the application compatibility with existing brains and configurations. Integrate the visualization of new input / output and state channels into the side panel on UI.
+
+
+/speckit-plan Implement the new brain version 2 as defined by the ADR 007-wide-io-forager-brain.md . Preserve compatibility of the simulator with previous versions allowing user to choose between previous versions. Integrate new sensors with UI.
+
+
 # 2026-10-12
 
 /speckit-specify Extract the brain as defined by ADR 006-class-seeded-forager-brain.md This ADR defines a brain made of whole functional classes (all ORN, PN, LN, LHN, all KC, MBON, DAN, all DNs, motor neurons, GRN, JO). It is compatible with LIF v1 protocol and does not increase input / output sensorts. Keep existing LIF, brains available under the versions mock, v0 and v1, keep same mechanism to choose the configuration. Make sure the extractor is able to produce multiple brain formats and application is able to operate them. Integrate the visualization of new input / output and state channels into the side panel on UI.

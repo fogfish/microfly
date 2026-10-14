@@ -20,7 +20,7 @@ export function createFlyBrain(brainConfig, seed) {
   if (snap === undefined || typeof snap === 'string') {
     throw new Error('the v1 brain needs a parsed version 4 snapshot');
   }
-  checkBrainVersion('v1', snap.version, 'snapshot');
+  checkBrainVersion(brainConfig.version ?? 'v1', snap.version, snap.kind, 'snapshot');
 
   const { neuronCount, offsets, targets, weights, capabilities } = snap;
   const net = createNetwork(

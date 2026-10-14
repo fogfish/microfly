@@ -9,10 +9,14 @@ export const FOOD_DEFAULTS = Object.freeze({
   eatSpeed: 0.5, feedThreshold: 0.5, stock: 1.0, consumeRate: 0.2, regrowth: 0.02, sated: 0.9,
 });
 export const ANTENNA_OFFSET_DEFAULT = 0.5;
+// flies.body.escape defaults (contracts/world-config-wide-io.md, ADR 007 W10): off by default.
+export const ESCAPE_DEFAULTS = Object.freeze({ enabled: false, threshold: 0.5, distance: 1.5, cooldown: 2 });
 
 export function resolveFlies(config) {
   const f = config.flies;
   const mode = f.mode ?? 'toy';
+  const brain = resolveBrain(mode, f.brain);
+  const isWide = brain?.version === 'v2';
   return {
     seed: f.seed ?? config.seed,
     count: f.count ?? 6,
@@ -27,10 +31,16 @@ export function resolveFlies(config) {
       maxSpeed: f.body.maxSpeed,
       turnRate: f.body.turnRate,
       energy: { ...ENERGY_DEFAULTS, ...f.body.energy },
+      // flies.body.sites/escape (v2 only; contracts/world-config-wide-io.md): inert for every other version,
+      // since forager-step.js's escape step and forager-step-wide.js's sampler both read them only when set.
+      ...(isWide ? { sites: f.body.sites ?? {}, escape: { ...ESCAPE_DEFAULTS, ...f.body.escape } } : {}),
     },
     food: { ...FOOD_DEFAULTS, ...f.food },
     stimulus: { resting: 0, antennaOffset: ANTENNA_OFFSET_DEFAULT, ...f.stimulus },
-    brain: resolveBrain(mode, f.brain),
+    // flies.stimuli (v2 only; contracts/world-config-wide-io.md): the declared sense sources, generic over the
+    // snapshot's channel count. Absent (every pre-v2 world) stays undefined, so forageEnv's v1 path is unaffected.
+    ...(isWide ? { stimuli: f.stimuli ?? {} } : {}),
+    brain,
     experiment: {
       seeds: f.experiment?.seeds ?? [f.seed ?? config.seed],
       ticks: f.experiment?.ticks ?? 3000,

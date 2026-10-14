@@ -4,6 +4,10 @@
 messages. **Amends**: [channel-declaration.md](../../006-fly-status-panel/contracts/channel-declaration.md) for v4 brains.
 The v3 rules (rules 11–18) stay for version 3 files and the toy declaration.
 
+**Amended by**: [channel-declaration-v5.md](../../013-wide-io-forager-brain/contracts/channel-declaration-v5.md)
+(ADR 007) adds a sibling variant for container header `kind: "forager-wide"` only (inputs carry `sense`/`site`,
+outputs carry six drives instead of five). `kind: "forager"` snapshots (this contract) are unaffected.
+
 ## Shape
 
 ```jsonc

@@ -71,10 +71,12 @@ const seedsArg = process.argv.find((a) => a.startsWith('--seeds='))?.slice('--se
 const jsonArg = process.argv.find((a) => a.startsWith('--json='))?.slice('--json='.length);
 const ticksArg = process.argv.find((a) => a.startsWith('--ticks='))?.slice('--ticks='.length);
 const forageTicks = ticksArg !== undefined ? Number(ticksArg) : f.experiment.ticks;
-if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
+const isWideWorld = f.brain?.version === 'v2' || brainsArg?.split(',').includes('wide');
+if (f.brain?.version === 'v1' || f.brain?.version === 'v2' || brainsArg?.split(',').some((a) => ['v1', 'wide'].includes(a))) {
   const { runForagerArms, armMetrics, printForagerTable, verdicts } = await import('./forager-arms.mjs');
   const { createHash } = await import('node:crypto');
-  const arms = (brainsArg ?? 'mock,v1,random-matched,baseline').split(',');
+  const defaultArms = isWideWorld ? 'wide,v1-11k,random-matched-wide,baseline' : 'mock,v1,random-matched,baseline';
+  const arms = (brainsArg ?? defaultArms).split(',');
   if (seedsArg !== undefined && seedsArg !== 'held-out') {
     console.error(`--seeds must be "held-out" or omitted, got "${seedsArg}"`);
     process.exit(1);
@@ -102,6 +104,8 @@ if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
     v1: 'brains/forager-brain.brain',
     'class-seed-11k': 'brains/forager-brain-11k.brain',
     'v1-selection-rules': 'brains/forager-brain-v1-rules.brain',
+    // ADR 007 Acceptance, Gate C: the shipped 11K brain (kind "forager") as the wide-I/O comparison's null arm 2.
+    'v1-11k': 'brains/forager-brain-11k.brain',
   };
   const snapshots = {};
   for (const arm of arms) {
@@ -115,7 +119,9 @@ if (f.brain?.version === 'v1' || brainsArg?.split(',').includes('v1')) {
     f, world, expConfig, snapshot, v0Snapshot, snapshots, arms, seeds, ticks: forageTicks,
     capabilities: snapshot.capabilities,
   });
-  const metrics = armMetrics(arms, result, f.stimulus.radius, 1);
+  // v2 worlds have no singular flies.stimulus; the approach metric's distance threshold is odour:food's radius.
+  const approachRadius = f.stimuli?.['odour:food']?.radius ?? f.stimulus?.radius;
+  const metrics = armMetrics(arms, result, approachRadius, 1);
   console.log(`world ${worldArg}, seeds ${seedsArg === 'held-out' ? 'held-out' : 'calibration'} (${seeds.length}), ` +
     `${f.count} flies per cohort, ${forageTicks} ticks per fly`);
   console.log('');

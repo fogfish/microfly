@@ -37,6 +37,26 @@ export function stepBody(body, motor, env) {
   return body;
 }
 
+// Escape physics (ADR 007 W10, D17): off by default. env.escape is undefined for every v1/11K call site (no-op).
+// When env.escape.enabled is true, drives.escape exceeds env.escape.threshold and the fly's cooldown has elapsed,
+// the body moves env.escape.distance tiles along its heading in one tick, blocked at the first non-walkable cell
+// (pick), exactly like any other move. Otherwise a no-op. Mutates and returns body.
+export function applyEscape(body, drives, env) {
+  if (!env.escape) return body;
+  body.escapeCooldown = Math.max(0, (body.escapeCooldown ?? 0) - env.dt);
+  if (!env.escape.enabled) return body;
+  if ((drives.escape ?? 0) <= env.escape.threshold) return body;
+  if (body.escapeCooldown > 0) return body;
+
+  const dx = Math.cos(body.heading) * env.escape.distance;
+  const dy = Math.sin(body.heading) * env.escape.distance;
+  const next = pick(body.x, body.y, dx, dy, env);
+  body.x = next.x;
+  body.y = next.y;
+  body.escapeCooldown = env.escape.cooldown;
+  return body;
+}
+
 // Returns the first candidate position that is free: full, then x only, then y only, else stay.
 function pick(x, y, dx, dy, env) {
   if (free(x + dx, y + dy, env)) return { x: x + dx, y: y + dy };

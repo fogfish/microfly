@@ -3,6 +3,11 @@
 **Owner**: `scripts/compare-baseline.mjs` (the experiment, extended) and `public/js/fly/metrics.js` (pure metric functions,
 Node-testable). **Amends**: the ADR 001 Stage 2 metric and ADR 002 R9 arms.
 
+**Amended by**: [experiment-metrics-wide.md](../../013-wide-io-forager-brain/contracts/experiment-metrics-wide.md)
+(ADR 007) adds the `wide`/`random-matched-wide` arms and five metrics (brake, stay, avoid, touch, and escape as
+telemetry only) for the wide-I/O brain, run through `scripts/forager-arms.mjs`. The five metrics here are
+unchanged and still computed for every arm, wide-I/O included.
+
 ## Command
 
 ```text

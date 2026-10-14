@@ -35,7 +35,9 @@ def _match_sides(inputs, config, bodies, ids):
         _fail("E-CONFIG", "a side-matched input class needs exactly one left and one right channel")
     l_id, r_id = left[0], right[0]
     kept_l, kept_r = [], []
-    for t in sorted({bodies[b]["type"] for b in inputs[l_id] + inputs[r_id]}):
+    # A None type (ADR 007 Q6: some front-leg tactile bodies are untyped) sorts deterministically alongside
+    # real type strings instead of raising on a None/str comparison.
+    for t in sorted({bodies[b]["type"] for b in inputs[l_id] + inputs[r_id]}, key=lambda t: (t is None, t)):
         ls = [b for b in inputs[l_id] if bodies[b]["type"] == t]
         rs = [b for b in inputs[r_id] if bodies[b]["type"] == t]
         k = min(len(ls), len(rs))
@@ -46,8 +48,12 @@ def _match_sides(inputs, config, bodies, ids):
 
 
 def resolve_pools(config, bodies):
-    """Like selection_forager.resolve_pools (ADR 003 D1), without a `pathways` key: channels are grouped for
-    side matching by their declared `class` (CLASS_TO_PATHWAY), not by a pathway lookup."""
+    """Like selection_forager.resolve_pools (ADR 003 D1). Format 4 (no `pair` key on any input) groups channels
+    for side matching by their declared `class` (CLASS_TO_PATHWAY), unchanged. Format 5 (ADR 007 D15) groups by
+    the declared `pair` instead, and additionally requires every such group to resolve to exactly one left and
+    one right channel id (E-PAIR) — not only when `sideMatch` is true, since the fidelity probe's `sign` check
+    (ADR 007 D19) also needs each pair's two sides to compute the merged pool.
+    """
     inputs = {}
     for cid in _input_order(config):
         spec = config["inputs"][cid]
@@ -55,24 +61,31 @@ def resolve_pools(config, bodies):
         if not inputs[cid]:
             _fail("E-POOL-EMPTY", f"input pool {cid} matches no admitted body")
 
-    by_pathway = {}
+    uses_pair = any("pair" in config["inputs"][cid] for cid in _input_order(config))
+    by_group = {}
     for cid in _input_order(config):
-        pathway = CLASS_TO_PATHWAY.get(config["inputs"][cid]["class"])
-        if pathway:
-            by_pathway.setdefault(pathway, []).append(cid)
+        spec = config["inputs"][cid]
+        group = spec["pair"] if uses_pair else CLASS_TO_PATHWAY.get(spec["class"])
+        if group:
+            by_group.setdefault(group, []).append(cid)
 
-    for pathway, ids in by_pathway.items():
-        if config["sideMatch"].get(pathway):
+    for group, ids in by_group.items():
+        if uses_pair:
+            left = [cid for cid in ids if config["inputs"][cid]["rootSide"] == "L"]
+            right = [cid for cid in ids if config["inputs"][cid]["rootSide"] == "R"]
+            if len(left) != 1 or len(right) != 1:
+                _fail("E-PAIR", f"pair {group} does not resolve to exactly one left and one right channel id")
+        if config["sideMatch"].get(group):
             _match_sides(inputs, config, bodies, ids)
         for cid in ids:
             if not inputs[cid]:
-                _fail("E-SIDE-IMBALANCE", f"{pathway} pool {cid} is empty after side matching")
-        if config["sideMatch"].get(pathway) and len(ids) == 2:
+                _fail("E-SIDE-IMBALANCE", f"{group} pool {cid} is empty after side matching")
+        if config["sideMatch"].get(group) and len(ids) == 2:
             left, right = ids
             if config["inputs"][left]["rootSide"] != "L":
                 left, right = right, left
             if len(inputs[left]) != len(inputs[right]):
-                _fail("E-SIDE-IMBALANCE", f"{pathway} pools differ in size after side matching: "
+                _fail("E-SIDE-IMBALANCE", f"{group} pools differ in size after side matching: "
                                           f"{len(inputs[left])} and {len(inputs[right])}")
 
     outputs = {}
@@ -191,8 +204,12 @@ def _propagate(pre_i, post_i, weight, n, pool_indices, steps):
     return r
 
 
-def _probe_pools(inputs, outputs):
-    """The probe's own pool labels (ADR 006 D13/Annex A4): odour-L, odour-R and one combined taste pool."""
+def _probe_pools(config, inputs, outputs):
+    """The probe's pool labels. Format 4 (ADR 006 D13/Annex A4, no fidelity.checks): odour-L, odour-R and one
+    combined taste pool. Format 5 (ADR 007 D19, fidelity.checks present): every individual declared input
+    channel id, so the printed/stored table has one row per channel, not per merged pool."""
+    if "checks" in config["fidelity"]:
+        return dict(inputs), dict(outputs)
     input_pools = {
         "odour-L": inputs["odour-left"],
         "odour-R": inputs["odour-right"],
@@ -201,25 +218,43 @@ def _probe_pools(inputs, outputs):
     return input_pools, dict(outputs)
 
 
+def _pair_channel_ids(config, pair):
+    """The (leftId, rightId) input channel ids of a declared pair (ADR 007 D15/D19). resolve_pools already
+    enforced exactly one left and one right channel for every pair (E-PAIR), so this always finds both."""
+    left = next(cid for cid, spec in config["inputs"].items() if spec.get("pair") == pair and spec["rootSide"] == "L")
+    right = next(cid for cid, spec in config["inputs"].items() if spec.get("pair") == pair and spec["rootSide"] == "R")
+    return left, right
+
+
+def _propagate_pool(graph, pool_ids, steps):
+    pool_local = [graph["index_of"][b] for b in pool_ids if b in graph["index_of"]]
+    return _propagate(graph["pre"], graph["post"], graph["weight"], graph["n"], pool_local, steps)
+
+
+def _mean_over(r, graph, out_ids):
+    out_local = [graph["index_of"][b] for b in out_ids if b in graph["index_of"]]
+    return float(np.mean(r[out_local])) if out_local else 0.0
+
+
 def fidelity_probe(config, brain_graph, whole_graph, input_pools, outputs):
-    """D13: the linear-propagation extraction-fidelity probe, run on the selected brain and on the whole
+    """D13/D19: the linear-propagation extraction-fidelity probe, run on the selected brain and on the whole
     thresholded admitted graph, before the container is written.
 
     `brain_graph`/`whole_graph` are dicts {"pre", "post" (dense local indices), "weight", "n", "index_of"
     (bodyId -> local index)}, both with output-pool outgoing edges already excluded (D13's "outputs as sinks").
     `input_pools` is {label: [bodyId, ...]}; `outputs` is {outputId: [bodyId, ...]}.
-    Returns the FidelityReport (data-model.md). Raises E-FIDELITY when fidelity.require is true and either the
-    steering or the feeding check fails.
+    Returns the FidelityReport (data-model.md). For a format-4 config (no fidelity.checks), runs ADR 006 D13's
+    original fixed two-check probe, unchanged. For a format-5 config (ADR 007 D19), runs the full per-channel
+    table and evaluates each declared `fidelity.checks` entry (a pair's L/R contrast, or a pair's merged-pool
+    sign) against both graphs. Raises E-FIDELITY when fidelity.require is true and a check fails.
     """
     steps = config["fidelity"]["steps"]
     value = {}
     for graph_name, graph in (("brain", brain_graph), ("wholeGraph", whole_graph)):
         for pool_label, pool_ids in input_pools.items():
-            pool_local = [graph["index_of"][b] for b in pool_ids if b in graph["index_of"]]
-            r = _propagate(graph["pre"], graph["post"], graph["weight"], graph["n"], pool_local, steps)
+            r = _propagate_pool(graph, pool_ids, steps)
             for output_id, out_ids in outputs.items():
-                out_local = [graph["index_of"][b] for b in out_ids if b in graph["index_of"]]
-                value[(graph_name, pool_label, output_id)] = float(np.mean(r[out_local])) if out_local else 0.0
+                value[(graph_name, pool_label, output_id)] = _mean_over(r, graph, out_ids)
 
     def v(graph_name, pool, output):
         return value[(graph_name, pool, output)]
@@ -232,33 +267,80 @@ def fidelity_probe(config, brain_graph, whole_graph, input_pools, outputs):
                 "wholeGraph": v("wholeGraph", pool_label, output_id),
             }
 
-    def contrast(graph_name):
-        return ((v(graph_name, "odour-L", "turn-left") - v(graph_name, "odour-L", "turn-right"))
-                - (v(graph_name, "odour-R", "turn-left") - v(graph_name, "odour-R", "turn-right")))
+    fidelity_cfg = config["fidelity"]
+    if "checks" not in fidelity_cfg:
+        def contrast(graph_name):
+            return ((v(graph_name, "odour-L", "turn-left") - v(graph_name, "odour-L", "turn-right"))
+                    - (v(graph_name, "odour-R", "turn-left") - v(graph_name, "odour-R", "turn-right")))
 
-    brain_contrast, whole_contrast = contrast("brain"), contrast("wholeGraph")
-    min_fraction = config["fidelity"]["minContrastFraction"]
-    fraction = brain_contrast / whole_contrast if whole_contrast != 0 else 0.0
-    steering_pass = bool(
-        whole_contrast != 0 and np.sign(brain_contrast) == np.sign(whole_contrast)
-        and abs(brain_contrast) >= min_fraction * abs(whole_contrast)
-    )
+        brain_contrast, whole_contrast = contrast("brain"), contrast("wholeGraph")
+        min_fraction = fidelity_cfg["minContrastFraction"]
+        fraction = brain_contrast / whole_contrast if whole_contrast != 0 else 0.0
+        steering_pass = bool(
+            whole_contrast != 0 and np.sign(brain_contrast) == np.sign(whole_contrast)
+            and abs(brain_contrast) >= min_fraction * abs(whole_contrast)
+        )
 
-    brain_feed, whole_feed = v("brain", "taste", "feed"), v("wholeGraph", "taste", "feed")
-    feeding_pass = bool(whole_feed != 0 and np.sign(brain_feed) == np.sign(whole_feed))
+        brain_feed, whole_feed = v("brain", "taste", "feed"), v("wholeGraph", "taste", "feed")
+        feeding_pass = bool(whole_feed != 0 and np.sign(brain_feed) == np.sign(whole_feed))
 
-    report = {
-        "table": table,
-        "steering": {
-            "pass": steering_pass, "brainContrast": brain_contrast,
-            "wholeGraphContrast": whole_contrast, "fraction": fraction,
-        },
-        "feeding": {"pass": feeding_pass, "brainValue": brain_feed, "wholeGraphValue": whole_feed},
-    }
-    if config["fidelity"]["require"] and not (steering_pass and feeding_pass):
-        if not steering_pass:
-            _fail("E-FIDELITY", f"steering check failed: brain {brain_contrast:g} vs whole graph {whole_contrast:g}")
-        _fail("E-FIDELITY", f"feeding check failed: brain {brain_feed:g} vs whole graph {whole_feed:g}")
+        report = {
+            "table": table,
+            "steering": {
+                "pass": steering_pass, "brainContrast": brain_contrast,
+                "wholeGraphContrast": whole_contrast, "fraction": fraction,
+            },
+            "feeding": {"pass": feeding_pass, "brainValue": brain_feed, "wholeGraphValue": whole_feed},
+        }
+        if fidelity_cfg["require"] and not (steering_pass and feeding_pass):
+            if not steering_pass:
+                _fail("E-FIDELITY", f"steering check failed: brain {brain_contrast:g} vs whole graph {whole_contrast:g}")
+            _fail("E-FIDELITY", f"feeding check failed: brain {brain_feed:g} vs whole graph {whole_feed:g}")
+        return report
+
+    # Format 5 (ADR 007 D19): each declared check, evaluated on both graphs.
+    checks_out = []
+    for check in fidelity_cfg["checks"]:
+        if check["kind"] == "contrast":
+            pair = check["pair"]
+            left_id, right_id = _pair_channel_ids(config, pair)
+
+            def contrast(graph_name, left_id=left_id, right_id=right_id):
+                return ((v(graph_name, left_id, "turn-left") - v(graph_name, left_id, "turn-right"))
+                        - (v(graph_name, right_id, "turn-left") - v(graph_name, right_id, "turn-right")))
+
+            brain_value, whole_value = contrast("brain"), contrast("wholeGraph")
+            min_fraction = check["minFraction"]
+            fraction = brain_value / whole_value if whole_value != 0 else 0.0
+            passed = bool(
+                whole_value != 0 and np.sign(brain_value) == np.sign(whole_value)
+                and abs(brain_value) >= min_fraction * abs(whole_value)
+            )
+            checks_out.append({
+                "kind": "contrast", "pair": pair, "pass": passed,
+                "brainValue": brain_value, "wholeGraphValue": whole_value, "fraction": fraction,
+            })
+        else:  # "sign"
+            pair, to = check["from"], check["to"]
+            left_id, right_id = _pair_channel_ids(config, pair)
+            pool_ids = sorted(set(input_pools[left_id]) | set(input_pools[right_id]))
+            merged = {}
+            for graph_name, graph in (("brain", brain_graph), ("wholeGraph", whole_graph)):
+                r = _propagate_pool(graph, pool_ids, steps)
+                merged[graph_name] = _mean_over(r, graph, outputs[to])
+            passed = bool(merged["wholeGraph"] != 0 and np.sign(merged["brain"]) == np.sign(merged["wholeGraph"]))
+            checks_out.append({
+                "kind": "sign", "from": pair, "to": to, "pass": passed,
+                "brainValue": merged["brain"], "wholeGraphValue": merged["wholeGraph"],
+            })
+
+    report = {"table": table, "checks": checks_out}
+    if fidelity_cfg["require"]:
+        for check in checks_out:
+            if not check["pass"]:
+                label = f'{check["kind"]} {check.get("pair") or check.get("from")}'
+                _fail("E-FIDELITY",
+                      f"{label} check failed: brain {check['brainValue']:g} vs whole graph {check['wholeGraphValue']:g}")
     return report
 
 
@@ -379,7 +461,7 @@ def select_class_seed(config, bodies, edges):
     index_of_brain = {int(b): i for i, b in enumerate(brain_ids)}
     brain_graph = {"pre": src, "post": dst, "weight": weights.astype(np.float64), "n": count,
                    "index_of": index_of_brain}
-    probe_inputs, probe_outputs = _probe_pools(inputs, outputs)
+    probe_inputs, probe_outputs = _probe_pools(config, inputs, outputs)
     fidelity = fidelity_probe(config, brain_graph, whole_graph, probe_inputs, probe_outputs)
 
     return {

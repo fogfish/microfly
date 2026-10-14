@@ -181,7 +181,9 @@ def report_forager(config, brain, output, size, self_check):
 
 
 def report_class_seed(config, brain, output, size, self_check):
-    """Per pool, the seed/fill split, the fidelity probe's two checks and the self-check."""
+    """Per pool, the seed/fill split, the fidelity probe's checks and the self-check. Format 4 (ADR 006 D13)
+    reports the fixed steering/feeding pair; format 5 (ADR 007 D19) reports every declared fidelity.checks
+    entry and the full per-channel table."""
     neurons = brain["neurons"]
     pools = brain["pools"]
     incoming = np.bincount(brain["targets"].astype(np.int64), minlength=len(neurons))
@@ -195,15 +197,25 @@ def report_class_seed(config, brain, output, size, self_check):
     ]
     for cid in pools:
         lines.append(f"  {cid:<14} {len(pools[cid]):>5} neurons, {int(sum(incoming[pools[cid]])):>7} edges in")
-    steering, feeding = fidelity["steering"], fidelity["feeding"]
-    lines.append(
-        f"fidelity       steering  {steering['brainContrast']:+.3g} vs whole graph {steering['wholeGraphContrast']:+.3g}"
-        f" ({steering['fraction']:.0%}) -> {'pass' if steering['pass'] else 'FAIL'}"
-    )
-    lines.append(
-        f"               feeding   {feeding['brainValue']:+.3g} vs whole graph {feeding['wholeGraphValue']:+.3g}"
-        f" -> {'pass' if feeding['pass'] else 'FAIL'}"
-    )
+    if "checks" in fidelity:
+        lines.append(f"fidelity       {len(fidelity['table'])} channel x output rows in the full table")
+        for check in fidelity["checks"]:
+            label = f"contrast {check['pair']}" if check["kind"] == "contrast" else f"sign {check['from']}->{check['to']}"
+            extra = f" ({check['fraction']:.0%})" if check["kind"] == "contrast" else ""
+            lines.append(
+                f"               {label:<28} {check['brainValue']:+.3g} vs whole graph "
+                f"{check['wholeGraphValue']:+.3g}{extra} -> {'pass' if check['pass'] else 'FAIL'}"
+            )
+    else:
+        steering, feeding = fidelity["steering"], fidelity["feeding"]
+        lines.append(
+            f"fidelity       steering  {steering['brainContrast']:+.3g} vs whole graph {steering['wholeGraphContrast']:+.3g}"
+            f" ({steering['fraction']:.0%}) -> {'pass' if steering['pass'] else 'FAIL'}"
+        )
+        lines.append(
+            f"               feeding   {feeding['brainValue']:+.3g} vs whole graph {feeding['wholeGraphValue']:+.3g}"
+            f" -> {'pass' if feeding['pass'] else 'FAIL'}"
+        )
     weights = brain["weights"]
     synapses = brain["synapses"]
     lines += [
@@ -277,7 +289,7 @@ def extract(config_path, dataset_dir, out_path):
     kind = format_of(config)
     if kind == "forager":
         return extract_forager(config, dataset_dir, out_path)
-    if kind == "classSeed":
+    if kind in ("classSeed", "foragerWide"):
         return extract_class_seed(config, dataset_dir, out_path)
     dataset.check_files(dataset_dir)
     dataset.check_rows(dataset_dir, config["expect"])

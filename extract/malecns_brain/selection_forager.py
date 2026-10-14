@@ -34,8 +34,18 @@ def _output_order(config):
 
 
 def _matches_input(body, spec):
-    """D1: the class and the root side, and one of types, subclasses or type prefixes (any of them)."""
+    """D1: the class and the root side, and one of types, subclasses or type prefixes (any of them).
+
+    ADR 007 D15/R6: two additional, optional checks, shared by the flow-ranked and class-seeded strategies alike.
+    `entryNerves` (a list): a body matches only if its entryNerve is in the list. `excludeReceptorTypes` (a list):
+    a body is excluded if its receptorType is in the list. Both default to "no filter" when absent, so every
+    existing config (format 2-4, with neither key) behaves exactly as before.
+    """
     if body.get("class") != spec["class"] or body.get("rootSide") != spec["rootSide"]:
+        return False
+    if "entryNerves" in spec and body.get("entryNerve") not in spec["entryNerves"]:
+        return False
+    if "excludeReceptorTypes" in spec and body.get("receptorType") in spec["excludeReceptorTypes"]:
         return False
     if body.get("type") in spec.get("types", []):
         return True

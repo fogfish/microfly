@@ -1,0 +1,915 @@
+{
+  "annotations": [
+    {
+      "bodyId": 101,
+      "class": "olfactory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_FOOD"
+    },
+    {
+      "bodyId": 201,
+      "class": "olfactory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_FOOD"
+    },
+    {
+      "bodyId": 102,
+      "class": "olfactory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_DANGER"
+    },
+    {
+      "bodyId": 202,
+      "class": "olfactory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "ORN_DANGER"
+    },
+    {
+      "bodyId": 103,
+      "class": "thermosensory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "TRN_HEAT"
+    },
+    {
+      "bodyId": 203,
+      "class": "thermosensory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "TRN_HEAT"
+    },
+    {
+      "bodyId": 301,
+      "class": "gustatory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "labellar bristle",
+      "superclass": "sensory",
+      "type": "LB_1"
+    },
+    {
+      "bodyId": 310,
+      "class": "gustatory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "labellar bristle",
+      "superclass": "sensory",
+      "type": "LB_2"
+    },
+    {
+      "bodyId": 302,
+      "class": "gustatory",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "labellar bristle",
+      "superclass": "sensory",
+      "type": "LB_1"
+    },
+    {
+      "bodyId": 401,
+      "class": "gustatory",
+      "entryNerve": "ProLN",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "leg bristle",
+      "superclass": "sensory",
+      "type": "LgLG_1"
+    },
+    {
+      "bodyId": 402,
+      "class": "gustatory",
+      "entryNerve": "ProLN",
+      "receptorType": "putative_ppk23",
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "leg bristle",
+      "superclass": "sensory",
+      "type": "LgLG_2"
+    },
+    {
+      "bodyId": 403,
+      "class": "gustatory",
+      "entryNerve": "ProLN",
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "leg bristle",
+      "superclass": "sensory",
+      "type": "LgLG_1"
+    },
+    {
+      "bodyId": 404,
+      "class": "gustatory",
+      "entryNerve": "MesoLN",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": "leg bristle",
+      "superclass": "sensory",
+      "type": "LgLG_3"
+    },
+    {
+      "bodyId": 501,
+      "class": "mechanosensory_tactile",
+      "entryNerve": "ProLN",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "T1"
+    },
+    {
+      "bodyId": 510,
+      "class": "mechanosensory_tactile",
+      "entryNerve": "ProLN",
+      "receptorType": null,
+      "rootSide": "L",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "T2"
+    },
+    {
+      "bodyId": 502,
+      "class": "mechanosensory_tactile",
+      "entryNerve": "ProLN",
+      "receptorType": null,
+      "rootSide": "R",
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "sensory",
+      "type": "T1"
+    },
+    {
+      "bodyId": 601,
+      "class": "descending",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": "L",
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNa01"
+    },
+    {
+      "bodyId": 602,
+      "class": "descending",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": "R",
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNa01"
+    },
+    {
+      "bodyId": 603,
+      "class": "descending",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNp09"
+    },
+    {
+      "bodyId": 604,
+      "class": "descending",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "MDN"
+    },
+    {
+      "bodyId": 605,
+      "class": "motor",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "motor",
+      "type": "MN9"
+    },
+    {
+      "bodyId": 606,
+      "class": "descending",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "descending",
+      "type": "DNp01"
+    },
+    {
+      "bodyId": 701,
+      "class": "SEEDCLS",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Traced",
+      "subclass": null,
+      "superclass": "central",
+      "type": "SC_A"
+    },
+    {
+      "bodyId": 710,
+      "class": "intrinsic",
+      "entryNerve": null,
+      "receptorType": null,
+      "rootSide": null,
+      "somaLocation": null,
+      "somaSide": null,
+      "status": "Orphan",
+      "subclass": null,
+      "superclass": "central",
+      "type": "INT_710"
+    }
+  ],
+  "config": {
+    "admission": "allTraced",
+    "capabilities": {
+      "channels": {
+        "inputs": [
+          {
+            "id": "odour-food-left",
+            "label": "Food odour left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "odour:food",
+            "side": "L",
+            "site": "antenna"
+          },
+          {
+            "id": "odour-food-right",
+            "label": "Food odour right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "odour:food",
+            "side": "R",
+            "site": "antenna"
+          },
+          {
+            "id": "odour-danger-left",
+            "label": "Danger odour left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "odour:danger",
+            "side": "L",
+            "site": "antenna"
+          },
+          {
+            "id": "odour-danger-right",
+            "label": "Danger odour right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "odour:danger",
+            "side": "R",
+            "site": "antenna"
+          },
+          {
+            "id": "heat-left",
+            "label": "Heat left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "heat",
+            "side": "L",
+            "site": "antenna"
+          },
+          {
+            "id": "heat-right",
+            "label": "Heat right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "heat",
+            "side": "R",
+            "site": "antenna"
+          },
+          {
+            "id": "taste-mouth-left",
+            "label": "Mouth taste left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "taste",
+            "side": "L",
+            "site": "mouth"
+          },
+          {
+            "id": "taste-mouth-right",
+            "label": "Mouth taste right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "taste",
+            "side": "R",
+            "site": "mouth"
+          },
+          {
+            "id": "taste-leg-left",
+            "label": "Leg taste left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "taste",
+            "side": "L",
+            "site": "front-leg"
+          },
+          {
+            "id": "taste-leg-right",
+            "label": "Leg taste right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "taste",
+            "side": "R",
+            "site": "front-leg"
+          },
+          {
+            "id": "touch-left",
+            "label": "Touch left",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "touch",
+            "side": "L",
+            "site": "front-leg"
+          },
+          {
+            "id": "touch-right",
+            "label": "Touch right",
+            "range": [
+              0,
+              1
+            ],
+            "sense": "touch",
+            "side": "R",
+            "site": "front-leg"
+          }
+        ],
+        "outputs": [
+          {
+            "drive": "turnLeft",
+            "id": "turn-left",
+            "label": "Turn left",
+            "range": [
+              0,
+              1
+            ],
+            "side": "L"
+          },
+          {
+            "drive": "turnRight",
+            "id": "turn-right",
+            "label": "Turn right",
+            "range": [
+              0,
+              1
+            ],
+            "side": "R"
+          },
+          {
+            "drive": "forward",
+            "id": "forward",
+            "label": "Forward",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          },
+          {
+            "drive": "backward",
+            "id": "backward",
+            "label": "Backward",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          },
+          {
+            "drive": "feed",
+            "id": "feed",
+            "label": "Feed",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          },
+          {
+            "drive": "escape",
+            "id": "escape",
+            "label": "Escape",
+            "range": [
+              0,
+              1
+            ],
+            "side": "both"
+          }
+        ]
+      },
+      "signals": [
+        "spikes"
+      ]
+    },
+    "datasetRelease": "synthetic",
+    "defaultSign": 1,
+    "edgeVariant": "traced-only",
+    "expect": {
+      "annotationRows": 0,
+      "edgeRows": 0,
+      "neurotransmitterRows": 0
+    },
+    "fidelity": {
+      "checks": [
+        {
+          "kind": "contrast",
+          "minFraction": 0.1,
+          "pair": "odour-food"
+        },
+        {
+          "kind": "contrast",
+          "minFraction": 0.1,
+          "pair": "heat"
+        },
+        {
+          "kind": "contrast",
+          "minFraction": 0.1,
+          "pair": "touch"
+        },
+        {
+          "from": "taste-mouth",
+          "kind": "sign",
+          "to": "feed"
+        },
+        {
+          "from": "taste-mouth",
+          "kind": "sign",
+          "to": "forward"
+        },
+        {
+          "from": "taste-leg",
+          "kind": "sign",
+          "to": "backward"
+        }
+      ],
+      "require": false,
+      "steps": 1
+    },
+    "fill": {
+      "excludeClasses": [
+        "olfactory",
+        "gustatory"
+      ],
+      "excludeSuperclassSuffix": "_sensory",
+      "excludeSuperclasses": [
+        "vnc_motor",
+        "cb_motor"
+      ],
+      "neuronCount": 20
+    },
+    "formatVersion": 5,
+    "inputs": {
+      "heat-left": {
+        "class": "thermosensory",
+        "pair": "heat",
+        "rootSide": "L",
+        "types": [
+          "TRN_HEAT"
+        ]
+      },
+      "heat-right": {
+        "class": "thermosensory",
+        "pair": "heat",
+        "rootSide": "R",
+        "types": [
+          "TRN_HEAT"
+        ]
+      },
+      "odour-danger-left": {
+        "class": "olfactory",
+        "pair": "odour-danger",
+        "rootSide": "L",
+        "types": [
+          "ORN_DANGER"
+        ]
+      },
+      "odour-danger-right": {
+        "class": "olfactory",
+        "pair": "odour-danger",
+        "rootSide": "R",
+        "types": [
+          "ORN_DANGER"
+        ]
+      },
+      "odour-food-left": {
+        "class": "olfactory",
+        "pair": "odour-food",
+        "rootSide": "L",
+        "types": [
+          "ORN_FOOD"
+        ]
+      },
+      "odour-food-right": {
+        "class": "olfactory",
+        "pair": "odour-food",
+        "rootSide": "R",
+        "types": [
+          "ORN_FOOD"
+        ]
+      },
+      "taste-leg-left": {
+        "class": "gustatory",
+        "entryNerves": [
+          "ProLN"
+        ],
+        "excludeReceptorTypes": [
+          "putative_ppk23"
+        ],
+        "pair": "taste-leg",
+        "rootSide": "L",
+        "subclasses": [
+          "leg bristle"
+        ]
+      },
+      "taste-leg-right": {
+        "class": "gustatory",
+        "entryNerves": [
+          "ProLN"
+        ],
+        "excludeReceptorTypes": [
+          "putative_ppk23"
+        ],
+        "pair": "taste-leg",
+        "rootSide": "R",
+        "subclasses": [
+          "leg bristle"
+        ]
+      },
+      "taste-mouth-left": {
+        "class": "gustatory",
+        "pair": "taste-mouth",
+        "rootSide": "L",
+        "subclasses": [
+          "labellar bristle"
+        ]
+      },
+      "taste-mouth-right": {
+        "class": "gustatory",
+        "pair": "taste-mouth",
+        "rootSide": "R",
+        "subclasses": [
+          "labellar bristle"
+        ]
+      },
+      "touch-left": {
+        "class": "mechanosensory_tactile",
+        "pair": "touch",
+        "rootSide": "L",
+        "types": [
+          "T1",
+          "T2"
+        ]
+      },
+      "touch-right": {
+        "class": "mechanosensory_tactile",
+        "pair": "touch",
+        "rootSide": "R",
+        "types": [
+          "T1",
+          "T2"
+        ]
+      }
+    },
+    "kind": "forager-wide",
+    "minSynapses": 5,
+    "modulators": [
+      {
+        "gain": [
+          0.5,
+          1.5
+        ],
+        "id": "hunger",
+        "label": "Hunger",
+        "range": [
+          0,
+          1
+        ],
+        "targets": [
+          "odour-food-left",
+          "odour-food-right"
+        ]
+      }
+    ],
+    "neuronCountRange": [
+      1,
+      100
+    ],
+    "outputs": {
+      "backward": {
+        "drive": "backward",
+        "types": [
+          "MDN"
+        ]
+      },
+      "escape": {
+        "drive": "escape",
+        "types": [
+          "DNp01"
+        ]
+      },
+      "feed": {
+        "drive": "feed",
+        "types": [
+          "MN9"
+        ]
+      },
+      "forward": {
+        "drive": "forward",
+        "types": [
+          "DNp09"
+        ]
+      },
+      "turn-left": {
+        "drive": "turnLeft",
+        "somaSide": "L",
+        "types": [
+          "DNa01"
+        ]
+      },
+      "turn-right": {
+        "drive": "turnRight",
+        "somaSide": "R",
+        "types": [
+          "DNa01"
+        ]
+      }
+    },
+    "seeds": [
+      {
+        "class": [
+          "SEEDCLS"
+        ]
+      }
+    ],
+    "selection": "classSeed",
+    "sideMatch": {
+      "heat": true,
+      "odour-danger": true,
+      "odour-food": true,
+      "taste-leg": false,
+      "taste-mouth": false,
+      "touch": true
+    },
+    "transmitterColumn": "consensus_nt",
+    "transmitterSign": {
+      "gaba": -1,
+      "glutamate": -1
+    },
+    "weightRule": "postFractionAbsolute"
+  },
+  "edges": {
+    "post": [
+      601,
+      602,
+      601,
+      602,
+      601,
+      602,
+      605,
+      603,
+      604,
+      606
+    ],
+    "pre": [
+      101,
+      201,
+      103,
+      203,
+      501,
+      502,
+      301,
+      310,
+      401,
+      701
+    ],
+    "synapses": [
+      10,
+      10,
+      5,
+      5,
+      5,
+      5,
+      9,
+      6,
+      7,
+      5
+    ]
+  },
+  "note": "Hand-built wide-I/O class-seed fixture (Constitution III). Not connectome data. See make_forager_wide_fixture.py.",
+  "synthetic": true,
+  "transmitters": [
+    {
+      "body": 101,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 201,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 102,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 202,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 103,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 203,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 301,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 310,
+      "consensus_nt": "gaba"
+    },
+    {
+      "body": 302,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 401,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 402,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 403,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 404,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 501,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 510,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 502,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 601,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 602,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 603,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 604,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 605,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 606,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 701,
+      "consensus_nt": "acetylcholine"
+    },
+    {
+      "body": 710,
+      "consensus_nt": "acetylcholine"
+    }
+  ]
+}

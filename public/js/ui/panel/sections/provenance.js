@@ -21,7 +21,11 @@ function renderRows(container, provenance) {
 function renderFidelity(container, fidelity) {
   container.replaceChildren();
   if (!fidelity) return;
-  const pass = Boolean(fidelity.steering?.pass && fidelity.feeding?.pass);
+  // Format 4 (ADR 006 D13) reports a fixed steering/feeding pair; format 5 (ADR 007 D19, wide-io) reports a
+  // declared `checks` list instead. Either shape rolls up to one pass/fail summary line.
+  const pass = Array.isArray(fidelity.checks)
+    ? fidelity.checks.every((check) => check.pass)
+    : Boolean(fidelity.steering?.pass && fidelity.feeding?.pass);
   const summary = document.createElement('p');
   summary.className = 'provenance-fidelity';
   setText(summary, `Fidelity probe: ${pass ? 'pass' : 'FAIL'}`);

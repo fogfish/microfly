@@ -38,12 +38,17 @@ settings it was tuned with (`?world=world/world-antennal-lobe.json`).
 |---|---|---|---|---|
 | `mock` | toy random graph (`neuronCount`, `outDegree`, `inhibitoryFraction`) | none | `lif-v0.js` | 2 |
 | `v0` | small connectome brain (ADR 002) | version 3 | `lif-v0.js` | 2 |
-| `v1` | forager brain (ADR 003) | version 4 | `lif-v1.js` | 3 |
+| `v1` | forager brain (ADR 003), kind `"forager"` | version 4 | `lif-v1.js` | 3 |
+| `v2` | wide-I/O forager brain (ADR 007), kind `"forager-wide"` | version 4 | `lif-v1.js` (unchanged) | 3 |
 
 The version is optional. Without it, a world with no `snapshot` is `mock`, and a world with one is `v0`, so every existing
-world keeps its meaning. A `v1` world needs a version 4 snapshot, and a version 4 snapshot needs `v1`; a mismatch stops the
-app before any fly starts, and names both versions. `world-forager-bad.json` is a test fixture that names a version 3 file
-under `v1`, so it must refuse to start.
+world keeps its meaning. A `v1` world needs a version 4 snapshot of kind `"forager"`, and `v2` needs kind
+`"forager-wide"`; a version or kind mismatch stops the app before any fly starts, and names both sides.
+`world-forager-bad.json` is a test fixture that names a version 3 file under `v1`, so it must refuse to start.
+`"v2"` runs the identical `lif-v1.js`/`fly-brain-v1.js` path as `"v1"` (ADR 007: "v2" names the wider interface
+generation, not a new LIF core) — it only senses generically from each channel's declared `sense`/`site`
+(`forager-step-wide.js`) instead of `v1`'s four hard-coded inputs, and gains `flies.stimuli`, `flies.body.sites`
+and `flies.body.escape` in place of `v1`'s singular `flies.stimulus`.
 
 ## The forager world: `world-forager.json`
 
@@ -82,3 +87,33 @@ the `microfly-calibrate` skill's `class-seed-11k` profile, not a copy of `world-
 101–130); nothing requires the two worlds' seed sets to differ. `world-forager-11k-bad.json` is a test fixture
 that names this brain's (version 4) snapshot under `v0`, so it must refuse to start — the same mechanism
 `world-forager-bad.json` already exercises for the shipped forager brain.
+
+## The wide-I/O forager world: `world-forager-wide.json`
+
+The same map and body/food/escape mechanics as the other forager worlds, with the wide-I/O brain
+(`brains/forager-brain-wide.brain`, from `extract/configs/forager-brain-wide.json`, ADR 007) under
+`flies.brain.version: "v2"`. It re-extracts the 11K brain's own topology rule (seeds, fill, weights
+unchanged) with twelve bilateral inputs (food odour, danger odour, heat, mouth taste, leg taste, touch) and
+six outputs (turn L/R, forward, backward, feed, escape), sharing 94.6 % of its neurons with the shipped 11K
+brain. Open it with `?world=world/world-forager-wide.json`.
+
+Two new `flies` sections replace `v1`'s singular `flies.stimulus` and add escape physics:
+
+- `flies.stimuli`: one entry per `sense` a channel declares (`odour:food`, `odour:danger`, `heat`, `taste`,
+  `touch`), naming which world object list it reads (`edibles`, `dangers`, or `blocked` for touch, read
+  directly from world walkability) and, for a distance sense, its falloff radius. A snapshot channel whose
+  `sense` has no matching entry here is a world-load error, naming the channel.
+- `flies.body.sites`: one entry per `site` a channel declares (`antenna`, `mouth`, `front-leg`), each a
+  forward/lateral offset in tiles from the body centre. `mouth` has no lateral offset by design, so its left
+  and right channels read the same value; `front-leg` sits half a tile ahead, so leg taste and touch reach a
+  flower or a blocked cell before the mouth does.
+- `flies.body.escape`: `enabled` (default `false`), `threshold`, `distance`, `cooldown`. The `escape` output is
+  always computed and shown; with `enabled: false` it moves nothing (ADR 007 D17) — set it `true` locally to
+  exercise the physics, but do not commit that change (the shipped default stays off).
+
+Its `experiment.seeds`/`heldOut` split is the same convention as the other forager worlds. Its `brain.lif`
+block is a placeholder (a copy of the 11K world's own calibrated block) until the `microfly-calibrate` skill's
+`wide-io` profile has run a real calibration session (research.md R11 of specs/013-wide-io-forager-brain) —
+`results.md` records which run, if any, that value came from. `world-forager-wide-bad.json` is a test fixture
+that names this brain's snapshot (kind `"forager-wide"`) under `v1`, so it must refuse to start on the kind
+mismatch, the same mechanism `world-forager-11k-bad.json` exercises for a version mismatch.

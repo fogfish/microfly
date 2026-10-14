@@ -16,7 +16,7 @@ import tempfile
 
 import numpy as np
 
-from .capabilities import validate_capabilities, validate_capabilities_v4
+from .capabilities import validate_capabilities, validate_capabilities_v4, validate_capabilities_v5
 
 MAGIC = b"MFBR"
 FORMAT_VERSION = 3
@@ -84,7 +84,7 @@ def write_container(path, header, offsets, targets, weights, synapses):
         raise ValueError("header counts do not match the arrays")
     version = FORMAT_VERSION_V4 if "kind" in header else FORMAT_VERSION
     if version == FORMAT_VERSION_V4:
-        _check_forager(header, neuron_count)
+        _check_forager_header(header, neuron_count)
         _check_inflow(targets, weights, neuron_count)
     else:
         validate_capabilities(header.get("capabilities"), neuron_count)
@@ -159,11 +159,16 @@ def _check_v4_additions(neuron, index):
 
 
 def _check_fidelity(header):
-    """Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report."""
+    """Rule 13 of contracts/container-v4-additions.md: an optional header fidelity report. A format-4 report
+    carries `table`, `steering` and `feeding` (ADR 006 D13, unchanged); a format-5 report (ADR 007 D19) carries
+    `table` and `checks` instead."""
     if "fidelity" not in header:
         return
     fidelity = header["fidelity"]
-    if not (isinstance(fidelity, dict) and all(key in fidelity for key in FIDELITY_KEYS)):
+    has_table = isinstance(fidelity, dict) and "table" in fidelity
+    legacy = has_table and "steering" in fidelity and "feeding" in fidelity
+    wide = has_table and "checks" in fidelity
+    if not (legacy or wide):
         _reject("snapshot fidelity report is malformed")
 
 
@@ -199,22 +204,22 @@ def _check_modulators(modulators, input_ids):
         earlier.add(mid)
 
 
-def _check_forager(header, neuron_count):
-    """Version 4 header rules: kind, weight rule, synapse cap, the v4 declaration, roles and signs (N1–N4), and the
-    modulators (M1–M3). The messages match public/js/brain/snapshot.js."""
-    if header.get("kind") != "forager":
-        _reject(f'snapshot kind "{header.get("kind")}" is not supported')
-    if header.get("weightRule") not in ("postFraction", "postFractionAbsolute"):
-        _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
-    cap = header.get("synapseCap")
-    if not (isinstance(cap, int) and not isinstance(cap, bool) and 1 <= cap <= 65535):
-        _reject("snapshot synapseCap must be an integer from 1 to 65535")
-    try:
-        validate_capabilities_v4(header.get("capabilities"), neuron_count, "forager")
-    except ValueError as error:
-        _reject(str(error))
+def _check_forager_header(header, neuron_count):
+    """Dispatch on header.kind: "forager" keeps the v4 rules; "forager-wide" (ADR 007 R1) applies v5 instead.
+    Any other kind is rejected (both messages match public/js/brain/snapshot.js)."""
+    kind = header.get("kind")
+    if kind == "forager":
+        _check_forager(header, neuron_count)
+    elif kind == "forager-wide":
+        _check_forager_wide(header, neuron_count)
+    else:
+        _reject(f'snapshot kind "{kind}" is not supported')
 
-    declaration = header["capabilities"]["channels"]
+
+def _check_forager_neurons_and_modulators(header, neuron_count, declaration):
+    """N1, N2, N4 (container-v4.md) and M1-M3, shared by kind "forager" and "forager-wide": roles follow the
+    declaration (input pool neurons, then output pool neurons, then interneurons), signs, positions and the
+    optional per-neuron additions."""
     inputs, outputs = declaration["inputs"], declaration["outputs"]
     pool_of = {}
     for channel in inputs:
@@ -252,6 +257,37 @@ def _check_forager(header, neuron_count):
 
     _check_modulators(header.get("modulators"), {ch["id"] for ch in inputs})
     _check_fidelity(header)
+
+
+def _check_forager(header, neuron_count):
+    """Version 4 header rules: kind, weight rule, synapse cap, the v4 declaration, roles and signs (N1–N4), and the
+    modulators (M1–M3). The messages match public/js/brain/snapshot.js."""
+    if header.get("weightRule") not in ("postFraction", "postFractionAbsolute"):
+        _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
+    cap = header.get("synapseCap")
+    if not (isinstance(cap, int) and not isinstance(cap, bool) and 1 <= cap <= 65535):
+        _reject("snapshot synapseCap must be an integer from 1 to 65535")
+    try:
+        validate_capabilities_v4(header.get("capabilities"), neuron_count, "forager")
+    except ValueError as error:
+        _reject(str(error))
+    _check_forager_neurons_and_modulators(header, neuron_count, header["capabilities"]["channels"])
+
+
+def _check_forager_wide(header, neuron_count):
+    """Kind "forager-wide" header rules (ADR 007 D20, channel-declaration-v5.md): the v5 declaration (six
+    forager-wide drives, sense/site per input) in place of v4's; weight rule, synapse cap, roles, signs and
+    modulators are otherwise identical to _check_forager."""
+    if header.get("weightRule") not in ("postFraction", "postFractionAbsolute"):
+        _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
+    cap = header.get("synapseCap")
+    if not (isinstance(cap, int) and not isinstance(cap, bool) and 1 <= cap <= 65535):
+        _reject("snapshot synapseCap must be an integer from 1 to 65535")
+    try:
+        validate_capabilities_v5(header.get("capabilities"), neuron_count)
+    except ValueError as error:
+        _reject(str(error))
+    _check_forager_neurons_and_modulators(header, neuron_count, header["capabilities"]["channels"])
 
 
 def _check_inflow(targets, weights, neuron_count):
@@ -308,7 +344,7 @@ def read_container(data, version=None):
         if roles_ok:
             roles_ok = [neurons[i].get("role") for i in range(3)] == list(ROLES)
     if found == FORMAT_VERSION_V4:
-        _check_forager(header, neuron_count)
+        _check_forager_header(header, neuron_count)
     else:
         if not roles_ok:
             _reject("snapshot roles out of order: expected sensory, left, right")

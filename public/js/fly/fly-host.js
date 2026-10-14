@@ -15,6 +15,7 @@ import { resolveFlies } from './fly-config.js';
 import { stimulusPoints } from './fly-world.js';
 import { createFood } from './food.js';
 import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
+import { forageEnvWide, senseForagerFlyWide } from './forager-step-wide.js';
 
 const HISTORY = 200;
 const NO_SPIKES = new Uint32Array(0);
@@ -45,8 +46,9 @@ export async function loadSnapshot(brain, root) {
   } catch (e) {
     throw new Error(`snapshot ${path} is not usable: ${e.message}`);
   }
-  // The brain version of the world must match the container version of the file, before any fly starts (FR-003).
-  checkBrainVersion(brain.version ?? 'v0', snapshot.version, `${path}`);
+  // The brain version of the world must match the container version of the file, before any fly starts (FR-003),
+  // and its declared kind (channel-declaration-v5.md).
+  checkBrainVersion(brain.version ?? 'v0', snapshot.version, snapshot.kind, `${path}`);
 
   const { provenance } = snapshot.manifest;
   return {
@@ -84,16 +86,20 @@ function declarationOf(state, f, snapshot) {
 //              checks, neuronCount, activity, positions, drawn }
 export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
   const f = resolveFlies(config);
-  // The forager brain (version v1) runs on protocol 3. Its toy flies are the only ones that use the brain.
-  const forager = f.brain?.version === 'v1' && snapshot !== null;
+  // The forager brain (version v1 or v2) runs on protocol 3. Its toy flies are the only ones that use the
+  // brain. v2 (ADR 007) is the wide-I/O interface generation, same v1 runner, dispatched by brain.version below.
+  const isWide = f.brain?.version === 'v2';
+  const forager = (f.brain?.version === 'v1' || isWide) && snapshot !== null;
   const brainLabel = forager
-    ? `v1 forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
+    ? `${isWide ? 'v2 wide-I/O' : 'v1'} forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
     : snapshot
       ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
       : null;
   const points = stimulusPoints(world);
   const flowers = forager ? createFood(world, f) : null;
-  const forageEnvironment = forager ? forageEnv(f, world, flowers, snapshot.capabilities) : null;
+  const forageEnvironment = forager
+    ? (isWide ? forageEnvWide(f, world, flowers, snapshot.capabilities) : forageEnv(f, world, flowers, snapshot.capabilities))
+    : null;
   const env = {
     dt: 1 / f.tickHz,
     maxSpeed: f.body.maxSpeed,
@@ -254,7 +260,8 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
     }
     r.pending = true;
     if (r.forager) {
-      r.worker.postMessage(senseForagerFly(s, forageEnvironment).message);
+      const sense = isWide ? senseForagerFlyWide(s, forageEnvironment) : senseForagerFly(s, forageEnvironment);
+      r.worker.postMessage(sense.message);
       return;
     }
     r.worker.postMessage(P.sense({ tick: s.tick, sensory: senseOf(s) }));

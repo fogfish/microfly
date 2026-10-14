@@ -18,13 +18,19 @@ import { createFlyBrain } from '../public/js/brain/fly-brain.js';
 import { createBaselineMotor } from '../public/js/fly/baseline.js';
 import { stepBody } from '../public/js/fly/body.js';
 import { createFood } from '../public/js/fly/food.js';
-import { forageEnv, initForagerFly, stepForagerFly } from '../public/js/fly/forager-step.js';
+import { applyForagerMotor, forageEnv, initForagerFly, stepForagerFly } from '../public/js/fly/forager-step.js';
+import { forageEnvWide, senseForagerFlyWide } from '../public/js/fly/forager-step-wide.js';
 import { senseAt } from '../public/js/fly/stimulus.js';
-import { spawnFlies } from '../public/js/fly/fly-world.js';
+import { hazardPoints, spawnFlies } from '../public/js/fly/fly-world.js';
 import {
-  approachMedian, bootstrapCI, eatMedian, findInterval, findRate, hungerDependence, walkedShare,
+  approachMedian, avoidFraction, bootstrapCI, brakeMedian, eatMedian, escapeMean, findInterval, findRate,
+  hungerDependence, stayMedian, touchTurn, walkedShare,
 } from '../public/js/fly/metrics.js';
 import { createPrng } from '../public/js/world/prng.js';
+
+// ADR 007 Acceptance, Gate C: the fraction-of-ticks-near-a-hazard radius (metric 8), fixed regardless of a
+// sense's own declared falloff radius.
+const AVOID_RADIUS = 1.5;
 
 const COHORT_ENERGY = { hungry: 0.1, sated: 0.9 };
 
@@ -42,6 +48,19 @@ export function rewire(snapshot, seed) {
     }
   }
   return { ...snapshot, targets };
+}
+
+// A named arm's snapshot may declare a different output set than the world's own primary brain (ADR 007
+// Acceptance compares "v1-11k", 5 outputs, against "wide", 6 outputs, under one shared flies.brain.lif block).
+// lif-v1.js's createNetwork rejects an outputScale key that names an output the loaded snapshot does not
+// declare, so an arm's own lif is scoped down to its own declared output ids before createFlyBrain sees it —
+// the same acknowledged "one shared lif is only ever calibrated for one arm's own brain" limitation
+// specs/012-class-seeded-forager-brain/results.md already records, kept from crashing instead of silently fixed.
+function scopedLif(lif, armSnapshot) {
+  if (!lif?.outputScale || typeof lif.outputScale !== 'object') return lif;
+  const known = new Set(armSnapshot.capabilities.channels.outputs.map((ch) => ch.id));
+  const outputScale = Object.fromEntries(Object.entries(lif.outputScale).filter(([id]) => known.has(id)));
+  return { ...lif, outputScale };
 }
 
 // Distance from a point to the nearest flower cell centre (tiles), or Infinity without flowers.
@@ -70,19 +89,83 @@ function runBaselineFly(state, ctx) {
   const motor = createBaselineMotor(state.brainSeed);
   const start = nearestFlower(ctx.points, state.body.x, state.body.y);
   let firstContactTick = null;
+  // ADR 007 Acceptance, Gate C metric 8 (avoid): tracked for every arm, including baseline, since avoid is
+  // reported against the random walk. Harmless extra compute for a plain (non-wide) comparison run.
+  const spiderRecords = [];
+  const lanternRecords = [];
   for (let t = 0; t < ctx.ticks; t++) {
     stepBody(state.body, motor.next(), ctx.env);
     if (firstContactTick === null && ctx.world.isStimulusCell(Math.floor(state.body.x), Math.floor(state.body.y))) {
       firstContactTick = t;
     }
+    spiderRecords.push({ distance: nearestFlower(ctx.spiderPoints, state.body.x, state.body.y) });
+    lanternRecords.push({ distance: nearestFlower(ctx.lanternPoints, state.body.x, state.body.y) });
   }
-  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [] };
+  return { found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: [], spiderRecords, lanternRecords };
+}
+
+// Wide-I/O cohort (ADR 007 Acceptance, Gate C): forageEnvWide/senseForagerFlyWide sensing, the shared
+// applyForagerMotor physics (body.js/forager-step.js, unedited), plus the extra per-tick records metrics.js's
+// brake/avoid/touch/escape (telemetry) need.
+function runWideCohort(seeded, cohortEnergy, brainConfig, ctx) {
+  const flowers = createFood(ctx.world, ctx.f);
+  const capabilities = brainConfig.snapshot.capabilities ?? ctx.capabilities;
+  const env = forageEnvWide(ctx.f, ctx.world, flowers, capabilities);
+  const inputs = capabilities.channels.inputs;
+  const touchLeftIdx = inputs.findIndex((ch) => ch.sense === 'touch' && ch.side === 'L');
+  const touchRightIdx = inputs.findIndex((ch) => ch.sense === 'touch' && ch.side === 'R');
+  const dangerRadius = ctx.f.stimuli['odour:danger']?.radius ?? 0;
+  const heatRadius = ctx.f.stimuli.heat?.radius ?? 0;
+  const flies = spawnFlies(seeded, ctx.world, 'toy');
+  return flies.map((state) => {
+    const brain = createFlyBrain(brainConfig, state.brainSeed);
+    initForagerFly(state, cohortEnergy);
+    const start = nearestFlower(ctx.points, state.body.x, state.body.y);
+    let firstContactTick = null;
+    const brakeRecords = [];
+    const spiderRecords = [];
+    const lanternRecords = [];
+    const touchRecords = [];
+    const escapeRecords = [];
+    for (let t = 0; t < ctx.ticks; t++) {
+      const { inputs: senseInputs, hunger } = senseForagerFlyWide(state, env);
+      const out = brain.step({ inputs: senseInputs, hunger });
+      const motor = { tick: state.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes };
+      // The mouth site has no offset (ADR 007 W8): "on a flower" is the body's own cell, same test applyForagerMotor
+      // already uses for the taste contact sense, sampled before the body moves this tick.
+      const cx = Math.floor(state.body.x);
+      const cy = Math.floor(state.body.y);
+      const onFlower = ctx.world.isStimulusCell(cx, cy) && flowers.stockAt(cx, cy) > 0;
+      const entry = applyForagerMotor(state, motor, env);
+      brakeRecords.push({ forward: entry.drives.forward ?? 0, onFlower });
+      const spiderDist = nearestFlower(ctx.spiderPoints, state.body.x, state.body.y);
+      const lanternDist = nearestFlower(ctx.lanternPoints, state.body.x, state.body.y);
+      spiderRecords.push({ distance: spiderDist });
+      lanternRecords.push({ distance: lanternDist });
+      touchRecords.push({
+        touchLeft: touchLeftIdx >= 0 ? senseInputs[touchLeftIdx] : 0,
+        touchRight: touchRightIdx >= 0 ? senseInputs[touchRightIdx] : 0,
+        turnLeft: entry.drives.turnLeft ?? 0, turnRight: entry.drives.turnRight ?? 0,
+      });
+      escapeRecords.push({
+        escape: entry.drives.escape ?? 0,
+        inDanger: spiderDist <= dangerRadius || lanternDist <= heatRadius,
+      });
+      if (firstContactTick === null && onFlower) firstContactTick = t;
+    }
+    return {
+      found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: state.bouts,
+      contacts: state.body.contacts, brakeRecords, spiderRecords, lanternRecords, touchRecords, escapeRecords,
+    };
+  });
 }
 
 // The flies of one v1 cohort share one flower table, as the browser does. Each fly is run to the end of the run.
 function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
   const flowers = createFood(ctx.world, ctx.f);
-  const env = forageEnv(ctx.f, ctx.world, flowers, ctx.capabilities);
+  // Each arm's own snapshot declaration, not ctx.capabilities: a "v1-11k" arm run alongside a "wide" one (ADR 007
+  // Acceptance) has a different channel count/shape than the world's own primary snapshot.
+  const env = forageEnv(ctx.f, ctx.world, flowers, brainConfig.snapshot.capabilities ?? ctx.capabilities);
   const flies = spawnFlies(seeded, ctx.world, 'toy');
   return flies.map((state) => {
     const brain = createFlyBrain(brainConfig, state.brainSeed);
@@ -111,7 +194,10 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
   if (arms.includes('v0') && (v0Snapshot === undefined || v0Snapshot.version !== 3)) {
     throw new Error('the v0 arm needs the small snapshot (version 3), brains/smallest-functional-brain.brain');
   }
-  const v1StyleArms = new Set(['v1', 'random-matched', ...Object.keys(snapshots)]);
+  // "wide" and "random-matched-wide" (ADR 007 Acceptance) are their own dispatch, disjoint from the v1-style
+  // named snapshots a caller may also pass in `snapshots`.
+  const wideStyleArms = new Set(['wide', 'random-matched-wide']);
+  const v1StyleArms = new Set(['v1', 'random-matched', ...Object.keys(snapshots).filter((k) => !wideStyleArms.has(k))]);
   const snapshotFor = (arm) => snapshots[arm] ?? snapshot;
   const ctx = {
     f,
@@ -122,6 +208,8 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
       x: (idx % world.width) + 0.5,
       y: Math.floor(idx / world.width) + 0.5,
     })),
+    spiderPoints: hazardPoints(world, ['spider']),
+    lanternPoints: hazardPoints(world, ['lantern']),
     env: {
       dt: 1 / f.tickHz,
       maxSpeed: f.body.maxSpeed,
@@ -142,10 +230,21 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
         for (const state of spawnFlies(seeded, world, 'baseline')) bucket.flies.push(runBaselineFly(state, ctx));
         continue;
       }
+      if (wideStyleArms.has(arm)) {
+        const arm_snapshot = arm === 'random-matched-wide'
+          ? rewire(snapshots.wide ?? snapshot, seed + 1)
+          : snapshotFor(arm);
+        const brainConfig = { ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot };
+        for (const [cohort, energy] of [['main', f.body.energy.initial], ['hungry', COHORT_ENERGY.hungry], ['sated', COHORT_ENERGY.sated]]) {
+          const flies = runWideCohort(seeded, energy, { ...brainConfig, version: 'v2' }, ctx);
+          (bucket.cohorts[cohort] ??= []).push(...flies);
+          if (cohort === 'main') bucket.flies.push(...flies);
+        }
+        continue;
+      }
       if (v1StyleArms.has(arm)) {
-        const brainConfig = arm === 'random-matched'
-          ? { ...f.brain, snapshot: rewire(snapshot, seed + 1) }
-          : { ...f.brain, snapshot: snapshotFor(arm) };
+        const arm_snapshot = arm === 'random-matched' ? rewire(snapshot, seed + 1) : snapshotFor(arm);
+        const brainConfig = { ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot };
         for (const [cohort, energy] of [['main', f.body.energy.initial], ['hungry', COHORT_ENERGY.hungry], ['sated', COHORT_ENERGY.sated]]) {
           const flies = runV1Cohort(seeded, energy, { ...brainConfig, version: 'v1' }, ctx);
           (bucket.cohorts[cohort] ??= []).push(...flies);
@@ -173,6 +272,12 @@ export function armMetrics(arms, result, radius, seed) {
     const hungry = cohorts.hungry ?? [];
     const sated = cohorts.sated ?? [];
     const bouts = [...hungry, ...sated].flatMap((fly) => fly.bouts);
+    // Metrics 6-10 (ADR 007 Acceptance, Gate C) are only present for arms whose flies carry the extra per-tick
+    // records (runWideCohort/runBaselineFly); a v1-style arm's flies have neither key.
+    const hasBrake = hungry[0]?.brakeRecords !== undefined;
+    const hasAvoid = flies[0]?.spiderRecords !== undefined;
+    const hasTouch = flies[0]?.touchRecords !== undefined;
+    const hasEscape = flies[0]?.escapeRecords !== undefined;
     out[arm] = {
       find: findRate(flies),
       findCI: findInterval(flies, seed),
@@ -182,6 +287,16 @@ export function armMetrics(arms, result, radius, seed) {
       walked: walkedShare(bouts),
       hungerDependence: cohorts.hungry ? hungerDependence(hungry, sated) : null,
       contacts: flies.reduce((sum, fly) => sum + (fly.contacts ?? 0), 0),
+      brake: hasBrake ? brakeMedian(hungry.flatMap((fly) => fly.brakeRecords)) : null,
+      stay: hasBrake ? stayMedian(bouts) : null,
+      avoidSpider: hasAvoid ? avoidFraction(flies.flatMap((fly) => fly.spiderRecords), AVOID_RADIUS) : null,
+      avoidLantern: hasAvoid ? avoidFraction(flies.flatMap((fly) => fly.lanternRecords), AVOID_RADIUS) : null,
+      // touchTurn is per-fly (the window must not cross a fly boundary), averaged over flies that had an event.
+      touch: hasTouch ? (() => {
+        const perFly = flies.map((fly) => touchTurn(fly.touchRecords)).filter((v) => v !== null);
+        return perFly.length ? perFly.reduce((a, b) => a + b, 0) / perFly.length : null;
+      })() : null,
+      escape: hasEscape ? escapeMean(flies.flatMap((fly) => fly.escapeRecords)) : null,
     };
   }
   return out;
@@ -193,41 +308,90 @@ const num = (x) => (x === null || x === undefined ? 'n/a' : Number.isInteger(x) 
 // The table of ADR 003 / contracts/experiment-metrics.md, with the verdict of each expectation.
 export function printForagerTable(metrics, seeds) {
   const lines = [];
-  lines.push('arm              find [95 % CI]              approach  eat hungry/sated  walked   hunger-dep  contacts  seeds');
+  const hasWide = Object.values(metrics).some((m) => m.brake !== null || m.avoidSpider !== null);
+  const header = 'arm              find [95 % CI]              approach  eat hungry/sated  walked   hunger-dep  contacts  seeds';
+  lines.push(hasWide
+    ? `${header}   brake  stay   avoid(spider/lantern)   touch   escape(in/out)`
+    : header);
   for (const [arm, m] of Object.entries(metrics)) {
     const [lo, hi] = m.findCI;
-    lines.push(
-      `${arm.padEnd(16)} ${pct(m.find.rate).padEnd(8)} [${pct(lo)}, ${pct(hi)}]`.padEnd(48)
+    let line = `${arm.padEnd(16)} ${pct(m.find.rate).padEnd(8)} [${pct(lo)}, ${pct(hi)}]`.padEnd(48)
       + `${num(m.approach.median).padEnd(10)}`
       + `${num(m.eatHungry)}/${num(m.eatSated)}`.padEnd(18)
       + `${m.walked === undefined ? 'n/a' : pct(m.walked)}`.padEnd(9)
       + `${m.hungerDependence === null ? 'n/a' : pct(m.hungerDependence)}`.padEnd(12)
       + `${m.contacts}`.padEnd(10)
-      + `${seeds}`,
-    );
+      + `${seeds}`;
+    if (hasWide) {
+      line += `   ${num(m.brake).padEnd(7)}${num(m.stay).padEnd(7)}`
+        + `${m.avoidSpider === null ? 'n/a' : pct(m.avoidSpider)}/${m.avoidLantern === null ? 'n/a' : pct(m.avoidLantern)}`.padEnd(24)
+        + `${num(m.touch)}`.padEnd(8)
+        + `${m.escape === null ? 'n/a' : `${num(m.escape.inside)}/${num(m.escape.outside)}`}`;
+    }
+    lines.push(line);
   }
   return lines.join('\n');
 }
 
 // The expectations of Gate C. Each is printed as PASS or FAIL with its values. Nothing is adjusted to pass.
+// The five ADR 003 verdicts for one named arm (v1 or wide), against the random walk.
+function coreVerdicts(name, m, base) {
+  const out = [];
+  if (base) {
+    out.push({ metric: 'find', expectation: `${name} find rate exceeds the random walk`,
+      pass: m.find.rate > base.find.rate, values: `${name} ${pct(m.find.rate)}, baseline ${pct(base.find.rate)}` });
+  }
+  out.push({ metric: 'eat', expectation: 'median bout is longer for hungry starts than for sated starts',
+    pass: m.eatHungry !== null && m.eatSated !== null && m.eatHungry > m.eatSated,
+    values: `hungry ${num(m.eatHungry)}, sated ${num(m.eatSated)} ticks` });
+  out.push({ metric: 'hunger dependence', expectation: 'find rate is higher for hungry starts',
+    pass: m.hungerDependence !== null && m.hungerDependence > 0, values: pct(m.hungerDependence) });
+  out.push({ metric: 'approach', expectation: 'measured (no threshold in the spec)', pass: null,
+    values: `median ${num(m.approach.median)} ticks, ${m.approach.included} included, ${m.approach.excluded} excluded` });
+  out.push({ metric: 'leave', expectation: 'measured (no threshold in the spec)', pass: null,
+    values: `walked ${pct(m.walked)}` });
+  return out;
+}
+
+// ADR 007 Acceptance, Gate C metrics 6-10: brake/eat must pass for the wide arm; avoid-heat must not exceed the
+// random walk; stay/avoid-danger/touch/escape are reported, never gated (a failed metric is a finding, not
+// adjusted to pass -- AGENTS.md).
+function wideVerdicts(wide, randomMatchedWide, v1eleven, base) {
+  const out = [];
+  if (randomMatchedWide) {
+    out.push({
+      metric: 'brake', expectation: 'forward on-flower/off-flower ratio is < 1 and lower than random-matched-wide',
+      pass: wide.brake !== null && wide.brake < 1 && (randomMatchedWide.brake === null || wide.brake < randomMatchedWide.brake),
+      values: `wide ${num(wide.brake)}, random-matched-wide ${num(randomMatchedWide.brake)}`,
+    });
+  }
+  if (base) {
+    out.push({
+      metric: 'avoid heat', expectation: 'heat fraction of ticks is not higher than the random walk',
+      pass: wide.avoidLantern !== null && base.avoidLantern !== null && wide.avoidLantern <= base.avoidLantern,
+      values: `wide ${pct(wide.avoidLantern ?? 0)}, baseline ${pct(base.avoidLantern ?? 0)}`,
+    });
+    out.push({
+      metric: 'avoid danger', expectation: 'measured only (sign depends on hop count, not gated -- ADR 007 Annex A5)',
+      pass: null, values: `wide ${pct(wide.avoidSpider ?? 0)}, baseline ${pct(base.avoidSpider ?? 0)}`,
+    });
+  }
+  out.push({ metric: 'touch', expectation: 'measured only (no threshold in the spec); positive predicted toward the touched side',
+    pass: null, values: num(wide.touch) });
+  out.push({ metric: 'stay', expectation: `measured only, against v1-11k`, pass: null,
+    values: `wide ${num(wide.stay)}, v1-11k ${num(v1eleven?.stay)}` });
+  out.push({ metric: 'escape (telemetry)', expectation: 'reported only, excluded from the behaviour claims (ADR 007 D17)',
+    pass: null, values: `inside ${num(wide.escape?.inside)}, outside ${num(wide.escape?.outside)}` });
+  return out;
+}
+
 export function verdicts(metrics) {
-  const v1 = metrics.v1;
   const base = metrics.baseline;
   const out = [];
-  if (v1 && base) {
-    out.push({ metric: 'find', expectation: 'v1 find rate exceeds the random walk',
-      pass: v1.find.rate > base.find.rate, values: `v1 ${pct(v1.find.rate)}, baseline ${pct(base.find.rate)}` });
-  }
-  if (v1) {
-    out.push({ metric: 'eat', expectation: 'median bout is longer for hungry starts than for sated starts',
-      pass: v1.eatHungry !== null && v1.eatSated !== null && v1.eatHungry > v1.eatSated,
-      values: `hungry ${num(v1.eatHungry)}, sated ${num(v1.eatSated)} ticks` });
-    out.push({ metric: 'hunger dependence', expectation: 'find rate is higher for hungry starts',
-      pass: v1.hungerDependence !== null && v1.hungerDependence > 0, values: pct(v1.hungerDependence) });
-    out.push({ metric: 'approach', expectation: 'measured (no threshold in the spec)', pass: null,
-      values: `median ${num(v1.approach.median)} ticks, ${v1.approach.included} included, ${v1.approach.excluded} excluded` });
-    out.push({ metric: 'leave', expectation: 'measured (no threshold in the spec)', pass: null,
-      values: `walked ${pct(v1.walked)}` });
+  if (metrics.v1) out.push(...coreVerdicts('v1', metrics.v1, base));
+  if (metrics.wide) {
+    out.push(...coreVerdicts('wide', metrics.wide, base));
+    out.push(...wideVerdicts(metrics.wide, metrics['random-matched-wide'], metrics['v1-11k'], base));
   }
   return out;
 }

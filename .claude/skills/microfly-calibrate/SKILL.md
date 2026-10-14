@@ -1,6 +1,6 @@
 ---
 name: microfly-calibrate
-description: Run or continue LIF calibration for a microfly forager brain (v1, class-seed-11k, and future generations) using the deterministic calibrate.mjs CLI in this skill's own scripts/ directory, instead of re-deriving the ADR 005/006 staged protocol and rebuilding tooling from scratch each time. Triggers on requests to calibrate, tune, or search LIF/synaptic parameters for a forager brain, or when a behaviour gate (rest regime, feed, find rate) is failing because a brain's shipped settings are uncalibrated starting values. Always asks the brain version and a time/compute budget before running anything, and never promotes a result into the shipped world config or calibration.md without the user reviewing it first.
+description: Run or continue LIF calibration for a microfly forager brain (v1, class-seed-11k, wide-io, and future generations) using the deterministic calibrate.mjs CLI in this skill's own scripts/ directory, instead of re-deriving the ADR 005/006/007 staged protocol and rebuilding tooling from scratch each time. Triggers on requests to calibrate, tune, or search LIF/synaptic parameters for a forager brain, or when a behaviour gate (rest regime, feed, find rate) is failing because a brain's shipped settings are uncalibrated starting values. Always asks the brain version and a time/compute budget before running anything, and never promotes a result into the shipped world config or calibration.md without the user reviewing it first.
 model: sonnet
 user-invocable: true
 disable-model-invocation: false
@@ -39,19 +39,31 @@ written once before (for v1) and had to be rebuilt for v2 in-session. This skill
   held-out validation before anything is adopted. Source: `adrs/005-dynamical-regime.md` Annex B,
   `adrs/006-cautious-forager-brain-15k.md` "Calibration protocol", and the worked precedent in
   `specs/008-hungry-forager-brain/calibration.md`.
-- **Per-version differences are profiles, not re-reading the ADRs.** `scripts/profiles/v1.mjs` and
-  `class-seed-11k.mjs` already encode each profile's world/snapshot path, grid axes, per-region gates, and how to
-  build a brain config and a probe input vector. Adding a future brain generation means writing a new
-  `profiles/<id>.mjs` against the same shape (contract: `specs/012-class-seeded-forager-brain/contracts/
+- **The wide-io profile adds two more A1/A2 steps, on top of engine.mjs's generic ones** (ADR 007 "Calibration
+  protocol", research.md R11 of `specs/013-wide-io-forager-brain`): (1) A1 also probes this brain's own pools,
+  brain-only, with clamped inputs in A5's odour-plus-X design — **brake** (mouth taste plus food odour lowers raw
+  `forward` against food odour alone), **feed** (the same raises `feed`), **back** (leg taste raises `backward`),
+  **avoid** (heat-left raises `turn-right` over `turn-left`), **touch** (touch-left raises `turn-left`). Only the
+  directions D19 of ADR 007 gates in the extractor's own fidelity probe are gated here too; danger and escape are
+  recorded, not gated. (2) A2 additionally fits `outputScale.escape` like any other output, so the panel has a
+  range to show — that fit carries no behaviour claim (escape's physics stays off by default regardless). The
+  `wide-io` profile (`scripts/profiles/wide-io.mjs`) implements these as its own `conditions()` entries beyond the
+  three (`rest`/`odour`/`taste`) engine.mjs's generic `regime()`/`readout()` read directly; running the A1
+  pool-probe grid and the A2 escape fit is this skill's own session, not something `/speckit-implement` did.
+- **Per-version differences are profiles, not re-reading the ADRs.** `scripts/profiles/v1.mjs`,
+  `class-seed-11k.mjs` and `wide-io.mjs` already encode each profile's world/snapshot path, grid axes, per-region
+  gates, and how to build a brain config and a probe input vector. Adding a future brain generation means writing
+  a new `profiles/<id>.mjs` against the same shape (contract: `specs/012-class-seeded-forager-brain/contracts/
   calibration-profile.md`) — read an existing profile as the spec for the next one, not the ADRs again.
-- **A profile's `id` (the CLI's `--version=<id>` selector) is not the snapshot/protocol "version."** `v0`/`v1`
-  are the only values `flies.brain.version` ever takes (AGENTS.md, FR-001). `class-seed-11k` is a profile id for
-  a brain that still declares `brainVersion: "v1"` — naming a profile `v2` would wrongly imply a new protocol
-  generation, so profile ids are free-form and distinct from that axis.
+- **A profile's `id` (the CLI's `--version=<id>` selector) is not the snapshot/protocol "version."** `v0`/`v1`/`v2`
+  are the only values `flies.brain.version` ever takes (AGENTS.md, FR-001). `class-seed-11k` and `wide-io` are
+  profile ids for brains that declare `brainVersion: "v1"` and `"v2"` respectively — a profile id is free-form and
+  distinct from that axis; it is not itself a new protocol generation.
 - **v1 is already calibrated** (specs/008's `calibration.md`, adopted 2026-10-05/09) — its profile exists mainly
-  so the generic engine has a known-answer case, not because v1 needs recalibrating. `class-seed-11k`'s
-  calibration is open — see `adrs/006-class-seeded-forager-brain.md` "Calibration protocol" for the grid this
-  profile widens with (`inhibitoryScale`, adaptation, `thresholdJitter`) and the corrected gates it carries over.
+  so the generic engine has a known-answer case, not because v1 needs recalibrating. `class-seed-11k`'s and
+  `wide-io`'s calibrations are open — see `adrs/006-class-seeded-forager-brain.md` and
+  `adrs/007-wide-io-forager-brain.md` "Calibration protocol" for the grid each profile widens with
+  (`inhibitoryScale`, adaptation, `thresholdJitter`) and the corrected gates it carries over.
 - **Hard rules this skill must not violate** (AGENTS.md, "Working on brains"): calibration seeds
   (`experiment.seeds`) only, ever, for tuning; held-out seeds (`experiment.heldOut`) only for the one-time
   verdict, run separately, after a candidate is chosen. A failing metric is a finding to record, not a bug to
@@ -67,7 +79,8 @@ written once before (for v1) and had to be rebuilt for v2 in-session. This skill
 Before running any command, use `AskUserQuestion` to get the human's high-level direction. Do not guess these —
 they trade off real wall-clock time and are exactly the kind of call AGENTS.md reserves for a human:
 
-1. **Brain profile** — `v1`, `class-seed-11k`, or a brain this session should add a new profile for first.
+1. **Brain profile** — `v1`, `class-seed-11k`, `wide-io`, or a brain this session should add a new profile for
+   first.
 2. **How much of the protocol to run this session:**
    - *Quick look* (`--stage=classify`, a few minutes): just scan the scale axis and report which regions (if any)
      stay ignited no matter what — useful to sanity-check a hypothesis before committing to anything bigger.

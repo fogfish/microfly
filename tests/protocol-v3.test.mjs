@@ -79,3 +79,54 @@ test('a protocol 2 init on a version 4 snapshot is refused', () => {
   assert.equal(reply.type, 'error');
   assert.equal(reply.message, 'brain version does not match the message protocol');
 });
+
+// A minimal, valid version-4 snapshot object (as the worker receives it after fly.worker.js's own
+// parseSnapshot), kind "forager-wide": one input channel, six forager-wide drives, no edges.
+function wideSnapshot() {
+  const entry = (index, role, channel, sign) => ({ index, role, channel, bodyId: index, sign });
+  return {
+    version: 4, kind: 'forager-wide', neuronCount: 7, edgeCount: 0,
+    offsets: new Uint32Array(8), targets: new Uint32Array(0), weights: new Float32Array(0), synapses: new Uint16Array(0),
+    manifest: {
+      neurons: [
+        entry(0, 'input', 'odour-food-left', 1),
+        entry(1, 'output', 'turn-left', 1), entry(2, 'output', 'turn-right', 1), entry(3, 'output', 'forward', 1),
+        entry(4, 'output', 'backward', 1), entry(5, 'output', 'feed', 0), entry(6, 'output', 'escape', 0),
+      ],
+    },
+    capabilities: {
+      signals: ['spikes'],
+      channels: {
+        inputs: [{ id: 'odour-food-left', label: 'L', side: 'L', neurons: [0], range: [0, 1], sense: 'odour:food', site: 'antenna' }],
+        outputs: [
+          { id: 'turn-left', label: 'Turn left', side: 'L', neurons: [1], range: [0, 1], drive: 'turnLeft' },
+          { id: 'turn-right', label: 'Turn right', side: 'R', neurons: [2], range: [0, 1], drive: 'turnRight' },
+          { id: 'forward', label: 'Forward', side: 'both', neurons: [3], range: [0, 1], drive: 'forward' },
+          { id: 'backward', label: 'Backward', side: 'both', neurons: [4], range: [0, 1], drive: 'backward' },
+          { id: 'feed', label: 'Feed', side: 'both', neurons: [5], range: [0, 1], drive: 'feed' },
+          { id: 'escape', label: 'Escape', side: 'both', neurons: [6], range: [0, 1], drive: 'escape' },
+        ],
+      },
+    },
+  };
+}
+
+// Regression: worker-core.js's handleV1 init case once hardcoded version: 'v1', so a "v2" fly's worker always
+// asked checkBrainVersion for a "forager" snapshot and failed on every kind "forager-wide" snapshot.
+test('a "v2" init on a "forager-wide" snapshot succeeds through the worker (regression)', () => {
+  const core = createWorkerCore();
+  const { reply } = core.handle({
+    v: 3, type: 'init', flyId: 'fly-a', seed: 1, brain: { version: 'v2', snapshot: wideSnapshot() },
+  });
+  assert.equal(reply.type, 'ready');
+  assert.equal(reply.neuronCount, 7);
+});
+
+test('a "v1" init on a "forager-wide" snapshot is refused by the worker, naming both kinds', () => {
+  const core = createWorkerCore();
+  const { reply } = core.handle({
+    v: 3, type: 'init', flyId: 'fly-a', seed: 1, brain: { version: 'v1', snapshot: wideSnapshot() },
+  });
+  assert.equal(reply.type, 'error');
+  assert.match(reply.message, /needs a "forager" snapshot/);
+});

@@ -41,6 +41,7 @@ def write_dataset(data, directory):
         "rootSide": [r["rootSide"] for r in rows],
         "subclass": [r["subclass"] for r in rows],
         "receptorType": [r["receptorType"] for r in rows],
+        "entryNerve": pa.array([r.get("entryNerve") for r in rows], type=pa.string()),
     }), os.path.join(directory, ANNOTATIONS))
     feather.write_feather(pa.table({
         "body": [r["body"] for r in data["transmitters"]],

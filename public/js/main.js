@@ -106,7 +106,14 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   // Odour layer: off on load. The field and its canvas are built the first time the layer is turned on;
   // flowers never move, so they are not rebuilt (only repainted when the theme changes).
-  const stimulus = config.flies !== undefined ? resolveFlies(config).stimulus : { radius: 0, gain: 0, max: 0 };
+  // "v2" worlds have no singular flies.stimulus (contracts/world-config-wide-io.md); the layer's gain/max are
+  // read from the declared odour:food sense instead. That sense is already clamped to [0, 1] with no separate
+  // gain term (stimulus.js senseDistance), so gain 1 / max 1 reproduces it exactly.
+  const resolvedFlies = config.flies !== undefined ? resolveFlies(config) : null;
+  const stimulus = resolvedFlies === null ? { radius: 0, gain: 0, max: 0 }
+    : resolvedFlies.brain?.version === 'v2'
+      ? { radius: resolvedFlies.stimuli['odour:food']?.radius ?? 0, gain: 1, max: 1 }
+      : resolvedFlies.stimulus;
   const odourPoints = odourSources(config, logic);
   const legend = odourPoints.length > 0 ? { max: stimulus.max } : null;
   let layers = initialLayers();

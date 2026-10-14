@@ -6,6 +6,12 @@
 is a sibling dispatch value, not a replacement — a format-3/`"forager"` config, or a format-4 config with no
 `selection` key (or `selection: "forager"`), keeps extracting exactly as that contract describes.
 
+**Amended by**: [extract-config-forager-wide.md](../../013-wide-io-forager-brain/contracts/extract-config-forager-wide.md)
+(ADR 007) adds format 5 (`kind: "forager-wide"`), reusing this format's `selection: "classSeed"` rule verbatim
+(D18: "ADR 006 D8–D12 unchanged; only the pools move") with a `pair`-keyed side match, two new optional input
+filter keys (`entryNerves`, `excludeReceptorTypes`) and a declared `fidelity.checks` list in place of
+`minContrastFraction`. A format-4 config is unaffected.
+
 ## Dispatch
 
 | `formatVersion` | `kind` | `selection` | Brain | Container |

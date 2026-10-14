@@ -292,6 +292,12 @@ export function runWorldStage(profile, ctx, candidates, { ticks, allowHeldOut = 
     throw new Error('stage=world never runs held-out seeds, even with --allow-held-out: that flag does not exist '
       + 'for this stage. Held-out verification is a separate, explicit step after a candidate is chosen.');
   }
+  // forager-arms.mjs's runForagerArms dispatches on an arm NAME ("wide"/"v1"/...), a different namespace from
+  // flies.brain.version ("v0"/"v1"/"v2", FR-001). v1.mjs/class-seed-11k.mjs's brainVersion ("v1") happens to
+  // also be a recognised arm name, which is why this was never caught before profiles/wide-io.mjs (brainVersion
+  // "v2", which is NOT a recognised arm name -- it silently fell through to the v0-style fallback branch with
+  // v0Snapshot: undefined, so every stage=world run for a "v2" profile was never running its real brain at all).
+  const armName = profile.armName ?? profile.brainVersion;
   const seeds = f.experiment.seeds;
   const base = armMetrics(['baseline'], runForagerArms({
     f, world, expConfig, snapshot, arms: ['baseline'], seeds, ticks, capabilities,
@@ -304,11 +310,11 @@ export function runWorldStage(profile, ctx, candidates, { ticks, allowHeldOut = 
       ...f,
       brain: { ...f.brain, ...brain, motorSmoothing: c.motorSmoothing, lif: { ...brain.lif, outputScale } },
     };
-    const metrics = armMetrics([profile.brainVersion], runForagerArms({
-      f: fRun, world, expConfig, snapshot, arms: [profile.brainVersion], seeds, ticks, capabilities,
+    const metrics = armMetrics([armName], runForagerArms({
+      f: fRun, world, expConfig, snapshot, arms: [armName], seeds, ticks, capabilities,
     }), profile.odourRadius(f), 1);
     metrics.baseline = base;
-    const row = { ...c, brain: fRun.brain, drives, metrics: metrics[profile.brainVersion] };
+    const row = { ...c, brain: fRun.brain, drives, metrics: metrics[armName] };
     out.push(row);
     onCandidate?.(row, base);
   }

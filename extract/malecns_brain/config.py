@@ -6,7 +6,9 @@ import json
 import math
 import re
 
-from .capabilities import FORAGER_DRIVES, validate_capabilities, validate_capabilities_v4
+from .capabilities import (
+    FORAGER_DRIVES, FORAGER_WIDE_DRIVES, validate_capabilities, validate_capabilities_v4, validate_capabilities_v5,
+)
 from .errors import ExtractError
 
 TOP_KEYS = {
@@ -110,20 +112,28 @@ def validate(config):
 
 def format_of(config):
     """Dispatch on (formatVersion, kind, selection): 'small' for 2 without kind, 'forager' for 3 with kind
-    forager, 'classSeed' for 4 with kind forager and selection classSeed (contracts/extract-config-classseed.md).
+    forager, 'classSeed' for 4 with kind forager and selection classSeed (contracts/extract-config-classseed.md),
+    'foragerWide' for 5 with kind forager-wide and selection classSeed (contracts/extract-config-forager-wide.md).
 
     Any other combination stops with E-CONFIG naming the key (contracts/extract-config-forager.md,
-    contracts/extract-config-classseed.md).
+    contracts/extract-config-classseed.md, contracts/extract-config-forager-wide.md).
     """
     if not isinstance(config, dict):
         _fail("config must be a JSON object")
     version = config.get("formatVersion")
-    if version not in (2, 3, 4):
-        _fail("formatVersion must be 2 (small brain), 3 (forager brain) or 4 (class-seeded forager brain)")
+    if version not in (2, 3, 4, 5):
+        _fail("formatVersion must be 2 (small brain), 3 (forager brain), 4 (class-seeded forager brain) "
+              "or 5 (wide-I/O forager brain)")
     if version == 2:
         if "kind" in config:
             _fail("kind is not allowed with formatVersion 2")
         return "small"
+    if version == 5:
+        if config.get("kind") != "forager-wide":
+            _fail('kind is required with formatVersion 5 and must be "forager-wide"')
+        if config.get("selection") != "classSeed":
+            _fail('selection is required with formatVersion 5 and must be "classSeed"')
+        return "foragerWide"
     if "kind" not in config:
         _fail('kind is required with formatVersion 3 or 4 and must be "forager"')
     if config["kind"] != "forager":
@@ -389,6 +399,213 @@ def _check_seed_filters(seeds):
             _fail(f"unknown key in seeds[{index}]: {unknown[0]}")
 
 
+def _check_forager_wide_capabilities(decl, inputs, outputs):
+    """Like _check_forager_capabilities, for the v5 declaration (channel-declaration-v5.md): C1, then R1-R6 and
+    R9-R11. The pool members are not known before selection, so each channel gets a placeholder neuron for the
+    check; R5 is checked again when the container is written, with the real neurons."""
+    if isinstance(decl, dict) and isinstance(decl.get("channels"), dict):
+        channels = decl["channels"]
+        declared_in = [ch.get("id") for ch in channels.get("inputs", []) if isinstance(ch, dict)]
+        declared_out = {ch.get("id"): ch.get("drive") for ch in channels.get("outputs", []) if isinstance(ch, dict)}
+        for cid in declared_in:
+            if cid not in inputs:
+                _fail(f"capabilities input {cid} is not declared in inputs")
+        for cid in inputs:
+            if cid not in declared_in:
+                _fail(f"inputs {cid} is missing from capabilities")
+        for cid, drive in declared_out.items():
+            if cid not in outputs:
+                _fail(f"capabilities output {cid} is not declared in outputs")
+            if drive != outputs[cid]["drive"]:
+                _fail(f"capabilities output {cid} has drive {drive}, outputs declares {outputs[cid]['drive']}")
+        for cid in outputs:
+            if cid not in declared_out:
+                _fail(f"outputs {cid} is missing from capabilities")
+
+        template = copy.deepcopy(decl)
+        template_channels = template["channels"]
+        everything = [ch for ch in template_channels.get("inputs", []) + template_channels.get("outputs", [])
+                      if isinstance(ch, dict)]
+        for slot, channel in enumerate(everything):
+            channel["neurons"] = [slot]
+        decl = template
+    try:
+        validate_capabilities_v5(decl, math.inf, subject="config")
+    except ValueError as error:
+        _fail(str(error))
+
+
+WIDE_INPUT_KEYS = INPUT_KEYS | {"pair", "entryNerves", "excludeReceptorTypes"}
+WIDE_FIDELITY_KEYS = {"require", "steps", "checks"}
+WIDE_CHECK_KEYS = {"contrast": {"kind", "pair", "minFraction"}, "sign": {"kind", "from", "to"}}
+
+
+def validate_forager_wide(config):
+    """Raise E-CONFIG for an invalid key or value under formatVersion 5, kind "forager-wide", selection
+    "classSeed" (ADR 007 D20, contracts/extract-config-forager-wide.md). Every format-4 key is reused verbatim
+    (CLASS_SEED_KEYS); new or changed: `inputs[cid].pair` (required), `inputs[cid].entryNerves`/
+    `excludeReceptorTypes` (optional filters), `sideMatch` keyed by every declared pair instead of by class/
+    pathway, `outputs` may include `escape`, and `fidelity.checks` replaces `minContrastFraction`. Flow-strategy
+    -only keys are still E-CONFIG if present, exactly as format 4.
+    """
+    if not isinstance(config, dict):
+        _fail("config must be a JSON object")
+    present_forbidden = sorted(set(config) & CLASS_SEED_FORBIDDEN_KEYS)
+    if present_forbidden:
+        _fail(f'{present_forbidden[0]} does not apply to selection "classSeed"')
+    unknown = sorted(set(config) - CLASS_SEED_KEYS)
+    if unknown:
+        _fail(f"unknown key: {unknown[0]}")
+    missing = sorted(CLASS_SEED_KEYS - set(config))
+    if missing:
+        _fail(f"missing key: {missing[0]}")
+
+    if config["formatVersion"] != 5 or config["kind"] != "forager-wide" or config["selection"] != "classSeed":
+        _fail('formatVersion 5 with kind "forager-wide" and selection "classSeed" is required')
+    if not isinstance(config["datasetRelease"], str) or not config["datasetRelease"]:
+        _fail("datasetRelease must be a non-empty string")
+    if config["edgeVariant"] != "traced-only":
+        _fail("edgeVariant must be traced-only")
+
+    _check_keys(config["expect"], "expect", EXPECT_KEYS)
+    for key in sorted(EXPECT_KEYS):
+        if not _is_int(config["expect"][key]) or config["expect"][key] < 0:
+            _fail(f"expect.{key} must be an integer ≥ 0")
+
+    if config["admission"] != "allTraced":
+        _fail('admission must be "allTraced"')
+    if not isinstance(config["transmitterColumn"], str) or not config["transmitterColumn"]:
+        _fail("transmitterColumn must be a non-empty string")
+
+    signs = config["transmitterSign"]
+    if not isinstance(signs, dict):
+        _fail("transmitterSign must be an object")
+    for transmitter, sign in signs.items():
+        if not _is_int(sign) or sign not in SIGNS:
+            _fail(f"transmitterSign value for {transmitter} must be 1 or -1")
+    if config["defaultSign"] not in SIGNS:
+        _fail("defaultSign must be 1 or -1")
+
+    min_synapses = config["minSynapses"]
+    if not _is_int(min_synapses) or min_synapses < 1:
+        _fail("minSynapses must be an integer ≥ 1")
+
+    _check_seed_filters(config["seeds"])
+
+    fill = config["fill"]
+    if not isinstance(fill, dict):
+        _fail("fill must be an object")
+    unknown = sorted(set(fill) - FILL_KEYS)
+    if unknown:
+        _fail(f"unknown key in fill: {unknown[0]}")
+    missing = sorted(FILL_KEYS - set(fill))
+    if missing:
+        _fail(f"missing key in fill: {missing[0]}")
+    if not _is_int(fill["neuronCount"]) or fill["neuronCount"] < 1:
+        _fail("fill.neuronCount must be an integer ≥ 1")
+    if not _is_str_list(fill["excludeClasses"], allow_empty=True):
+        _fail("fill.excludeClasses must be a list of strings")
+    if not isinstance(fill["excludeSuperclassSuffix"], str):
+        _fail("fill.excludeSuperclassSuffix must be a string")
+    if not _is_str_list(fill["excludeSuperclasses"], allow_empty=True):
+        _fail("fill.excludeSuperclasses must be a list of strings")
+
+    inputs = config["inputs"]
+    if not isinstance(inputs, dict) or not inputs:
+        _fail("inputs must be a non-empty object")
+    pairs = set()
+    for name, spec in inputs.items():
+        if not isinstance(spec, dict):
+            _fail(f"inputs.{name} must be an object")
+        unknown = sorted(set(spec) - WIDE_INPUT_KEYS)
+        if unknown:
+            _fail(f"unknown key in inputs.{name}: {unknown[0]}")
+        if not (isinstance(spec.get("class"), str) and spec["class"]):
+            _fail(f"inputs.{name}.class must be a non-empty string")
+        if spec.get("rootSide") not in ("L", "R"):
+            _fail(f'inputs.{name}.rootSide must be "L" or "R"')
+        if not (isinstance(spec.get("pair"), str) and spec["pair"]):
+            _fail(f"inputs.{name}.pair must be a non-empty string")
+        pairs.add(spec["pair"])
+        pools = [key for key in ("types", "subclasses", "typePrefixes") if key in spec]
+        if not pools:
+            _fail(f"inputs.{name} needs types, subclasses or typePrefixes")
+        for key in pools:
+            if not _is_str_list(spec[key]):
+                _fail(f"inputs.{name}.{key} must be a non-empty list of strings")
+        if "entryNerves" in spec and not _is_str_list(spec["entryNerves"]):
+            _fail(f"inputs.{name}.entryNerves must be a non-empty list of strings")
+        if "excludeReceptorTypes" in spec and not _is_str_list(spec["excludeReceptorTypes"]):
+            _fail(f"inputs.{name}.excludeReceptorTypes must be a non-empty list of strings")
+
+    side = config["sideMatch"]
+    if not (isinstance(side, dict) and set(side) == pairs and all(isinstance(v, bool) for v in side.values())):
+        _fail("sideMatch must be an object keyed by every declared pair, with boolean values")
+
+    outputs = config["outputs"]
+    if not isinstance(outputs, dict) or not outputs:
+        _fail("outputs must be a non-empty object")
+    for name, spec in outputs.items():
+        if not isinstance(spec, dict):
+            _fail(f"outputs.{name} must be an object")
+        unknown = sorted(set(spec) - OUTPUT_KEYS)
+        if unknown:
+            _fail(f"unknown key in outputs.{name}: {unknown[0]}")
+        if not _is_str_list(spec.get("types")):
+            _fail(f"outputs.{name}.types must be a non-empty list of strings")
+        if spec.get("drive") not in FORAGER_WIDE_DRIVES:
+            _fail(f"outputs.{name}.drive must be one of {', '.join(FORAGER_WIDE_DRIVES)}")
+        if "somaSide" in spec and spec["somaSide"] not in ("L", "R"):
+            _fail(f'outputs.{name}.somaSide must be "L" or "R"')
+
+    _check_forager_wide_capabilities(config["capabilities"], inputs, outputs)
+    _check_modulators(config["modulators"], inputs)
+
+    if config["weightRule"] not in ("postFraction", "postFractionAbsolute"):
+        _fail('weightRule must be "postFraction" or "postFractionAbsolute"')
+
+    fidelity = config["fidelity"]
+    if not isinstance(fidelity, dict):
+        _fail("fidelity must be an object")
+    unknown = sorted(set(fidelity) - WIDE_FIDELITY_KEYS)
+    if unknown:
+        _fail(f"unknown key in fidelity: {unknown[0]}")
+    missing = sorted(WIDE_FIDELITY_KEYS - set(fidelity))
+    if missing:
+        _fail(f"missing key in fidelity: {missing[0]}")
+    if not isinstance(fidelity["require"], bool):
+        _fail("fidelity.require must be a boolean")
+    if not _is_int(fidelity["steps"]) or fidelity["steps"] < 1:
+        _fail("fidelity.steps must be an integer ≥ 1")
+    checks = fidelity["checks"]
+    if not isinstance(checks, list):
+        _fail("fidelity.checks must be a list")
+    for index, check in enumerate(checks):
+        if not isinstance(check, dict):
+            _fail(f"fidelity.checks[{index}] must be an object")
+        kind = check.get("kind")
+        if kind not in WIDE_CHECK_KEYS:
+            _fail(f'fidelity.checks[{index}].kind must be "contrast" or "sign"')
+        unknown = sorted(set(check) - WIDE_CHECK_KEYS[kind])
+        if unknown:
+            _fail(f"unknown key in fidelity.checks[{index}]: {unknown[0]}")
+        if kind == "contrast":
+            if check.get("pair") not in pairs:
+                _fail(f"fidelity.checks[{index}].pair names an undeclared pair")
+            if not _is_number(check.get("minFraction")) or check["minFraction"] < 0:
+                _fail(f"fidelity.checks[{index}].minFraction must be a number ≥ 0")
+        else:
+            if check.get("from") not in pairs:
+                _fail(f"fidelity.checks[{index}].from names an undeclared pair")
+            if check.get("to") not in outputs:
+                _fail(f"fidelity.checks[{index}].to names an undeclared output")
+
+    bounds = config["neuronCountRange"]
+    if not (isinstance(bounds, list) and len(bounds) == 2 and all(_is_int(b) and b >= 0 for b in bounds)
+            and bounds[0] <= bounds[1]):
+        _fail("neuronCountRange must be [min, max] with min ≤ max")
+
+
 def validate_class_seed(config):
     """Raise E-CONFIG for an invalid key or value under selection "classSeed" (format 4, ADR 006 D14,
 
@@ -540,6 +757,8 @@ def load_config(path):
         validate_forager(config)
     elif kind == "classSeed":
         validate_class_seed(config)
+    elif kind == "foragerWide":
+        validate_forager_wide(config)
     else:
         validate(config)
     return config

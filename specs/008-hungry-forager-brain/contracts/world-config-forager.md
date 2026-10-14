@@ -4,6 +4,11 @@
 `public/world/README.md` and the `flies` section of [specs/002 fly-config](../../002-toy-lif-fly-network/contracts/fly-config.md).
 Existing world files keep their meaning (spec FR-002, FR-005).
 
+**Amended by**: [world-config-wide-io.md](../../013-wide-io-forager-brain/contracts/world-config-wide-io.md)
+(ADR 007) adds `flies.brain.version: "v2"` (the identical `v1` LIF stack, a `kind: "forager-wide"` snapshot) and,
+only for `"v2"`, `flies.stimuli`/`flies.body.sites` (replacing the singular `flies.stimulus` this contract
+defines) and `flies.body.escape`. Every rule here keeps applying unchanged to `"mock"`/`"v0"`/`"v1"`.
+
 ## `flies.brain`
 
 | Key | Rule |

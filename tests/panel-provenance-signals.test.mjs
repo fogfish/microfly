@@ -59,3 +59,41 @@ test('mock/v0/shipped-v1 fixtures (no new fields at all) never select the proven
     { neurons: [{ index: 0 }, { index: 1 }] });
   assert.deepEqual(selectSections([provenanceSection], shipped), []);
 });
+
+// Minimal DOM stub (the same approach as tests/panel-wide-channels.test.mjs): provenanceSection.mount only
+// calls createElement/replaceChildren/append and dom.js's setText (which just sets textContent), so a tiny
+// element graph is enough, with no DOM library dependency.
+class FakeElement {
+  constructor(tag) { this.tagName = tag; this.className = ''; this.textContent = ''; this.hidden = false; this.children = []; }
+  appendChild(node) { this.children.push(node); return node; }
+  append(...nodes) { this.children.push(...nodes); }
+  replaceChildren(...nodes) { this.children = nodes; }
+  addEventListener() {}
+}
+globalThis.document = { createElement: (tag) => new FakeElement(tag) };
+
+test('the fidelity summary reads a format-5 "checks" report (ADR 007 D19), not only the format-4 steering/feeding pair', () => {
+  const body = document.createElement('div');
+  const model = {
+    provenance: {},
+    fidelity: {
+      table: {},
+      checks: [{ kind: 'contrast', pair: 'odour-food', pass: true }, { kind: 'sign', from: 'taste-mouth', to: 'feed', pass: true }],
+    },
+  };
+  const { update } = provenanceSection.mount(body, model);
+  const [, fidelityBox] = body.children;
+  const summary = fidelityBox.children[0];
+  assert.equal(summary.textContent, 'Fidelity probe: pass');
+
+  update({ ...model, fidelity: { ...model.fidelity, checks: [{ pass: true }, { pass: false }] } });
+  assert.equal(fidelityBox.children[0].textContent, 'Fidelity probe: FAIL');
+});
+
+test('the fidelity summary still reads a format-4 steering/feeding report unchanged (regression guard)', () => {
+  const body = document.createElement('div');
+  const model = { provenance: {}, fidelity: { table: {}, steering: { pass: true }, feeding: { pass: true } } };
+  provenanceSection.mount(body, model);
+  const [, fidelityBox] = body.children;
+  assert.equal(fidelityBox.children[0].textContent, 'Fidelity probe: pass');
+});

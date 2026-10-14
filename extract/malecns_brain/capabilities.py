@@ -113,10 +113,14 @@ def validate_capabilities(decl, neuron_count, subject="snapshot"):
 # A v4 channel lists its neurons (a pool) in place of one neuron. `kind` is the header kind: "forager" carries the
 # five forager drives. Applies the same rules, with the same messages, as public/js/brain/capabilities.js.
 FORAGER_DRIVES = ("turnLeft", "turnRight", "forward", "backward", "feed")
+# kind "forager-wide" (ADR 007 D17/W11, channel-declaration-v5.md R10): the five forager drives plus escape.
+FORAGER_WIDE_DRIVES = ("turnLeft", "turnRight", "forward", "backward", "feed", "escape")
 TANK_DRIVES = ("left", "right")
-KIND_DRIVES = {"forager": FORAGER_DRIVES, "tank": TANK_DRIVES}
+KIND_DRIVES = {"forager": FORAGER_DRIVES, "tank": TANK_DRIVES, "forager-wide": FORAGER_WIDE_DRIVES}
 INPUT_FIELDS_V4 = ("id", "label", "side", "neurons", "range")
 DECLARATION_FIELDS_V4 = INPUT_FIELDS_V4 + ("drive",)
+INPUT_FIELDS_V5 = INPUT_FIELDS_V4 + ("sense", "site")
+# Outputs are unchanged in shape (channel-declaration-v5.md): only inputs gain sense/site.
 
 
 def validate_capabilities_v4(decl, neuron_count, kind, subject="snapshot"):
@@ -189,6 +193,91 @@ def validate_capabilities_v4(decl, neuron_count, kind, subject="snapshot"):
     # R8: no fields beyond the declaration (inputs take no drive).
     for channel, role in everything:
         allowed = INPUT_FIELDS_V4 if role == "input" else DECLARATION_FIELDS_V4
+        for key in channel:
+            if key not in allowed:
+                _fail(f"{subject} channel {channel['id']} has unknown field {key}")
+
+
+def validate_capabilities_v5(decl, neuron_count, subject="snapshot"):
+    """Channel declaration, version 5 (contracts/channel-declaration-v5.md): applies only when the container
+    header's kind is "forager-wide". R1-R6 and R8 of v4 stay exactly as they are (kind "forager" keeps
+    validate_capabilities_v4 unedited); this adds R9 (sense/site), R10 (the six forager-wide drives,
+    generalising R7) and R11 (allowed fields, generalising R8). public/js/brain/capabilities.js mirrors this.
+    """
+    # R1: present and an object.
+    if not isinstance(decl, dict):
+        _fail(f"{subject} capabilities are missing")
+
+    # R2: signals are a list of unique strings; inputs and outputs are lists.
+    signals = decl.get("signals")
+    if not (isinstance(signals, list) and all(isinstance(s, str) for s in signals)
+            and len(set(signals)) == len(signals)):
+        _fail(f"{subject} signals are malformed")
+    channels = decl.get("channels")
+    if not (isinstance(channels, dict) and isinstance(channels.get("inputs"), list)
+            and isinstance(channels.get("outputs"), list)):
+        _fail(f"{subject} channels are malformed")
+    inputs, outputs = channels["inputs"], channels["outputs"]
+    everything = [(ch, "input") for ch in inputs] + [(ch, "output") for ch in outputs]
+
+    # R3: ids match the pattern and are unique across inputs and outputs.
+    seen = set()
+    for channel, _ in everything:
+        cid = _name(channel)
+        if not (isinstance(cid, str) and ID_PATTERN.fullmatch(cid)):
+            _fail(f"{subject} channel {cid} has a malformed id")
+        if cid in seen:
+            _fail(f"duplicate id {cid}")
+        seen.add(cid)
+
+    # R4: label, side, neurons (non-empty list of distinct integers) and range.
+    for channel, _ in everything:
+        cid = channel["id"]
+        label = channel.get("label")
+        if not (isinstance(label, str) and 0 < len(label) <= LABEL_MAX):
+            _fail(f"{subject} channel {cid} is malformed: label")
+        if channel.get("side") not in SIDES:
+            _fail(f"{subject} channel {cid} is malformed: side")
+        neurons = channel.get("neurons")
+        listed = isinstance(neurons, list) and len(neurons) > 0 and all(_is_int(n) for n in neurons)
+        if not listed or len(set(neurons)) != len(neurons):
+            _fail(f"{subject} channel {cid} is malformed: neurons")
+        rng = channel.get("range", DEFAULT_RANGE)
+        if not (isinstance(rng, list) and len(rng) == 2 and all(_is_number(x) for x in rng) and rng[0] < rng[1]):
+            _fail(f"{subject} channel {cid} is malformed: range")
+
+    # R5: every neuron index is at least 0 and below neuronCount.
+    for channel, _ in everything:
+        for n in channel["neurons"]:
+            if not (0 <= n < neuron_count):
+                _fail(f"{subject} channel {channel['id']} references neuron {n} outside neuronCount")
+
+    # R6: no two input channels share a neuron.
+    owner = {}
+    for channel in inputs:
+        for n in channel["neurons"]:
+            if n in owner:
+                _fail(f"{subject} input channels {owner[n]} and {channel['id']} share neuron {n}")
+            owner[n] = channel["id"]
+
+    # R9: every input channel carries a non-empty sense and site.
+    for channel in inputs:
+        sense = channel.get("sense")
+        if not (isinstance(sense, str) and sense):
+            _fail(f"{subject} channel {channel['id']} is malformed: sense")
+        site = channel.get("site")
+        if not (isinstance(site, str) and site):
+            _fail(f"{subject} channel {channel['id']} is malformed: site")
+
+    # R10: the outputs carry exactly the six forager-wide drives, each once.
+    wanted = KIND_DRIVES["forager-wide"]
+    drives = [ch.get("drive") for ch in outputs]
+    if len(drives) != len(wanted) or not all(d in drives for d in wanted):
+        _fail(f"{subject} outputs must have exactly one of each forager-wide drive")
+
+    # R11: no fields beyond the declaration (inputs take sense and site; outputs are unchanged from v4).
+    for channel, role in everything:
+        allowed = INPUT_FIELDS_V5 if role == "input" else DECLARATION_FIELDS_V4
         for key in channel:
             if key not in allowed:
                 _fail(f"{subject} channel {channel['id']} has unknown field {key}")

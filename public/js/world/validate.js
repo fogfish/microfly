@@ -15,7 +15,10 @@ const GROVE_MIN = 4;
 const GROVE_MAX = 12;
 const MAX_SPRITE_SIDE = 32;
 const SEED_MAX = 4294967295;
-const BRAIN_VERSIONS = ['mock', 'v0', 'v1'];
+const BRAIN_VERSIONS = ['mock', 'v0', 'v1', 'v2'];
+// flies.stimuli[sense].from (contracts/world-config-wide-io.md): "edibles"/"dangers" sample a world object list;
+// "blocked" (touch) reads world walkability directly, with no object list.
+const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked'];
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -348,9 +351,17 @@ function validateFlies(flies, config, err) {
   // fly instead of the one fly.sprite/baselineSprite pair. Declared in data (constitution VI), not chosen in code.
   if (flies.sex !== undefined) validateFlySex(flies.sex, flies.count ?? 6, hasSprite, err);
 
-  validateFlyBody(flies.body, err);
+  // The brain version is resolved early (duplicating validateFlyBrain's own inference): flies.body.sites,
+  // flies.stimuli and flies.body.escape (contracts/world-config-wide-io.md) are all gated on it being "v2".
+  const brainVersionGuess = BRAIN_VERSIONS.includes(flies.brain?.version) ? flies.brain.version
+    : (flies.brain?.snapshot !== undefined ? 'v0' : 'mock');
+
+  validateFlyBody(flies.body, err, brainVersionGuess);
   validateFlyFood(flies.food, err);
-  validateFlyStimulus(flies.stimulus, edible, err);
+  // v2 senses generically from flies.stimuli (contracts/world-config-wide-io.md), not the old singular
+  // flies.stimulus (v0/v1's antenna gain/max/resting/radius), so the two are mutually exclusive by version.
+  if (brainVersionGuess === 'v2') validateFlyStimuliWide(flies.stimuli, err);
+  else validateFlyStimulus(flies.stimulus, edible, err);
 
   // The brain is ignored in baseline mode, so it is only checked for toy flies
   if ((flies.mode ?? 'toy') === 'toy') validateFlyBrain(flies.brain, err);
@@ -376,7 +387,7 @@ function validateFlySex(sex, count, hasSprite, err) {
   }
 }
 
-function validateFlyBody(body, err) {
+function validateFlyBody(body, err, version) {
   if (!isObject(body)) {
     err('flies.body', 'must be an object with maxSpeed and turnRate');
     return;
@@ -399,6 +410,83 @@ function validateFlyBody(body, err) {
         err('flies.body.energy.intake', 'must be a number of 0 or more');
       }
     }
+  }
+
+  // flies.body.sites (v2 only, contracts/world-config-wide-io.md).
+  if (version === 'v2') validateBodySites(body.sites, err);
+
+  // flies.body.escape (v2 only; contracts/world-config-wide-io.md). Present under any other version is refused.
+  if (body.escape !== undefined && version !== 'v2') {
+    err('flies.body.escape', 'is only for version "v2"');
+  } else if (version === 'v2') {
+    validateFlyEscape(body.escape, err);
+  }
+}
+
+// flies.stimuli (v2 only; contracts/world-config-wide-io.md): one entry per sense a forager-wide snapshot
+// declares. Shape only is checked here; "missing sense declared by a channel" is a runtime check at snapshot
+// load (the snapshot's declaration is not known at static world-config validation time).
+function validateFlyStimuliWide(stimuli, err) {
+  if (!isObject(stimuli)) {
+    err('flies.stimuli', 'must be an object');
+    return;
+  }
+  for (const [sense, spec] of Object.entries(stimuli)) {
+    const path = `flies.stimuli.${sense}`;
+    if (!isObject(spec)) {
+      err(path, 'must be an object with from');
+      continue;
+    }
+    if (!STIMULUS_SOURCES.includes(spec.from)) {
+      err(`${path}.from`, `must be one of ${STIMULUS_SOURCES.map((s) => `"${s}"`).join(', ')}`);
+    }
+    if (spec.kinds !== undefined && !(Array.isArray(spec.kinds) && spec.kinds.length > 0 && spec.kinds.every(isText))) {
+      err(`${path}.kinds`, 'must be a non-empty list of strings');
+    }
+    if (spec.scaleBy !== undefined && spec.scaleBy !== 'stock') err(`${path}.scaleBy`, 'must be "stock"');
+    if (spec.radius !== undefined && !(isNum(spec.radius) && spec.radius > 0)) {
+      err(`${path}.radius`, 'must be a number greater than 0');
+    }
+    if (spec.contact !== undefined && typeof spec.contact !== 'boolean') err(`${path}.contact`, 'must be true or false');
+  }
+}
+
+// flies.body.sites (v2 only; contracts/world-config-wide-io.md): one entry per body site a forager-wide
+// snapshot declares, each a forward/lateral offset in tiles (ADR 007 W9).
+function validateBodySites(sites, err) {
+  if (!isObject(sites)) {
+    err('flies.body.sites', 'must be an object');
+    return;
+  }
+  for (const [site, spec] of Object.entries(sites)) {
+    const path = `flies.body.sites.${site}`;
+    if (!isObject(spec)) {
+      err(path, 'must be an object with forward and lateral');
+      continue;
+    }
+    if (!isNum(spec.forward)) err(`${path}.forward`, 'must be a number');
+    if (!isNum(spec.lateral)) err(`${path}.lateral`, 'must be a number');
+  }
+}
+
+// flies.body.escape (v2 only; contracts/world-config-wide-io.md): off by default (ADR 007 D17/W10).
+function validateFlyEscape(escape, err) {
+  if (escape === undefined) return;
+  if (!isObject(escape)) {
+    err('flies.body.escape', 'must be an object');
+    return;
+  }
+  if (escape.enabled !== undefined && typeof escape.enabled !== 'boolean') {
+    err('flies.body.escape.enabled', 'must be true or false');
+  }
+  if (escape.threshold !== undefined && !(isNum(escape.threshold) && escape.threshold >= 0 && escape.threshold <= 1)) {
+    err('flies.body.escape.threshold', 'must be a number from 0 to 1');
+  }
+  if (escape.distance !== undefined && !(isNum(escape.distance) && escape.distance > 0)) {
+    err('flies.body.escape.distance', 'must be a number greater than 0');
+  }
+  if (escape.cooldown !== undefined && !(isNum(escape.cooldown) && escape.cooldown > 0)) {
+    err('flies.body.escape.cooldown', 'must be a number greater than 0');
   }
 }
 
@@ -458,7 +546,7 @@ function validateFlyBrain(brain, err) {
   const snapshot = brain.snapshot;
   const isSnapshot = snapshot !== undefined;
   if (brain.version !== undefined && !BRAIN_VERSIONS.includes(brain.version)) {
-    err('flies.brain.version', 'must be "mock", "v0" or "v1"');
+    err('flies.brain.version', 'must be "mock", "v0", "v1" or "v2"');
   }
   const version = BRAIN_VERSIONS.includes(brain.version) ? brain.version : (isSnapshot ? 'v0' : 'mock');
   if (version === 'mock' && isSnapshot) {
@@ -512,9 +600,10 @@ function validateFlyBrain(brain, err) {
     if (problem) err('flies.brain.capabilities', problem);
   }
 
-  // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1.
+  // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1 and v2
+  // (ADR 007, "Decisions: LIF core and runner" -- v2 runs the identical lif-v1.js/fly-brain-v1.js path).
   if (brain.stepsPerTick !== undefined) {
-    if (version !== 'v1') err('flies.brain.stepsPerTick', 'is only for version "v1"');
+    if (version !== 'v1' && version !== 'v2') err('flies.brain.stepsPerTick', 'is only for version "v1" or "v2"');
     else if (!isInt(brain.stepsPerTick, 1, 20)) err('flies.brain.stepsPerTick', 'must be an integer from 1 to 20');
   }
 
@@ -523,7 +612,7 @@ function validateFlyBrain(brain, err) {
       err('flies.brain.lif', 'must be an object of LIF parameters');
       return;
     }
-    const defaults = version === 'v1' ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
+    const defaults = (version === 'v1' || version === 'v2') ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
     const entries = Object.entries(brain.lif);
     const unknown = entries.filter(([key]) => !Object.hasOwn(defaults, key));
     for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
@@ -548,7 +637,7 @@ function validateFlyBrain(brain, err) {
     // Range checks (dt > 0, vThreshold > vReset, ...) live in the engine (lif-v0.js, lif-v1.js), so they match it
     if (unknown.length === 0 && notNumbers.length === 0 && !outputScaleShapeInvalid) {
       try {
-        if (version === 'v1') resolveParamsV1(brain.lif);
+        if (version === 'v1' || version === 'v2') resolveParamsV1(brain.lif);
         else resolveParams(brain.lif);
       } catch (e) {
         err('flies.brain.lif', e.message);

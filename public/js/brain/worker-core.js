@@ -59,8 +59,8 @@ export function createWorkerCore() {
     }
   }
 
-  // Protocol 3: forager (v1) brains. The init checks the brain version against the snapshot, then the sense runs one
-  // brain tick and the reply is a protocol 3 motor.
+  // Protocol 3: forager (v1 and v2) brains. The init checks the brain version against the snapshot, then the
+  // sense runs one brain tick and the reply is a protocol 3 motor.
   function handleV1(msg) {
     const failV3 = (id, tick, message) => {
       failed = true;
@@ -73,7 +73,7 @@ export function createWorkerCore() {
       case 'init': {
         if (msg.brain.snapshot?.version !== 4) return failV3(msg.flyId, null, MISMATCH);
         try {
-          brain = createFlyBrain({ ...msg.brain, version: 'v1' }, msg.seed);
+          brain = createFlyBrain({ ...msg.brain, version: msg.brain.version ?? 'v1' }, msg.seed);
         } catch (e) {
           return failV3(msg.flyId, null, e.message);
         }

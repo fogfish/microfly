@@ -68,6 +68,8 @@ def _pool_fields(row):
         "rootSide": row.get("rootSide"),
         "subclass": row.get("subclass"),
         "receptorType": row.get("receptorType"),
+        # entryNerve (ADR 007 D15): the wide-I/O brain's entryNerves/excludeReceptorTypes filters need it.
+        "entryNerve": row.get("entryNerve"),
     }
 
 
