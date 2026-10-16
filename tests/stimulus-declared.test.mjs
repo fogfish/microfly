@@ -70,6 +70,21 @@ test('senseDeclared: touch (from "blocked") reads 1 on a non-walkable cell, 0 on
   assert.equal(senseDeclared(spec, at, clear), 0);
 });
 
+// contracts/stimuli-field-sources.md §3: spec.field dispatches to sampler.fieldAt, untouched.
+test('senseDeclared: spec.field reads the sampler\'s fieldAt at the site\'s own cell, untouched', () => {
+  const fly = { x: 10, y: 10, heading: 0 };
+  const at = sitePoint(fly, ANTENNA, 'L');
+  const spec = { from: 'forestEdge', field: true };
+  const cx = Math.floor(at.x);
+  const cy = Math.floor(at.y);
+  const sampler = {
+    points: () => [],
+    contactAt: () => { throw new Error('must not be called'); },
+    fieldAt: (x, y) => (x === cx && y === cy ? 0.5 : 0),
+  };
+  assert.equal(senseDeclared(spec, at, sampler), 0.5);
+});
+
 test('senseDistance clamps the sum to 1', () => {
   const at = { x: 0, y: 0 };
   const points = [{ x: 0, y: 0, fraction: 1 }, { x: 0, y: 0, fraction: 1 }];

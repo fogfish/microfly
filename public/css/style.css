@@ -8,11 +8,27 @@
   --bar-left: #2563eb;
   --bar-right: #d97706;
   --bar-both: #7c3aed;
-  /* Odour heatmap ramp (007): "r, g, b" stops from low to high, and the alpha at full intensity */
+  /* Odour heatmap ramp (007): "r, g, b" stops from low to high, and the alpha at full intensity.
+     Spec 014 grows this to three independent channels (contracts/odour-layer-v2.md §3): --odour-food-* keeps
+     the original values (--odour-* stays as an alias so no older theme override breaks); --odour-danger-* and
+     --odour-heat-* are new, visually distinct ramps for the other two overlay layers. */
   --odour-low: 255, 214, 10;
   --odour-mid: 255, 128, 0;
   --odour-high: 220, 38, 38;
   --odour-alpha: 0.55;
+  --odour-food-low: 255, 214, 10;
+  --odour-food-mid: 255, 128, 0;
+  --odour-food-high: 220, 38, 38;
+  --odour-food-alpha: 0.55;
+  --odour-danger-low: 196, 181, 253;
+  --odour-danger-mid: 139, 92, 246;
+  --odour-danger-high: 76, 29, 149;
+  --odour-danger-alpha: 0.55;
+  --odour-heat-low: 191, 219, 254;
+  --odour-heat-mid: 59, 130, 246;
+  --odour-heat-high: 30, 58, 138;
+  --odour-heat-alpha: 0.55;
+  --grid-line-color: rgba(27, 29, 42, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +45,19 @@
     --odour-mid: 255, 140, 26;
     --odour-high: 239, 68, 68;
     --odour-alpha: 0.55;
+    --odour-food-low: 255, 224, 64;
+    --odour-food-mid: 255, 140, 26;
+    --odour-food-high: 239, 68, 68;
+    --odour-food-alpha: 0.55;
+    --odour-danger-low: 216, 180, 254;
+    --odour-danger-mid: 167, 139, 250;
+    --odour-danger-high: 109, 40, 217;
+    --odour-danger-alpha: 0.55;
+    --odour-heat-low: 191, 219, 254;
+    --odour-heat-mid: 96, 165, 250;
+    --odour-heat-high: 37, 99, 235;
+    --odour-heat-alpha: 0.55;
+    --grid-line-color: rgba(232, 230, 217, 0.18);
   }
 }
 
@@ -45,6 +74,19 @@
   --odour-mid: 255, 140, 26;
   --odour-high: 239, 68, 68;
   --odour-alpha: 0.55;
+  --odour-food-low: 255, 224, 64;
+  --odour-food-mid: 255, 140, 26;
+  --odour-food-high: 239, 68, 68;
+  --odour-food-alpha: 0.55;
+  --odour-danger-low: 216, 180, 254;
+  --odour-danger-mid: 167, 139, 250;
+  --odour-danger-high: 109, 40, 217;
+  --odour-danger-alpha: 0.55;
+  --odour-heat-low: 191, 219, 254;
+  --odour-heat-mid: 96, 165, 250;
+  --odour-heat-high: 37, 99, 235;
+  --odour-heat-alpha: 0.55;
+  --grid-line-color: rgba(232, 230, 217, 0.18);
 }
 
 html,
@@ -380,9 +422,24 @@ body {
   transition: none;
 }
 
+/* Each layer's ON colour matches its own ramp (007/014, contracts/odour-layer-v2.md): food keeps the
+   original --odour-* ON colour; danger, heat and grid each get their own token group. */
 #fly-panel button.arcade-switch[aria-checked="true"] {
-  background: rgb(var(--odour-high));
+  background: rgb(var(--odour-food-high));
   color: #fff;
+}
+
+#fly-panel .layer-row[data-layer="odour-danger"] button.arcade-switch[aria-checked="true"] {
+  background: rgb(var(--odour-danger-high));
+}
+
+#fly-panel .layer-row[data-layer="odour-heat"] button.arcade-switch[aria-checked="true"] {
+  background: rgb(var(--odour-heat-high));
+}
+
+#fly-panel .layer-row[data-layer="grid"] button.arcade-switch[aria-checked="true"] {
+  background: var(--fg);
+  color: var(--bg);
 }
 
 #fly-panel button.arcade-switch:active {
@@ -414,9 +471,27 @@ body {
   border: 2px solid currentColor;
   background: linear-gradient(
     to right,
-    rgba(var(--odour-low), 0),
-    rgba(var(--odour-mid), calc(var(--odour-alpha) * 0.5 + 0.25)),
-    rgba(var(--odour-high), 1)
+    rgba(var(--odour-food-low), 0),
+    rgba(var(--odour-food-mid), calc(var(--odour-food-alpha) * 0.5 + 0.25)),
+    rgba(var(--odour-food-high), 1)
+  );
+}
+
+.odour-legend[data-legend="odour-danger"] .legend-ramp {
+  background: linear-gradient(
+    to right,
+    rgba(var(--odour-danger-low), 0),
+    rgba(var(--odour-danger-mid), calc(var(--odour-danger-alpha) * 0.5 + 0.25)),
+    rgba(var(--odour-danger-high), 1)
+  );
+}
+
+.odour-legend[data-legend="odour-heat"] .legend-ramp {
+  background: linear-gradient(
+    to right,
+    rgba(var(--odour-heat-low), 0),
+    rgba(var(--odour-heat-mid), calc(var(--odour-heat-alpha) * 0.5 + 0.25)),
+    rgba(var(--odour-heat-high), 1)
   );
 }
 

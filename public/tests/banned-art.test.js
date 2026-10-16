@@ -13,7 +13,8 @@ const connectome = JSON.parse(read('../world/world-connectome.json'));
 const code = ['../js/world/ground.js', '../js/world/shore.js', '../js/world/layout.js', '../js/world/compose.js', '../js/world/water.js']
   .map(read).join('\n');
 
-const BANNED_TERRAIN = ['rocks2-terrain-004', 'rocks2-terrain-005', 'rocks2-terrain-006', 'rocks2-terrain-007'];
+// Ids of the zrpg-art catalogue of 2026-10-14 (spec 014 BUG-002): grass_tile_teal_dark, _sage, _green, _teal.
+const BANNED_TERRAIN = ['rocks2-terrain-026', 'rocks2-terrain-027', 'rocks2-terrain-028', 'rocks2-terrain-029'];
 const SAND = ['beach-terrain-001', 'beach-terrain-002'];
 const PEBBLES_AS_SHORE = ['beach-rock-001', 'beach-rock-002', 'beach-rock-003'];
 
@@ -25,12 +26,14 @@ test('no solid one-colour tile is used as ground (FR-004)', () => {
   }
 });
 
-test('no sand is used anywhere (FR-012, BUG-001)', () => {
+// Every shore is the grass style (FR-012, BUG-001). Sand is ground only where the sketch draws the dunes and the
+// rocky desert (spec 014 BUG-002, WORLD-SPEC §5), never shore art.
+test('no sand shore is used anywhere (FR-012, BUG-001)', () => {
   for (const id of SAND) {
     assert.ok(!code.includes(id), `${id} in code`);
     assert.ok(!JSON.stringify(config).includes(`"${id}"`), `${id} in world.json`);
   }
-  for (const b of config.waterBodies) assert.equal(b.shore, undefined, `${b.id} still sets a shore`);
+  for (const b of config.map.water.bodies) assert.equal(b.shore, undefined, `${b.id} still sets a shore`);
 });
 
 test('pebbles (beach-rock-001 to -003) are overlays, not shore art (FR-024)', () => {
@@ -54,8 +57,8 @@ test('no raw reed block, no rotated sprite and no water animation (BUG-002)', ()
   assert.ok(!/animations/.test(code), 'the water animation is read');
 });
 
-test('both world files have the same water (BUG-002, SC-011)', () => {
-  assert.deepEqual(connectome.waterBodies, config.waterBodies);
+test('both world files have the same map (BUG-002, SC-011)', () => {
+  assert.deepEqual(connectome.map, config.map);
 });
 
 test('honey is not an edible kind, in code or in either world file (BUG-001)', () => {
@@ -75,9 +78,9 @@ test('the fly sprites are 32 × 32 pixels (spec 009 FR-013, FR-021; BUG-002)', (
   }
 });
 
-test('the outcrop and the food sprites are used (FR-013, FR-024; spec 009 FR-001, FR-012)', () => {
+test('an outcrop and the food sprites are used (FR-013, FR-024; spec 009 FR-001, FR-012)', () => {
   const ids = JSON.stringify(config);
-  assert.ok(ids.includes('"outcrop_medium_grass"'));
+  assert.ok(/"rocks2\/outcrop_small(_shadow)?"/.test(ids));
   // FR-012 withdraws jungle-bush-018 and jungle-plant-016 (removed by FR-009); the food sprites stay
   for (const id of ['red_flower_plant', 'jungle-plant-010', 'jungle-plant-015']) {
     assert.ok(ids.includes(`"${id}"`), id);

@@ -1,23 +1,36 @@
 # World definitions
 
-`world.json` is the map the app draws. It is format version 3 (`"version": 3`). The app refuses any
-other version and names the version in the error panel.
+`world.json` is the map the app draws: the art pack's reference "Arcade World Map" (`zrpg-art/examples/world.html`,
+`WORLD-SPEC.md`) on a 64 × 40-cell grid of 32 px (spec 014 FR-026, [BUG-002](../../specs/014-sketch-world-map/bugs/BUG-002.md)).
+It is format version 3 (`"version": 3`). The app refuses any other version and names the version in the error panel.
 
-- Format, coordinates, outlines, groves, scatter, edibles and dangers:
-  [specs/005-world-tileset-environment/contracts/world-format.md](../../specs/005-world-tileset-environment/contracts/world-format.md)
-- Art: every sprite is an id or a unique name from `assets/atlas/catalog.json`.
-- Water: one lake and 2 to 3 ponds, each a `blob` outline. Shores, bank faces and shore decor are
-  drawn from the outline (grass shore style of the art pack's water spec). See "Water and shores"
-  in the format contract.
+- The `map` section holds the reference design's data in reference px (`reference: [1376, 768]`): water bodies,
+  organic ground areas (swamp, sand beach, rocky desert), trampled-grass trails, the edge-forest band with river
+  gaps, groves, mountains, region objects, scatter and the finish. Reference px scale to the grid per axis.
+  Contract: [world-format-sketch-map.md §7](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).
+  `world/sketch-map.js` plans it (pure) and `world/sketch-paint.js` paints it. A world has either `map` or the tile
+  sections (`ground`, `waterBodies`, `objects`, `groves`, `scatter`) of the format 005 contract, never both.
+- Every 64 × 40 world carries the same `map`; only `edibles` and the `flies` section differ by brain.
+- Art: `assets/atlas/` is the zrpg-art catalogue of 2026-10-14 (commit `5d151a3`). The map names sprites as
+  `"sheet/name"`, because ids move when the art pack regenerates.
+- Water: Lake Joy (with its outlet bay), the north river that enters above the map, the Joy → swamp channel, eight
+  swamp pools, Lake Byte (west lobe and island), and the south river that leaves below the map. Logic water is a
+  cell whose centre is drawn water. Heat is the 100%/50%/25% ring from water (`"from": "water"`,
+  `world/heat-field.js`). The reference water leaves no zero-heat crossing: the walkable crossing runs between
+  the swamp pools at heat ≤ 50% (`tests/water-corridor.test.mjs`, BUG-002 finding).
+- Edge forest: cells whose centre lies in the ragged border band (outside the river gaps) are edge forest, the only
+  source of danger odour: 100%/50%/25%/0% over three tile-steps (`"from": "forestEdge"`, `world/danger-field.js`).
+  There is no point-source `dangers` list (spec 014 research.md R10).
 - Food: one or more edibles per size class, every class present (`small` `red_flower_plant`, `medium`
-  `jungle-plant-010`, `large` `jungle-plant-015`; BUG-001 — the shipped worlds carry 5: 2 small, 2 medium,
-  1 large). Each names its `sprite`. Odour reach is `flies.stimulus.radius` times the sprite size in tiles,
-  so a larger unit smells farther; the peak is the same for every unit, and several units of the same kind
-  MAY sit near each other so their odour adds, raising local coverage (spec 009, FR-020). Food sprites are
-  never used as decor, and yellow flowers (`trees-plant-001` to `003`) are decor only. The food rules are
-  checked in `tests/odour-food.test.mjs` and `public/tests/spread.test.js`.
-- Dangers: `spider` and `lantern` (no `fire`). They are spread over the whole map: every 16 × 16-cell
-  region holds at least one danger (`public/tests/spread.test.js`).
+  `jungle-plant-010`, `large` `jungle-plant-015`), unchanged by the map. Odour follows the irregular,
+  stepped food field (`world/food-field.js`): a 3×3 full-strength core, falling off roughly 10% per
+  noise-roughened ring beyond it; several units combine by maximum (not sum), and are placed so neighbouring
+  footprints touch, forming one connected trail across the map (spec 014 FR-012 to FR-015). No solid scenery
+  stands in a unit's 3×3 eating square. Food sprites are never decor, and yellow flowers (`trees-plant-001` to
+  `003`) are decor only.
+- Every solid map sprite (tree, bush, rock, prop: border and grove trees, mountains, region objects, scatter stones
+  and bushes) blocks its foot cell, so the `touch` sense (`"from": "blocked"`) reports contact on it. Plants and
+  shore decor are drawn, not solid.
 - Fly sprites are 32 × 32 pixels (one map cell), drawn head-up. There is a female and a male variant
   (`fly-female`, `fly-male`), each with its own baseline colour pair; `flies.sex` picks which pair each fly
   uses (spec 009 contracts/fly-sprite.md, BUG-002).
@@ -100,9 +113,11 @@ brain. Open it with `?world=world/world-forager-wide.json`.
 Two new `flies` sections replace `v1`'s singular `flies.stimulus` and add escape physics:
 
 - `flies.stimuli`: one entry per `sense` a channel declares (`odour:food`, `odour:danger`, `heat`, `taste`,
-  `touch`), naming which world object list it reads (`edibles`, `dangers`, or `blocked` for touch, read
-  directly from world walkability) and, for a distance sense, its falloff radius. A snapshot channel whose
-  `sense` has no matching entry here is a world-load error, naming the channel.
+  `touch`), naming which world source it reads: `edibles` or `dangers` (falloff over an object list, with a
+  radius), `blocked` (touch, read directly from world walkability), or `water`/`forestEdge` (spec 014: a
+  precomputed ring field, no radius — `odour:danger` and `heat` read `forestEdge`/`water` on the shipped
+  world). A snapshot channel whose `sense` has no matching entry here is a world-load error, naming the
+  channel.
 - `flies.body.sites`: one entry per `site` a channel declares (`antenna`, `mouth`, `front-leg`), each a
   forward/lateral offset in tiles from the body centre. `mouth` has no lateral offset by design, so its left
   and right channels read the same value; `front-leg` sits half a tile ahead, so leg taste and touch reach a

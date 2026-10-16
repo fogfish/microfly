@@ -1,8 +1,9 @@
-// Paints the odour field as a heatmap (specs/007-odor-layer/contracts/odour-layer.md §4, research R4).
+// Paints a field as a heatmap (specs/007-odor-layer/contracts/odour-layer.md §4, research R4; contracts/
+// odour-layer-v2.md §3: a prefix selects which CSS token group feeds the ramp, one per overlay channel).
 //
-// The ramp runs low → mid → high (yellow → orange → red) and is read from the --odour-* CSS tokens, so it
-// follows the theme. Alpha rises with intensity up to --odour-alpha, so the terrain stays visible.
-// parseRamp and rampColor are pure; paintField needs a browser canvas.
+// The ramp runs low → mid → high and is read from <prefix>-low/-mid/-high CSS tokens, so it follows the theme.
+// Alpha rises with intensity up to <prefix>-alpha, so the terrain stays visible.
+// parseRamp and rampColor are pure; paintField and paintGrid need a browser canvas.
 
 const DEFAULT_RAMP = {
   stops: [
@@ -13,12 +14,13 @@ const DEFAULT_RAMP = {
   maxAlpha: 0.55,
 };
 
-// style: anything with getPropertyValue(name), such as getComputedStyle(document.documentElement).
-export function parseRamp(style) {
-  const stops = ['--odour-low', '--odour-mid', '--odour-high'].map(
+// style: anything with getPropertyValue(name), such as getComputedStyle(document.documentElement). prefix
+// defaults to '--odour' (today's single food-odour ramp, unchanged for every existing caller).
+export function parseRamp(style, prefix = '--odour') {
+  const stops = [`${prefix}-low`, `${prefix}-mid`, `${prefix}-high`].map(
     (name, i) => parseTriple(style.getPropertyValue(name)) ?? DEFAULT_RAMP.stops[i],
   );
-  const alpha = Number.parseFloat(style.getPropertyValue('--odour-alpha'));
+  const alpha = Number.parseFloat(style.getPropertyValue(`${prefix}-alpha`));
   const maxAlpha = alpha > 0 && alpha <= 1 ? alpha : DEFAULT_RAMP.maxAlpha;
   return { stops, maxAlpha };
 }
@@ -62,5 +64,31 @@ export function paintField(field, ramp) {
     data[4 * k + 3] = a;
   }
   ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
+const DEFAULT_GRID_LINE = 'rgba(232, 230, 217, 0.18)';
+
+// Returns a canvas of (cols × cellPx) × (rows × cellPx), with 1px lines at every cellPx boundary (contracts/
+// odour-layer-v2.md §3). style: anything with getPropertyValue(name); --grid-line-color falls back to a
+// low-alpha neutral grey when the token is absent.
+export function paintGrid(cols, rows, cellPx, style) {
+  const canvas = document.createElement('canvas');
+  canvas.width = cols * cellPx;
+  canvas.height = rows * cellPx;
+  const ctx = canvas.getContext('2d');
+  const colour = style.getPropertyValue('--grid-line-color').trim() || DEFAULT_GRID_LINE;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= cols; x++) {
+    ctx.moveTo(x * cellPx + 0.5, 0);
+    ctx.lineTo(x * cellPx + 0.5, canvas.height);
+  }
+  for (let y = 0; y <= rows; y++) {
+    ctx.moveTo(0, y * cellPx + 0.5);
+    ctx.lineTo(canvas.width, y * cellPx + 0.5);
+  }
+  ctx.stroke();
   return canvas;
 }

@@ -9,6 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { validateConfig } from '../public/js/world/validate.js';
 import { resolveBrainVersion, resolveFlies } from '../public/js/fly/fly-config.js';
 import { parseSnapshot, checkBrainVersion } from '../public/js/brain/snapshot.js';
+import { indexCatalog } from '../public/js/world/catalog.js';
+import { buildLogic } from '../public/js/world/layout.js';
+import { buildWorld, spawnFlies } from '../public/js/fly/fly-world.js';
+import { createFood } from '../public/js/fly/food.js';
+import { forageEnvWide, senseForagerFlyWide } from '../public/js/fly/forager-step-wide.js';
+import { createFlyBrain } from '../public/js/brain/fly-brain.js';
 
 const load = (name) => JSON.parse(readFileSync(fileURLToPath(new URL(`../public/world/${name}`, import.meta.url)), 'utf8'));
 
@@ -40,6 +46,42 @@ test('world-forager-wide-bad.json passes the format check; it fails on its snaps
   const config = load('world-forager-wide-bad.json');
   assert.deepEqual(validateConfig(config), []);
   assert.equal(resolveBrainVersion(config.flies.brain), 'v1'); // the 11K world's own version, unedited
+});
+
+// contracts/stimuli-field-sources.md §2: kinds/scaleBy/radius are forbidden once from is "water" or "forestEdge".
+test('kinds alongside from: "water" fails validation with the new message', () => {
+  const config = load('world-forager-wide.json');
+  config.flies.stimuli.heat = { from: 'water', kinds: ['lantern'] };
+  const errors = validateConfig(config);
+  assert.ok(
+    errors.some((e) => e.path === 'flies.stimuli.heat' && /must not set kinds when from is "water"/.test(e.message)),
+    JSON.stringify(errors),
+  );
+});
+
+const WIDE_BRAIN = fileURLToPath(new URL('../public/brains/forager-brain-wide.brain', import.meta.url));
+const WIDE_SKIP = existsSync(WIDE_BRAIN) ? false : 'public/brains/forager-brain-wide.brain is absent';
+
+// T026/T033 (contracts/stimuli-field-sources.md §4): the shipped world-forager-wide.json declares
+// odour:danger/heat as from: "forestEdge"/"water" (no radius); a fly must sense and start with no error.
+test('world-forager-wide.json: a fly senses and starts with no error (from: "forestEdge"/"water")', { skip: WIDE_SKIP }, () => {
+  const config = load('world-forager-wide.json');
+  assert.deepEqual(validateConfig(config), []);
+  const { catalog } = indexCatalog(JSON.parse(readFileSync(fileURLToPath(new URL('../public/assets/atlas/catalog.json', import.meta.url)), 'utf8')));
+  const f = resolveFlies(config);
+  const logic = buildLogic(config, catalog);
+  const world = buildWorld(config, logic);
+  const flowers = createFood(world, f);
+  const bytes = readFileSync(WIDE_BRAIN);
+  const snap = parseSnapshot(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  const env = forageEnvWide(f, world, flowers, snap.capabilities);
+  const [fly] = spawnFlies(config, world, 'toy');
+  const brain = createFlyBrain({ ...f.brain, snapshot: snap, version: 'v2' }, fly.brainSeed);
+  assert.doesNotThrow(() => {
+    const { inputs } = senseForagerFlyWide(fly, env);
+    for (const v of inputs) assert.ok(Number.isFinite(v));
+    brain.step({ inputs, hunger: 0 });
+  });
 });
 
 const BRAIN = fileURLToPath(new URL('../public/brains/forager-brain-wide.brain', import.meta.url));

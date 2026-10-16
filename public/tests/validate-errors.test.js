@@ -5,7 +5,10 @@ import { indexCatalog } from '../js/world/catalog.js';
 import { validateConfig, validateArt } from '../js/world/validate.js';
 import { bodyKind } from '../js/world/water.js';
 
-const load = () => JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8'));
+// The tile sections are exercised on a tile-world fixture; the shipped worlds use a sketch map instead (spec 014
+// BUG-002, contracts/world-format-sketch-map.md §7).
+const load = () => JSON.parse(readFileSync(new URL('./fixtures/world-tile.json', import.meta.url), 'utf8'));
+const shipped = () => JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8'));
 const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL('../assets/atlas/catalog.json', import.meta.url), 'utf8')));
 
 test('an unknown sprite id names the object entry', () => {
@@ -32,21 +35,22 @@ test('a bad outline shape is refused', () => {
 // Only the spot errors: the one-unit-per-kind rule (spec 009 FR-001) also fires for an extra unit.
 const spotErrors = (c) => validateConfig(c).filter((e) => e.path.startsWith('edibles['));
 
+// (24.5, 11.5) sits inside lake-joy's centre (grid.waterBodies[0], cx 24 cy 11), the sketch map's water (spec 014).
 test('a food unit placed on water is refused', () => {
   const c = load();
-  c.edibles.push({ kind: 'small', sprite: 'red_flower_plant', x: 13.5, y: 9.5 });
+  c.edibles.push({ kind: 'small', sprite: 'red_flower_plant', x: 36.5, y: 8.5 });
   assert.deepEqual(spotErrors(c).map((e) => e.path), [`edibles[${c.edibles.length - 1}]`]);
 });
 
 test('a danger placed on water is refused', () => {
   const c = load();
-  c.dangers.push({ kind: 'spider', x: 13.5, y: 9.5 });
+  c.dangers = [{ kind: 'spider', x: 36.5, y: 8.5 }];
   assert.deepEqual(validateConfig(c).map((e) => e.path), [`dangers[${c.dangers.length - 1}]`]);
 });
 
 test('a fire danger is refused: campfire logs are not a danger', () => {
   const c = load();
-  c.dangers.push({ kind: 'fire', x: 2.5, y: 2.5 });
+  c.dangers = [{ kind: 'fire', x: 2.5, y: 2.5 }];
   assert.deepEqual(validateConfig(c).map((e) => e.path), [`dangers[${c.dangers.length - 1}].kind`]);
 });
 
@@ -79,11 +83,11 @@ test('ellipse and polygon water bodies are refused (BUG-002: water is a blob)', 
   assert.match(errors[0].message, /blob/);
 });
 
-test('the shipped world has one lake and two or three ponds (FR-011)', () => {
-  const kinds = load().waterBodies.map((b) => bodyKind(b.outline.blob));
-  assert.equal(kinds.filter((k) => k === 'lake').length, 1);
-  const ponds = kinds.filter((k) => k === 'pond').length;
-  assert.ok(ponds >= 2 && ponds <= 3, `${ponds} ponds`);
+// The sketch's two lakes, Lake Joy and Lake Byte, joined by a river and divided by a dry crossing
+// (spec 014 FR-011/FR-022, research.md R1/R6/R11, BUG-001).
+test('the shipped world has two lakes (Lake Joy and Lake Byte, spec 014; WORLD-SPEC §4, BUG-002)', () => {
+  const ids = shipped().map.water.bodies.map((b) => b.id);
+  for (const id of ['lake-joy', 'lake-byte', 'river-north', 'river-south']) assert.ok(ids.includes(id), id);
 });
 
 test('a shore field on a water body is refused, since every shore is the grass shore style', () => {

@@ -60,3 +60,27 @@ test('the colour hits the low, mid and high stops', () => {
   assert.deepEqual(rampColor(0.5, ramp).slice(0, 3), [100, 110, 120]);
   assert.deepEqual(rampColor(1, ramp).slice(0, 3), [200, 210, 220]);
 });
+
+// contracts/odour-layer-v2.md §3: a prefix selects a different CSS token group, one per overlay channel.
+test('parseRamp reads a non-default prefix', () => {
+  const danger = {
+    '--odour-danger-low': '10, 20, 30',
+    '--odour-danger-mid': '40, 50, 60',
+    '--odour-danger-high': '70, 80, 90',
+    '--odour-danger-alpha': '0.4',
+    // A --odour-* token with no prefix must not leak into the --odour-danger-* read.
+    '--odour-low': '1, 2, 3',
+  };
+  assert.deepEqual(parseRamp(stub(danger), '--odour-danger'), {
+    stops: [
+      [10, 20, 30],
+      [40, 50, 60],
+      [70, 80, 90],
+    ],
+    maxAlpha: 0.4,
+  });
+});
+
+test('parseRamp with no prefix argument keeps reading --odour-* (backward compatible)', () => {
+  assert.deepEqual(parseRamp(stub(tokens)), ramp);
+});

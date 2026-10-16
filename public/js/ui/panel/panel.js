@@ -21,7 +21,8 @@ const flyViews = new WeakMap();
 const TAB_LABELS = { world: 'World', fly: 'Fly' };
 
 // tab is the active tab name; onTab(name) is called when a tab button is pressed.
-// view: { layers, onLayer(id), legend: { max } | null } drives the Layers box of the World tab.
+// view: { layers, onLayer(id), legends: { [id]: { max } | null } } drives the Layers box of the World tab —
+// one switch per LAYERS entry (contracts/odour-layer-v2.md §6), one legend per odour layer (not "grid").
 export function renderPanel(
   container,
   records,
@@ -30,7 +31,7 @@ export function renderPanel(
   sections,
   tab,
   onTab,
-  view = { layers: {}, onLayer: () => {}, legend: null },
+  view = { layers: {}, onLayer: () => {}, legends: {} },
 ) {
   const { worldPane, flyPane } = ensureShell(container, tab, onTab);
   renderLayers(worldPane, view);
@@ -106,7 +107,8 @@ function pane(name) {
   return el;
 }
 
-// The Layers box: one arcade switch per layer, then the odour legend. Built once, updated in place.
+// The Layers box: one arcade switch per LAYERS entry, then one odour legend per odour layer (not "grid",
+// contracts/odour-layer-v2.md §6). Built once, updated in place.
 function renderLayers(worldPane, view) {
   const box = worldPane.querySelector(':scope > .layers');
   if (!box.firstChild) {
@@ -125,10 +127,13 @@ function renderLayers(worldPane, view) {
       row.append(name, btn);
       box.append(row);
     }
-    box.append(legendEl());
+    for (const { id } of LAYERS) {
+      if (id === 'grid') continue;
+      box.append(legendEl(id));
+    }
   }
 
-  // Writes happen only when a value changes, so a render does not repaint the switch and the legend.
+  // Writes happen only when a value changes, so a render does not repaint a switch or a legend.
   for (const row of box.querySelectorAll(':scope > .layer-row')) {
     const id = row.dataset.layer;
     const on = Boolean(view.layers[id]);
@@ -138,21 +143,25 @@ function renderLayers(worldPane, view) {
     btn.onclick = () => view.onLayer(id);
   }
 
-  // The legend shows the ramp from 0 to the sensed maximum, only while the odour layer is on (FR-012).
-  const legend = box.querySelector(':scope > .odour-legend');
-  setHidden(legend, !view.layers.odour);
-  const empty = view.legend === null;
-  for (const el of legend.querySelectorAll('.legend-min, .legend-ramp, .legend-max')) setHidden(el, empty);
-  setHidden(legend.querySelector('.legend-empty'), !empty);
-  if (!empty) {
-    setText(legend.querySelector('.legend-min'), '0');
-    setText(legend.querySelector('.legend-max'), view.legend.max.toFixed(1));
+  // Each odour legend shows the ramp from 0 to the sensed maximum, only while its own layer is on (FR-012).
+  for (const legend of box.querySelectorAll(':scope > .odour-legend')) {
+    const id = legend.dataset.legend;
+    setHidden(legend, !view.layers[id]);
+    const info = view.legends?.[id] ?? null;
+    const empty = info === null;
+    for (const el of legend.querySelectorAll('.legend-min, .legend-ramp, .legend-max')) setHidden(el, empty);
+    setHidden(legend.querySelector('.legend-empty'), !empty);
+    if (!empty) {
+      setText(legend.querySelector('.legend-min'), '0');
+      setText(legend.querySelector('.legend-max'), info.max.toFixed(1));
+    }
   }
 }
 
-function legendEl() {
+function legendEl(id) {
   const legend = document.createElement('div');
   legend.className = 'odour-legend';
+  legend.dataset.legend = id;
   legend.hidden = true;
   const min = textEl('span', '0');
   min.className = 'legend-min';

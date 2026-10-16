@@ -4,6 +4,9 @@ import { createPrng } from '../world/prng.js';
 import { createBody } from './body.js';
 import { resolveFlies } from './fly-config.js';
 import { EDIBLE_KINDS } from '../world/layout.js';
+import { dangerField } from '../world/danger-field.js';
+import { heatField } from '../world/heat-field.js';
+import { foodKernel } from '../world/food-field.js';
 
 const SPAWN_ATTEMPTS = 200;
 const GOLDEN = 0x9e3779b1;
@@ -43,7 +46,28 @@ export function buildWorld(config, logic) {
   const walkable = (cx, cy) => blocked[cy * width + cx] === 0;
   const isStimulusCell = (cx, cy) => stimulusCells.has(cy * width + cx);
 
-  return { width, height, blocked, stimulusCells, dangerCells, walkable, isStimulusCell };
+  // Danger/heat fields (ADR 007 W8, contracts/world-format-sketch-map.md §3): built once per world load from
+  // the edge-forest/water masks, never from flies.stimuli — the same field feeds the odour:danger/heat sense
+  // and the matching overlay (data-model.md "Relationships"). Harmless for a world with no edgeForest/water.
+  const danger = dangerField({ forestEdge: logic.forestEdge, cols: width, rows: height });
+  const heat = heatField({ water: logic.water, cols: width, rows: height });
+
+  // One cached kernel per food unit (research.md R4): the shape is static (units never move), so it is built
+  // once here; the stock fraction that scales it is read live at sense time (fly/food.js createFood), via
+  // world/food-field.js's foodFieldAt, by whoever has the fly's live flowers table (forager-step.js/-wide.js).
+  const foodUnits = [...stimulusCells].map(([idx]) => {
+    const cellX = idx % width;
+    const cellY = Math.floor(idx / width);
+    const unitX = cellX + 0.5;
+    const unitY = cellY + 0.5;
+    const seed = (Math.imul(idx + 1, 0x9e3779b1) ^ (config.seed ?? 0)) >>> 0;
+    return { cellX, cellY, kernel: foodKernel({ unitX, unitY, seed }) };
+  });
+
+  return {
+    width, height, blocked, stimulusCells, dangerCells, walkable, isStimulusCell,
+    dangerField: danger, heatField: heat, foodUnits,
+  };
 }
 
 // The odour sources: [{x, y, reach}] cell centres of the stimulus cells, in tiles, with the reach in cells.

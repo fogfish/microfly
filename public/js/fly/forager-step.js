@@ -4,7 +4,7 @@
 
 import * as P3 from '../brain/protocol-v3.js';
 import { applyEscape, stepForagerBody } from './body.js';
-import { senseBilateral } from './stimulus.js';
+import { senseBilateralField } from './stimulus.js';
 import { canEat, closeBout, eat, hunger as hungerOf, metabolise, startBout, updateBout } from './energy.js';
 
 // env: forageEnv(...). f: the resolved flies section (tickHz, body, stimulus, food, energy).
@@ -19,6 +19,9 @@ export function forageEnv(f, world, flowers, capabilities) {
     isWalkable: world.walkable,
     isStimulusCell: world.isStimulusCell,
     stimulus: f.stimulus,
+    // Food-field odour (research.md R4): empty for a synthetic world stub (pre-feature tests), which reads as
+    // no food odour anywhere, harmless for callers that script the brain or ignore the odour inputs.
+    foodUnits: world.foodUnits ?? [],
     energyConfig: f.body.energy,
     foodConfig: f.food,
     flowers,
@@ -40,10 +43,11 @@ export function initForagerFly(fly, initialEnergy) {
   return fly;
 }
 
-// The sense for this tick: odour from two antenna samples (W3), and taste on a flower, both legs on the same cell.
-// Returns { inputs, hunger, message } where message is the protocol 3 sense.
+// The sense for this tick: odour from two antenna samples (W3, research.md R4: the field, not the point-sum
+// falloff), and taste on a flower, both legs on the same cell. Returns { inputs, hunger, message } where message
+// is the protocol 3 sense.
 export function senseForagerFly(fly, env) {
-  const { left, right } = senseBilateral(env.flowers.points(), fly.body, env.stimulus);
+  const { left, right } = senseBilateralField(env.foodUnits, env.flowers, fly.body, env.stimulus);
   const cx = Math.floor(fly.body.x);
   const cy = Math.floor(fly.body.y);
   const taste = env.isStimulusCell(cx, cy) ? env.flowers.fraction(cx, cy) : 0;

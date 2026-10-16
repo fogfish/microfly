@@ -60,25 +60,27 @@ test('accepts more than one edible of the same kind (FR-001, BUG-001)', () => {
   assert.deepEqual(validateConfig(c), []);
 });
 
+// The sketch map's scatter lists (contracts/world-format-sketch-map.md §7, spec 014 BUG-002) replace the tile
+// world's scatter rules; the same art rules hold for them.
 test('refuses a food sprite in scatter (FR-019)', () => {
   const c = load('world.json');
-  c.scatter[1].sprites.push('jungle-plant-015');
-  const hit = validateArt(c, catalog).find((e) => e.path.startsWith('scatter['));
+  c.map.meadow.mix[0][1].push('jungle-plant-015');
+  const hit = validateArt(c, catalog).find((e) => e.path.startsWith('map.meadow.mix['));
   assert.ok(hit, 'no error on the scatter rule');
   assert.match(hit.message, /food sprite/);
 });
 
 test('refuses a removed sprite in scatter (FR-009)', () => {
   const c = load('world.json');
-  c.scatter[0].sprites.push('jungle-plant-016');
-  const hit = validateArt(c, catalog).find((e) => e.path.startsWith('scatter['));
+  c.map.areaScatter[0].sprites.push('jungle-plant-016');
+  const hit = validateArt(c, catalog).find((e) => e.path.startsWith('map.areaScatter['));
   assert.ok(hit, 'no error on the scatter rule');
   assert.match(hit.message, /removed/);
 });
 
 test('accepts a yellow flower in scatter as decor (FR-010)', () => {
   const c = load('world.json');
-  c.scatter[0].sprites = ['trees-plant-001', 'trees-plant-002', 'trees-plant-003'];
+  c.map.meadow.mix[0][1] = ['trees-plant-001', 'trees-plant-002', 'trees/yellow_flowers_cluster'];
   assert.deepEqual(validateArt(c, catalog), []);
 });
 

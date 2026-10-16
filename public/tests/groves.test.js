@@ -5,7 +5,9 @@ import { indexCatalog } from '../js/world/catalog.js';
 import { validateConfig } from '../js/world/validate.js';
 import { buildScene } from '../js/world/layout.js';
 
-const config = JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8'));
+// The tile sections (ground, waterBodies, objects, groves, scatter) are exercised on a tile-world fixture: the shipped
+// worlds use a sketch map instead (spec 014 BUG-002, contracts/world-format-sketch-map.md §7).
+const config = JSON.parse(readFileSync(new URL('./fixtures/world-tile.json', import.meta.url), 'utf8'));
 const { catalog } = indexCatalog(JSON.parse(readFileSync(new URL('../assets/atlas/catalog.json', import.meta.url), 'utf8')));
 
 const grove = (n) => ({

@@ -4,23 +4,31 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { LAYERS, initialLayers, toggleLayer } from '../public/js/world/layers.js';
 
+const ALL_OFF = { 'odour-food': false, 'odour-danger': false, 'odour-heat': false, grid: false };
+
 test('every layer is off on load', () => {
-  assert.deepEqual(initialLayers(), { odour: false });
-  assert.deepEqual(LAYERS.map((l) => l.id), ['odour']);
+  assert.deepEqual(initialLayers(), ALL_OFF);
+  assert.deepEqual(LAYERS.map((l) => l.id), ['odour-food', 'odour-danger', 'odour-heat', 'grid']);
 });
 
-test('toggleLayer flips the layer and does not mutate its input', () => {
+test('toggleLayer flips one layer and does not mutate its input, independently of the others', () => {
   const s0 = initialLayers();
-  const s1 = toggleLayer(s0, 'odour');
-  assert.deepEqual(s0, { odour: false });
-  assert.deepEqual(s1, { odour: true });
-  assert.deepEqual(toggleLayer(s1, 'odour'), { odour: false });
+  const s1 = toggleLayer(s0, 'odour-danger');
+  assert.deepEqual(s0, ALL_OFF);
+  assert.deepEqual(s1, { ...ALL_OFF, 'odour-danger': true });
+  assert.deepEqual(toggleLayer(s1, 'odour-danger'), ALL_OFF);
+});
+
+test('any combination of layers may be on at once (FR-020)', () => {
+  let s = initialLayers();
+  for (const id of ['odour-food', 'odour-heat', 'grid']) s = toggleLayer(s, id);
+  assert.deepEqual(s, { 'odour-food': true, 'odour-danger': false, 'odour-heat': true, grid: true });
 });
 
 test('an unknown layer id leaves the values unchanged', () => {
-  const s0 = { odour: true };
+  const s0 = { ...ALL_OFF, 'odour-food': true };
   const s1 = toggleLayer(s0, 'danger');
-  assert.deepEqual(s1, { odour: true });
+  assert.deepEqual(s1, s0);
   assert.notEqual(s1, s0);
 });
 

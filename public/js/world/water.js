@@ -1,6 +1,7 @@
 // Water field: the signed distance S from every scene pixel to the waterline (BUG-002, FR-028).
 // Ported from the art pack's reference renderer (zrpg-art/examples/water.js, WATER-SPEC.md §3).
-// Water is never built from cells. Each body is a wobbly ellipse rasterised into a pixel mask; an
+// Water is never built from cells. Each body is a wobbly ellipse (`blob`) or a winding, varying-width
+// band (`river`, BUG-001, contracts/world-format-sketch-map.md §6) rasterised into a pixel mask; an
 // exact distance transform gives S (< 0 in water, >= 0 on land), roughened by seeded noise.
 // Everything else (shore bands, bank face, decor, the logic grid) is derived from S. Pure: no DOM.
 
@@ -20,11 +21,16 @@ export const GRASS_STYLE = {
   face: [2, 4],
 };
 
-// Body size ranges in px (FR-011, art pack ponds.md and lakes.md).
+// Body size ranges in px (FR-011, art pack ponds.md and lakes.md). puddle (BUG-001): the zrpg-art
+// reference's own swamp-pool chain (world.js WATER.bodies, rx 11-30 ref-px), smaller than any pond.
 export const BODY_RANGES = {
+  puddle: { rx: [15, 50], ratio: [0.45, 0.85], wobble: [0.2, 0.35], harmonics: [2, 4] },
   pond: { rx: [60, 100], ratio: [0.65, 0.8], wobble: [0.08, 0.14], harmonics: [3, 5] },
   lake: { rx: [180, 260], ratio: [0.55, 0.65], wobble: [0.14, 0.24], harmonics: [5, 7] },
 };
+
+// River width-noise default (BUG-001, contracts/world-format-sketch-map.md §6, WATER-SPEC §3.2 "river").
+const RIVER_WIDTH_NOISE = 0.2;
 
 // Which range a blob falls in, or null. blob is in cells.
 export function bodyKind(blob) {
@@ -188,6 +194,105 @@ function bodyDistance(blob, shape, box) {
   return s;
 }
 
+// ------------------------------------------------------------- river shape (BUG-001)
+// A river is a winding band of varying width, not a wobbly ellipse: `outline.river = { path, width,
+// widthNoise? }` (contracts/world-format-sketch-map.md §6). Modelled on the art pack's `river` body kind
+// (WATER-SPEC §3.2): sample a Catmull-Rom spline through `path`, stamp a disc of the arc-length-lerped
+// `width` at every sample, then run the same mask → exact-distance-transform pipeline `bodyDistance`
+// already uses for `blob`. `path` points may fall outside the grid (a river "starts above the canvas" or
+// "ends below the canvas", WATER-SPEC §1.7) — the box below is sized from the points themselves, not
+// clamped to the grid, the same way `bodyBox` lets a blob's box extend past the world.
+
+const RIVER_STEPS_PER_SEGMENT = 20;
+
+// One Catmull-Rom point at parameter t in [0, 1] between p1 and p2, using p0/p3 as tangent neighbours.
+function catmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const a = (k) => 0.5 * (
+    2 * p1[k]
+    + (-p0[k] + p2[k]) * t
+    + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
+    + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3
+  );
+  return [a(0), a(1)];
+}
+
+// The river's centreline, densely sampled in scene px, each point carrying `t`: its arc-length fraction
+// (0 at the first point, 1 at the last) used to lerp `width` (WATER-SPEC §3.2).
+function riverSamples(river) {
+  const pts = river.path.map(([x, y]) => [x * CELL_PX, y * CELL_PX]);
+  const n = pts.length;
+  const raw = [];
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(n - 1, i + 2)];
+    for (let s = 0; s < RIVER_STEPS_PER_SEGMENT; s++) raw.push(catmullRom(p0, p1, p2, p3, s / RIVER_STEPS_PER_SEGMENT));
+  }
+  raw.push(pts[n - 1]);
+  let total = 0;
+  const out = [{ x: raw[0][0], y: raw[0][1], len: 0 }];
+  for (let i = 1; i < raw.length; i++) {
+    total += Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]);
+    out.push({ x: raw[i][0], y: raw[i][1], len: total });
+  }
+  return out.map((p) => ({ x: p.x, y: p.y, t: total > 0 ? p.len / total : 0 }));
+}
+
+// Box of a river body in scene px, including PAD: { x0, y0, w, h }. Points may lie outside the grid.
+function riverBox(river) {
+  const maxWidthPx = Math.max(river.width[0], river.width[1]) * CELL_PX;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [x, y] of river.path) {
+    const px = x * CELL_PX;
+    const py = y * CELL_PX;
+    x0 = Math.min(x0, px);
+    y0 = Math.min(y0, py);
+    x1 = Math.max(x1, px);
+    y1 = Math.max(y1, py);
+  }
+  const ex = maxWidthPx / 2 + 2 + PAD;
+  const bx0 = Math.floor(x0 - ex);
+  const by0 = Math.floor(y0 - ex);
+  return { x0: bx0, y0: by0, w: Math.ceil(x1 + ex) - bx0, h: Math.ceil(y1 + ex) - by0 };
+}
+
+// Signed distance of one river body inside its box (no waterline noise): < 0 in water.
+function riverDistance(river, seed, box) {
+  const { x0, y0, w, h } = box;
+  const mask = new Uint8Array(w * h);
+  const samples = riverSamples(river);
+  const [w0, w1] = river.width;
+  const noiseAmt = river.widthNoise ?? RIVER_WIDTH_NOISE;
+  const phase = createPrng(seed).next() * 1000;
+  for (const p of samples) {
+    const widthCells = lerp(w0, w1, p.t) * (1 + noiseAmt * fbm(p.x / CELL_PX / 10 + phase, p.y / CELL_PX / 10 + phase, seed));
+    const r = Math.max(1, (widthCells * CELL_PX) / 2);
+    const rCeil = Math.ceil(r);
+    const cx = Math.round(p.x - x0);
+    const cy = Math.round(p.y - y0);
+    for (let dy = -rCeil; dy <= rCeil; dy++) {
+      const py = cy + dy;
+      if (py < 0 || py >= h) continue;
+      for (let dx = -rCeil; dx <= rCeil; dx++) {
+        const px = cx + dx;
+        if (px < 0 || px >= w) continue;
+        if (dx * dx + dy * dy <= r * r) mask[py * w + px] = 1;
+      }
+    }
+  }
+  const dOut = edt(mask, w, h);
+  const dIn = edt(mask.map((v) => 1 - v), w, h);
+  const s = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) s[i] = mask[i] ? -(dIn[i] - 0.5) : dOut[i] - 0.5;
+  return s;
+}
+
 // ------------------------------------------------------------- the field
 
 // Distance beyond which nothing water-related is drawn or placed; S is left without noise there.
@@ -207,10 +312,12 @@ export function buildWaterField({ cols, rows, seed, bodies }) {
   let region = null;
 
   bodies.forEach((body, i) => {
+    const bodySd = bodySeed(seed, i);
+    const river = body.outline.river;
     const blob = body.outline.blob;
-    const shape = blobShape(blob, bodySeed(seed, i));
-    const box = bodyBox(blob, shape);
-    const s = bodyDistance(blob, shape, box);
+    const shape = river ? null : blobShape(blob, bodySd);
+    const box = river ? riverBox(river) : bodyBox(blob, shape);
+    const s = river ? riverDistance(river, bodySd, box) : bodyDistance(blob, shape, box);
     for (let y = 0; y < box.h; y++) {
       const wy = box.y0 + y;
       if (wy < 0 || wy >= H) continue;
@@ -227,7 +334,7 @@ export function buildWaterField({ cols, rows, seed, bodies }) {
     }
     const clipped = clipBox(box, W, H);
     region = region === null ? clipped : unionBox(region, clipped);
-    info.push({ id: body.id, kind: bodyKind(blob), box: clipped, perimeter: 0 });
+    info.push({ id: body.id, kind: river ? 'river' : bodyKind(blob), box: clipped, perimeter: 0 });
   });
 
   // Waterline noise and shore width, only near water (WATER-SPEC §3.3)

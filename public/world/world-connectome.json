@@ -3,385 +3,305 @@
   "version": 3,
   "name": "Pond Meadow (connectome)",
   "seed": 1990,
-  "grid": {
-    "cols": 48,
-    "rows": 32,
-    "cellPx": 32
-  },
-  "zoom": {
-    "min": 1,
-    "max": 4,
-    "default": 2
-  },
+  "grid": {"cols": 64, "rows": 40, "cellPx": 32},
+  "zoom": {"min": 1, "max": 4, "default": 2},
   "atlas": "assets/atlas/catalog.json",
-  "ground": [
-    {
-      "id": "meadow-north",
-      "kind": "meadow",
-      "outline": {
-        "ellipse": {
-          "cx": 12,
-          "cy": 10,
-          "rx": 8,
-          "ry": 4
-        }
-      }
-    },
-    {
-      "id": "meadow-south",
-      "kind": "meadow",
-      "outline": {
-        "ellipse": {
-          "cx": 34,
-          "cy": 22,
-          "rx": 8,
-          "ry": 4
-        }
-      }
-    },
-    {
-      "id": "dark-east",
-      "kind": "darkGrass",
-      "outline": {
-        "ellipse": {
-          "cx": 24,
-          "cy": 6,
-          "rx": 6,
-          "ry": 3
-        }
-      }
-    },
-    {
-      "id": "dark-west",
-      "kind": "darkGrass",
-      "outline": {
-        "ellipse": {
-          "cx": 8,
-          "cy": 26,
-          "rx": 6,
-          "ry": 3
-        }
-      }
-    },
-    {
-      "id": "cobble-pond",
-      "kind": "cobble",
-      "outline": {
-        "ellipse": {
-          "cx": 18,
-          "cy": 12,
-          "rx": 1.5,
-          "ry": 1.5
-        }
-      }
-    },
-    {
-      "id": "gravel-south",
-      "kind": "gravel",
-      "outline": {
-        "ellipse": {
-          "cx": 16,
-          "cy": 26,
-          "rx": 1.5,
-          "ry": 1.5
-        }
-      }
-    }
-  ],
-  "waterBodies": [
-    {
-      "id": "lake-east",
-      "outline": {
-        "blob": {
-          "cx": 36,
-          "cy": 8,
-          "rx": 6.5,
-          "ry": 3.9,
-          "wobble": 0.18,
-          "harmonics": 6
-        }
-      }
-    },
-    {
-      "id": "pond-north",
-      "outline": {
-        "blob": {
-          "cx": 13,
-          "cy": 9.5,
-          "rx": 2.8,
-          "ry": 2,
-          "wobble": 0.11,
-          "harmonics": 4
-        }
-      }
-    },
-    {
-      "id": "pond-west",
-      "outline": {
-        "blob": {
-          "cx": 14.5,
-          "cy": 19.5,
-          "rx": 2,
-          "ry": 1.4,
-          "wobble": 0.12,
-          "harmonics": 3
-        }
-      }
-    },
-    {
-      "id": "pond-south",
-      "outline": {
-        "blob": {
-          "cx": 23,
-          "cy": 23,
-          "rx": 2.2,
-          "ry": 1.6,
-          "wobble": 0.1,
-          "harmonics": 4
-        }
-      }
-    }
-  ],
-  "objects": [
-    {
-      "id": "oak-south-west",
-      "sprite": "trees-tree-001",
-      "x": 4.5,
-      "y": 28.5,
-      "solid": true
-    },
-    {
-      "id": "round-north-west",
-      "sprite": "trees-tree-005",
-      "x": 10.5,
-      "y": 4.5,
-      "solid": true
-    },
-    {
-      "id": "tiny-south",
-      "sprite": "trees-tree-006",
-      "x": 22.5,
-      "y": 27.5,
-      "solid": true
-    },
-    {
-      "id": "leafy-middle",
-      "sprite": "beach-tree-008",
-      "x": 30.5,
-      "y": 13.5,
-      "solid": true
-    },
-    {
-      "id": "oak-medium-east",
-      "sprite": "trees-tree-002",
-      "x": 44.5,
-      "y": 19.5,
-      "solid": true
-    },
-    {
-      "id": "outcrop-lake-shore",
-      "sprite": "outcrop_medium_grass",
-      "x": 26.5,
-      "y": 6.5,
-      "solid": true
-    }
-  ],
-  "groves": [
-    {
-      "id": "grove-west",
-      "centre": [
-        7,
-        15
-      ],
-      "trees": [
+  "map": {
+    "reference": [1376, 768],
+    "seed": 1,
+    "water": {
+      "seed": 7,
+      "density": 0.5,
+      "bodies": [
+        {"id": "lake-joy", "kind": "blob", "x": 535, "y": 272, "rx": 112, "ry": 84, "wobble": 0.12, "harmonics": 5},
+        {"id": "lake-joy-bay", "kind": "blob", "x": 650, "y": 300, "rx": 50, "ry": 42, "wobble": 0.1},
         {
-          "sprite": "trees-tree-006",
-          "dx": -2.5,
-          "dy": -1
+          "id": "river-north",
+          "kind": "river",
+          "path": [[690, -40], [698, 60], [700, 150], [712, 190], [742, 240], [748, 285], [732, 322]],
+          "width": [30, 36],
+          "widthNoise": 0.25
         },
         {
-          "sprite": "beach-tree-008",
-          "dx": -0.5,
-          "dy": -2
+          "id": "river-joy-swamp",
+          "kind": "river",
+          "path": [[650, 300], [700, 318], [732, 326]],
+          "width": [34, 26],
+          "widthNoise": 0.1
         },
+        {"id": "swamp-pool-1", "kind": "blob", "x": 738, "y": 340, "rx": 18, "ry": 11, "wobble": 0.25},
+        {"id": "swamp-pool-2", "kind": "blob", "x": 712, "y": 356, "rx": 20, "ry": 10, "wobble": 0.3},
+        {"id": "swamp-pool-3", "kind": "blob", "x": 686, "y": 372, "rx": 12, "ry": 7, "wobble": 0.3},
+        {"id": "swamp-pool-4", "kind": "blob", "x": 736, "y": 378, "rx": 13, "ry": 8, "wobble": 0.3},
+        {"id": "swamp-pool-5", "kind": "blob", "x": 708, "y": 406, "rx": 18, "ry": 9, "wobble": 0.3},
+        {"id": "swamp-pool-6", "kind": "blob", "x": 674, "y": 418, "rx": 11, "ry": 6, "wobble": 0.3},
+        {"id": "swamp-pool-7", "kind": "blob", "x": 742, "y": 418, "rx": 20, "ry": 10, "wobble": 0.3},
+        {"id": "swamp-pool-8", "kind": "blob", "x": 712, "y": 440, "rx": 30, "ry": 14, "wobble": 0.25},
+        {"id": "lake-byte", "kind": "blob", "x": 770, "y": 535, "rx": 152, "ry": 100, "wobble": 0.14, "harmonics": 6},
+        {"id": "lake-byte-west", "kind": "blob", "x": 648, "y": 600, "rx": 58, "ry": 68, "wobble": 0.1},
         {
-          "sprite": "trees-tree-005",
-          "dx": 1.5,
-          "dy": -0.5
+          "id": "river-south",
+          "kind": "river",
+          "path": [[648, 640], [652, 690], [646, 730], [640, 800]],
+          "width": [56, 52],
+          "widthNoise": 0.15
         },
-        {
-          "sprite": "trees-tree-006",
-          "dx": -1,
-          "dy": 1
-        },
-        {
-          "sprite": "trees-tree-005",
-          "dx": 1,
-          "dy": 2
-        },
-        {
-          "sprite": "beach-tree-008",
-          "dx": -2,
-          "dy": 2.5
-        }
+        {"id": "lake-byte-island", "kind": "island", "x": 664, "y": 616, "rx": 30, "ry": 24, "wobble": 0.1}
       ]
     },
-    {
-      "id": "grove-east",
-      "centre": [
-        38,
-        17
-      ],
-      "trees": [
+    "grounds": [
+      {
+        "name": "swamp",
+        "tex": "rocks2/grass_tile_dark",
+        "soft": true,
+        "mud": "rgba(66,54,26,0.38)",
+        "blobs": [[710, 388, 66, 58], [760, 356, 36, 26], [664, 404, 34, 26]]
+      },
+      {
+        "name": "dunes",
+        "tex": "beach/sand_pit_light_small_c",
+        "rim": "rgba(168,118,58,0.55)",
+        "wet": "rgba(110,70,30,0.32)",
+        "blobs": [[1015, 556, 96, 90], [925, 548, 60, 84], [960, 625, 80, 42], [1085, 612, 44, 48]]
+      },
+      {
+        "name": "desert",
+        "tex": "beach/sand_pit_dark_b_c",
+        "tex2": "rocks2/gravel_patch_round_c",
+        "tex2At": 0.52,
+        "rim": "rgba(120,80,40,0.5)",
+        "blobs": [[1200, 566, 74, 80], [1160, 616, 46, 38], [1236, 516, 38, 30]]
+      }
+    ],
+    "beach": "dunes",
+    "decals": [
+      {
+        "area": "dunes",
+        "max": 14,
+        "inset": 30,
+        "waterMargin": 22,
+        "sprites": [
+          "beach/sand_ripples_a",
+          "beach/sand_ripples_b",
+          "beach/sand_ripple_tile_a",
+          "beach/sand_ripple_tile_b",
+          "beach/sand_clump_a",
+          "beach/sand_clump_c",
+          "beach/sand_crater_small_a"
+        ]
+      }
+    ],
+    "roads": {
+      "texture": "rocks2/grass_cross_frame_b",
+      "textureRows": 32,
+      "worn": "beach/sand_pit_light_small_c",
+      "paths": [
         {
-          "sprite": "trees-tree-005",
-          "dx": -1.5,
-          "dy": 0
+          "w": 20,
+          "pts": [
+            [150, 602],
+            [240, 594],
+            [330, 596],
+            [420, 590],
+            [500, 580],
+            [535, 545],
+            [552, 480],
+            [585, 420],
+            [640, 395],
+            [705, 390],
+            [770, 394],
+            [850, 390],
+            [925, 386],
+            [990, 370],
+            [1040, 318],
+            [1090, 296],
+            [1140, 278]
+          ]
         },
-        {
-          "sprite": "trees-tree-006",
-          "dx": 0.5,
-          "dy": -1
-        },
-        {
-          "sprite": "beach-tree-008",
-          "dx": 1,
-          "dy": 1.5
-        },
-        {
-          "sprite": "trees-tree-006",
-          "dx": -0.5,
-          "dy": 2.5
-        },
-        {
-          "sprite": "trees-tree-005",
-          "dx": 2,
-          "dy": -0.5
-        }
+        {"w": 15, "pts": [[268, 592], [264, 520], [266, 440], [272, 360], [284, 300], [292, 268]]},
+        {"w": 13, "pts": [[350, 592], [348, 525], [400, 516], [460, 522], [462, 565], [462, 592]]},
+        {"w": 13, "pts": [[1000, 378], [992, 430], [985, 476]]}
       ]
-    }
-  ],
-  "scatter": [
-    {
-      "id": "meadow-flowers",
-      "area": {
-        "ellipse": {
-          "cx": 20,
-          "cy": 16,
-          "rx": 9,
-          "ry": 7
-        }
-      },
-      "sprites": [
-        "trees-plant-001",
-        "trees-plant-002",
-        "trees-plant-003"
-      ],
-      "density": 0.4,
-      "clearings": 0.3,
-      "seed": 77
     },
-    {
-      "id": "fern-tufts",
-      "area": {
-        "ellipse": {
-          "cx": 6,
-          "cy": 22,
-          "rx": 5,
-          "ry": 4
-        }
-      },
-      "sprites": [
-        "trees-plant-008",
-        "trees-plant-010"
-      ],
-      "density": 0.3,
-      "clearings": 0.25,
-      "seed": 78
+    "border": {
+      "left": 104,
+      "right": 90,
+      "top": 118,
+      "bottom": 94,
+      "rag": 22,
+      "step": 44,
+      "fill": 0.85,
+      "gaps": [[600, 700, "bottom"], [680, 720, "top"]]
     },
-    {
-      "id": "bush-patch",
-      "area": {
-        "ellipse": {
-          "cx": 42,
-          "cy": 27,
-          "rx": 5,
-          "ry": 3
-        }
+    "trees": [
+      "trees/round_tree_small",
+      "trees/round_tree_dense",
+      "trees/round_tree_tiny",
+      "trees/oak_small_d",
+      "trees/oak_small_c",
+      "trees/pine_small",
+      "trees/pine_small_wide",
+      "trees/round_tree_small",
+      "trees/round_tree_dense"
+    ],
+    "groves": [
+      {"x": 420, "y": 420, "rx": 118, "ry": 64},
+      {"x": 400, "y": 552, "rx": 40, "ry": 22},
+      {"x": 515, "y": 512, "rx": 28, "ry": 40},
+      {"x": 860, "y": 245, "rx": 44, "ry": 108},
+      {"x": 676, "y": 205, "rx": 34, "ry": 26},
+      {"x": 610, "y": 352, "rx": 22, "ry": 14},
+      {"x": 590, "y": 600, "rx": 26, "ry": 44},
+      {"x": 900, "y": 650, "rx": 20, "ry": 16},
+      {"x": 460, "y": 152, "rx": 18, "ry": 16},
+      {"x": 1150, "y": 200, "rx": 62, "ry": 40},
+      {"x": 330, "y": 190, "rx": 30, "ry": 22}
+    ],
+    "keepOut": [[110, 280, 250, 450], [120, 410, 260, 560], [160, 560, 320, 640], [255, 225, 335, 300], [1160, 270, 1290, 470]],
+    "peaks": [
+      "rocks2/cliff_column",
+      "rocks2/cliff_column_shadow",
+      "rocks2/pillar_4",
+      "rocks2/pillar_8",
+      "rocks2/pillar_6",
+      "rocks2/pillar_2",
+      "rocks2/outcrop_small_shadow"
+    ],
+    "mountains": [
+      {"x": 175, "y": 360, "rx": 62, "ry": 70, "n": 13},
+      {"x": 1222, "y": 372, "rx": 52, "ry": 98, "n": 16}
+    ],
+    "objects": [
+      ["jungle/canvas_tent", 300, 226],
+      ["jungle/campfire_logs", 330, 232],
+      ["trees/wooden_signpost", 260, 296],
+      ["jungle/skull_spear_banner", 196, 586],
+      ["trees/hollow_log", 230, 624],
+      ["trees/yellow_green_bush", 170, 468],
+      ["trees/broadleaf_bush", 214, 446],
+      ["trees/dense_shrub", 186, 528],
+      ["rocks2/small_boulder_a", 236, 536],
+      ["rocks2/rock_cluster_grass_a", 148, 548],
+      ["trees/yellow_flowers_cluster", 202, 494],
+      ["jungle/purple_alien_pod", 372, 470],
+      ["jungle/purple_pitcher_plant", 406, 503],
+      ["rocks2/pillar_1", 300, 520],
+      ["rocks2/pillar_3", 318, 528],
+      ["jungle/hollow_log", 568, 238],
+      ["jungle/hollow_log_mossy", 790, 512],
+      ["jungle/hollow_log", 702, 586],
+      ["trees/round_tree_tiny", 656, 618],
+      ["trees/round_tree_small", 676, 624],
+      ["trees/broadleaf_bush", 660, 632],
+      ["jungle/hollow_log_mossy", 664, 428],
+      ["beach/dead_gnarled_tree", 652, 372],
+      ["jungle/dark_frond_bush_1", 770, 368],
+      ["jungle/crystal_node_corrupted", 1112, 262],
+      ["jungle/purple_spiky_alien", 1150, 270],
+      ["jungle/crystal_node_corrupted", 1215, 250],
+      ["beach/saguaro_light", 1080, 530],
+      ["beach/saguaro_small_a", 958, 600],
+      ["beach/prickly_pear", 1018, 646],
+      ["beach/sand_dune_a_left", 1040, 512],
+      ["beach/sand_dune_b_right", 1068, 650],
+      ["beach/animal_skull", 1030, 590],
+      ["beach/ribcage", 972, 520],
+      ["beach/long_bone", 1002, 616],
+      ["beach/dead_gnarled_tree", 1186, 560],
+      ["beach/dead_gnarled_tree", 1250, 620],
+      ["beach/fallen_dead_branch", 1170, 626],
+      ["rocks2/outcrop_small", 1226, 540],
+      ["rocks2/outcrop_small_shadow", 1150, 586],
+      ["jungle/purple_alien_pod", 600, 384],
+      ["jungle/purple_pitcher_plant", 840, 372],
+      ["jungle/purple_spiky_alien", 950, 280]
+    ],
+    "areaScatter": [
+      {
+        "area": "swamp",
+        "max": 11,
+        "spacing": 40,
+        "waterMargin": 4,
+        "onRoads": true,
+        "sprites": [
+          "rocks2/grass_tuft_green",
+          "rocks2/grass_tuft_green_cluster",
+          "trees/grass_tuft_a",
+          "jungle/grass_blades",
+          "beach/grass_tuft_tall",
+          "trees/fern_small"
+        ]
       },
-      "sprites": [
-        "trees-bush-001",
-        "trees-bush-002",
-        "jungle-bush-008"
-      ],
-      "density": 0.12,
-      "clearings": 0.4,
-      "seed": 79
-    }
-  ],
+      {
+        "area": "dunes",
+        "max": 12,
+        "spacing": 40,
+        "waterMargin": 16,
+        "sprites": [
+          "beach/bone_fragment_a",
+          "beach/bone_fragments_b",
+          "beach/bone_fragment_c",
+          "beach/bone_fragment_e",
+          "beach/bone_fragments_f",
+          "beach/bone_fragment_g",
+          "beach/bone_a",
+          "beach/bone_b"
+        ]
+      },
+      {
+        "area": "dunes",
+        "max": 10,
+        "spacing": 40,
+        "waterMargin": 16,
+        "sprites": [
+          "beach/pebble_a",
+          "beach/pebble_b",
+          "beach/pebble_c",
+          "beach/pebble_e",
+          "beach/pebble_pair",
+          "beach/pebble_cluster"
+        ]
+      },
+      {
+        "area": "desert",
+        "max": 14,
+        "spacing": 48,
+        "waterMargin": 10,
+        "sprites": [
+          "rocks2/small_boulder_a",
+          "rocks2/small_boulder_b",
+          "rocks2/pebble_crumbs_a",
+          "rocks2/pebble_c",
+          "beach/sand_pebbles_set_a",
+          "rocks2/low_rock_grass_a",
+          "beach/dry_shrub"
+        ]
+      }
+    ],
+    "meadow": {
+      "tries": 600,
+      "max": 110,
+      "spacing": 70,
+      "box": [130, 140, 1266, 658],
+      "mix": [
+        [0.55, ["trees/yellow_flowers_cluster", "trees/yellow_flowers_trio"]],
+        [0.25, ["rocks2/small_boulder_a", "rocks2/small_boulder_b", "rocks2/rock_cluster_grass_a"]],
+        [0.2, ["trees/broadleaf_bush", "trees/dense_shrub", "trees/yellow_green_bush"]]
+      ]
+    },
+    "finish": {"warm": "rgba(255,206,140,0.22)", "glow": "rgba(255,244,214,0.14)", "vignette": "rgba(6,14,10,0.5)"}
+  },
   "edibles": [
-    {
-      "kind": "large",
-      "sprite": "jungle-plant-015",
-      "x": 10.5,
-      "y": 20.5
-    },
-    {
-      "kind": "medium",
-      "sprite": "jungle-plant-010",
-      "x": 32.5,
-      "y": 19.5
-    },
-    {
-      "kind": "small",
-      "sprite": "red_flower_plant",
-      "x": 21.5,
-      "y": 3.5
-    },
-    {
-      "kind": "small",
-      "sprite": "red_flower_plant",
-      "x": 4.5,
-      "y": 5.5
-    },
-    {
-      "kind": "medium",
-      "sprite": "jungle-plant-010",
-      "x": 42.5,
-      "y": 7.5
-    }
-  ],
-  "dangers": [
-    {
-      "kind": "spider",
-      "x": 10.5,
-      "y": 12.5
-    },
-    {
-      "kind": "lantern",
-      "x": 24.5,
-      "y": 3.5
-    },
-    {
-      "kind": "spider",
-      "x": 41.5,
-      "y": 12.5
-    },
-    {
-      "kind": "lantern",
-      "x": 11.5,
-      "y": 29.5
-    },
-    {
-      "kind": "spider",
-      "x": 25.5,
-      "y": 26.5
-    },
-    {
-      "kind": "lantern",
-      "x": 37.5,
-      "y": 28.5
-    }
+    {"kind": "small", "sprite": "red_flower_plant", "x": 7.5, "y": 33.5},
+    {"kind": "medium", "sprite": "jungle-plant-010", "x": 15.5, "y": 30.5},
+    {"kind": "small", "sprite": "red_flower_plant", "x": 17.5, "y": 21.5},
+    {"kind": "large", "sprite": "jungle-plant-015", "x": 13.5, "y": 13.5},
+    {"kind": "medium", "sprite": "jungle-plant-010", "x": 24, "y": 21},
+    {"kind": "small", "sprite": "red_flower_plant", "x": 30.5, "y": 19.5},
+    {"kind": "medium", "sprite": "jungle-plant-010", "x": 40.5, "y": 19.5},
+    {"kind": "large", "sprite": "jungle-plant-015", "x": 48.5, "y": 17.5},
+    {"kind": "medium", "sprite": "jungle-plant-010", "x": 53.5, "y": 25.5},
+    {"kind": "small", "sprite": "red_flower_plant", "x": 47.5, "y": 31.5}
   ],
   "sprites": {
     "fly-female": {
@@ -419,12 +339,7 @@
         "..............ttttt.............",
         "................t..............."
       ],
-      "palette": {
-        "w": "#dfe9f5",
-        "k": "#1b1b1b",
-        "e": "#ff3b3b",
-        "t": "#d9a441"
-      }
+      "palette": {"w": "#dfe9f5", "k": "#1b1b1b", "e": "#ff3b3b", "t": "#d9a441"}
     },
     "fly-female-baseline": {
       "pixels": [
@@ -461,12 +376,7 @@
         "..............ttttt.............",
         "................t..............."
       ],
-      "palette": {
-        "w": "#c9d6e8",
-        "k": "#3a2f1b",
-        "e": "#ff8c3b",
-        "t": "#8c6a2f"
-      }
+      "palette": {"w": "#c9d6e8", "k": "#3a2f1b", "e": "#ff8c3b", "t": "#8c6a2f"}
     },
     "fly-male": {
       "pixels": [
@@ -503,12 +413,7 @@
         "................................",
         "................................"
       ],
-      "palette": {
-        "w": "#dfe9f5",
-        "k": "#1b1b1b",
-        "e": "#ff3b3b",
-        "t": "#d9a441"
-      }
+      "palette": {"w": "#dfe9f5", "k": "#1b1b1b", "e": "#ff3b3b", "t": "#d9a441"}
     },
     "fly-male-baseline": {
       "pixels": [
@@ -545,12 +450,7 @@
         "................................",
         "................................"
       ],
-      "palette": {
-        "w": "#c9d6e8",
-        "k": "#3a2f1b",
-        "e": "#ff8c3b",
-        "t": "#8c6a2f"
-      }
+      "palette": {"w": "#c9d6e8", "k": "#3a2f1b", "e": "#ff8c3b", "t": "#8c6a2f"}
     }
   },
   "flies": {
@@ -559,45 +459,14 @@
     "tickHz": 20,
     "sprite": "fly-female",
     "baselineSprite": "fly-female-baseline",
-    "sex": [
-      "female",
-      "male",
-      "female",
-      "male",
-      "female",
-      "male"
-    ],
-    "body": {
-      "maxSpeed": 3,
-      "turnRate": 4
-    },
-    "stimulus": {
-      "objects": [
-        "small",
-        "medium",
-        "large"
-      ],
-      "radius": 6,
-      "gain": 1,
-      "max": 1,
-      "resting": 0.2
-    },
+    "sex": ["female", "male", "female", "male", "female", "male"],
+    "body": {"maxSpeed": 3, "turnRate": 4},
+    "stimulus": {"objects": ["small", "medium", "large"], "radius": 6, "gain": 1, "max": 1, "resting": 0.2},
     "brain": {
       "snapshot": "brains/smallest-functional-brain.brain",
       "motorSmoothing": 0.05,
-      "lif": {
-        "synapticScale": 0.85
-      }
+      "lif": {"synapticScale": 0.85}
     },
-    "experiment": {
-      "seeds": [
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
-      "ticks": 3000
-    }
+    "experiment": {"seeds": [1, 2, 3, 4, 5], "ticks": 3000}
   }
 }

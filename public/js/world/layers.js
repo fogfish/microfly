@@ -1,8 +1,13 @@
-// Visual layers over the world map (specs/007-odor-layer/contracts/odour-layer.md §5). Pure: no DOM.
-// The state is in memory only and is not persisted. Nothing under fly/ or brain/ imports it (R7),
-// so turning a layer on or off cannot change the simulation.
+// Visual layers over the world map (specs/007-odor-layer/contracts/odour-layer.md §5, contracts/odour-layer-
+// v2.md §1). Pure: no DOM. The state is in memory only and is not persisted. Nothing under fly/ or brain/
+// imports it (R7), so turning a layer on or off cannot change the simulation.
 
-export const LAYERS = [{ id: 'odour', label: 'Odour' }];
+export const LAYERS = [
+  { id: 'odour-food', label: 'Food odour' },
+  { id: 'odour-danger', label: 'Danger odour' },
+  { id: 'odour-heat', label: 'Heat odour' },
+  { id: 'grid', label: 'Grid' },
+];
 
 // Every layer starts off (FR-002).
 export function initialLayers() {

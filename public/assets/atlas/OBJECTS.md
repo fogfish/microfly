@@ -6,10 +6,11 @@ Every game object cut from the ZRPG sheets in this folder, as ready-to-use brows
 
 - **Use the exported sprites, not the source sheets.** Source bounding boxes overlap (shadows, tight packing), so cropping a sheet by box pulls in neighbours. Each file in `sprites/<sheet>/<id>.png` is masked: only that object's pixels.
 - **Two ways to draw:** load `sprites/<sheet>/<id>.png` as an `Image`, or load `atlas/atlas-N.png` once and `ctx.drawImage(atlas, a.x, a.y, a.w, a.h, dx, dy, a.w, a.h)` with `a = sprite.atlas`. Atlas rects never overlap (2 px padding).
-- **Anchor:** `anchor` (sprite px) is the foot point (bottom-centre of the body, shadow excluded). Draw at `dx = worldX - anchor.x`, `dy = worldY - anchor.y` and depth-sort by `worldY`. `terrain` and `water` anchor at `0,0` (top-left) and are drawn first.
+- **Anchor:** `anchor` (sprite px) is the foot point (bottom-centre of the body, shadow excluded). Draw at `dx = worldX - anchor.x`, `dy = worldY - anchor.y` and depth-sort by `worldY`. `terrain`, `water` and tileset pieces anchor at `0,0` (top-left) and are drawn first.
 - **Pixel art:** set `ctx.imageSmoothingEnabled = false` and CSS `image-rendering: pixelated`; scale by integers.
 - **Shadows** are baked into the sprite (`shadow: true`) as black at alpha 92. Do not add another shadow.
 - **Water** is an animation: `catalog.animations.water.frames` (21 frames, 320×128, fps 6), tile horizontally.
+- **Tilesets** (`catalog.tilesets`, section 5) build sand, rock and grass areas of any size from corner, edge and fill pieces on a 32 px grid. Their pieces carry `tileset: {name, role, variant}` and anchor at `0,0`.
 - **Ids** are `<sheet>-<class>-<NNN>`; `name` is a readable slug unique within a sheet. Refer to sprites by `id`.
 - **Classes** are fixed to the 7 in section 2. Do not invent new ones.
 
@@ -30,8 +31,8 @@ function draw(ctx, id, worldX, worldY) {
 | `tree` | Standing trees and palms (incl. dead trees, palm trunk/crown segments). Usually with cast shadow. | 40 |
 | `bush` | Shrubs, cacti, ferns, leafy vines and overhangs: mid-size ground vegetation that blocks or decorates. | 57 |
 | `plant` | Small vegetation: flowers, sprouts, tufts, reeds, mushrooms, grass-blade scatter decals. | 68 |
-| `rock` | Rocks: mesas, cliffs, pillars, boulders, crystal/ore nodes, pebbles. | 67 |
-| `terrain` | Ground art drawn under everything: grass/sand/gravel tiles, patches, autotile masks, pits, decals. | 67 |
+| `rock` | Rocks: mesas, cliffs, pillars, boulders, crystal/ore nodes, pebbles. | 108 |
+| `terrain` | Ground art drawn under everything: grass/sand/gravel tiles, patches, autotile masks, pits, decals. | 181 |
 | `prop` | Objects: logs, signposts, planters, tent, lantern, hive, bones, skulls, shells, starfish, coral. | 59 |
 | `water` | Water animation frames. | 21 |
 
@@ -40,12 +41,12 @@ function draw(ctx, id, worldX, worldY) {
 | Sheet | Source file | Size | Sprites |
 | --- | --- | --- | ---: |
 | `trees` | `ZRPGtrees.png` | 1024 × 1024 | 70 |
-| `rocks2` | `ZRPGRocks2.png` | 1024 × 1024 | 78 |
-| `beach` | `ZRPGBeach.png` | 1024 × 1024 | 158 |
+| `rocks2` | `ZRPGRocks2.png` | 1024 × 1024 | 171 |
+| `beach` | `ZRPGBeach.png` | 1024 × 1024 | 220 |
 | `jungle` | `ZRPGJunglePlants.png` | 512 × 416 | 52 |
 | `water` | `ZRPGWater.png` | 320 × 3328 | 21 |
 
-Atlases: `atlas/atlas-0.png` (2048 × 1822).
+Atlases: `atlas/atlas-0.png` (2048 × 1835).
 
 ## 4. Sprites
 
@@ -130,84 +131,177 @@ Columns: `src` = box in the source sheet (x, y, w, h); `anchor` = foot point in 
 
 | ID | Name | Class | File | src x,y,w,h | anchor | S | Description |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `rocks2-rock-001` | `mesa_hollow_open` | `rock` | `sprites/rocks2/rocks2-rock-001.png` | 224,0,224,224 | 98,219 | y | Circular mesa with transparent hollow centre and grass rim, with shadow |
-| `rocks2-rock-002` | `mesa_solid` | `rock` | `sprites/rocks2/rocks2-rock-002.png` | 448,0,224,224 | 98,219 | y | Circular mesa with solid gravel top, with shadow |
-| `rocks2-rock-003` | `mesa_solid_fog` | `rock` | `sprites/rocks2/rocks2-rock-003.png` | 672,0,192,219 | 98,219 |  | Circular mesa with gravel top and fog-faded base |
-| `rocks2-rock-004` | `rock_cluster_grass_a` | `rock` | `sprites/rocks2/rocks2-rock-004.png` | 928,4,32,28 | 17,28 |  | Small rock cluster on grass |
-| `rocks2-rock-005` | `rock_cluster_grass_b` | `rock` | `sprites/rocks2/rocks2-rock-005.png` | 960,5,32,27 | 7,27 |  | Small rock cluster on grass |
-| `rocks2-rock-006` | `rock_cluster_grass_c` | `rock` | `sprites/rocks2/rocks2-rock-006.png` | 995,7,26,25 | 14,25 |  | Small rock cluster on grass |
-| `rocks2-rock-007` | `low_rock_grass_a` | `rock` | `sprites/rocks2/rocks2-rock-007.png` | 932,46,23,18 | 12,18 |  | Low rock on grass |
-| `rocks2-rock-008` | `small_rock_a` | `rock` | `sprites/rocks2/rocks2-rock-008.png` | 966,42,19,21 | 10,21 |  | Small rock |
-| `rocks2-rock-009` | `small_rock_b` | `rock` | `sprites/rocks2/rocks2-rock-009.png` | 966,79,19,17 | 8,17 |  | Small rock |
-| `rocks2-rock-010` | `low_rock_grass_b` | `rock` | `sprites/rocks2/rocks2-rock-010.png` | 995,78,25,18 | 13,18 |  | Low rock pair on grass |
-| `rocks2-rock-011` | `low_rock_c` | `rock` | `sprites/rocks2/rocks2-rock-011.png` | 997,50,19,14 | 9,14 |  | Low small rock |
-| `rocks2-rock-012` | `pebble_pair_a` | `rock` | `sprites/rocks2/rocks2-rock-012.png` | 935,83,14,11 | 11,11 |  | Pair of pebbles |
-| `rocks2-rock-013` | `pebble_a` | `rock` | `sprites/rocks2/rocks2-rock-013.png` | 938,114,12,10 | 6,10 |  | Single pebble |
-| `rocks2-rock-014` | `low_rock_grass_d` | `rock` | `sprites/rocks2/rocks2-rock-014.png` | 965,116,21,12 | 12,12 |  | Low rock on grass |
-| `rocks2-rock-015` | `pebble_pair_b` | `rock` | `sprites/rocks2/rocks2-rock-015.png` | 999,116,15,10 | 8,10 |  | Pair of pebbles |
-| `rocks2-rock-016` | `small_boulder_a` | `rock` | `sprites/rocks2/rocks2-rock-016.png` | 931,132,26,24 | 12,24 |  | Small boulder |
-| `rocks2-rock-017` | `small_boulder_b` | `rock` | `sprites/rocks2/rocks2-rock-017.png` | 972,128,40,32 | 14,32 |  | Small boulder |
-| `rocks2-rock-018` | `small_boulder_c` | `rock` | `sprites/rocks2/rocks2-rock-018.png` | 929,174,30,18 | 13,18 |  | Low small boulder |
-| `rocks2-rock-019` | `cliff_column` | `rock` | `sprites/rocks2/rocks2-rock-019.png` | 2,224,108,139 | 65,139 |  | Vertical cliff column, no shadow |
-| `rocks2-rock-020` | `cliff_column_shadow` | `rock` | `sprites/rocks2/rocks2-rock-020.png` | 130,224,149,139 | 62,138 | y | Vertical cliff column with cast shadow |
-| `rocks2-rock-021` | `cliff_column_grass` | `rock` | `sprites/rocks2/rocks2-rock-021.png` | 322,224,133,146 | 94,146 |  | Vertical cliff column with grass at the base |
-| `rocks2-rock-022` | `cliff_column_fog` | `rock` | `sprites/rocks2/rocks2-rock-022.png` | 483,224,107,139 | 64,139 |  | Vertical cliff column with fog-faded base |
-| `rocks2-rock-023` | `cliff_ledge_fog` | `rock` | `sprites/rocks2/rocks2-rock-023.png` | 640,224,128,91 | 64,91 |  | Horizontal cliff ledge fading into fog |
-| `rocks2-rock-024` | `pillar_1` | `rock` | `sprites/rocks2/rocks2-rock-024.png` | 780,232,40,55 | 18,55 |  | Narrow rock pillar |
-| `rocks2-rock-025` | `pillar_2` | `rock` | `sprites/rocks2/rocks2-rock-025.png` | 843,230,42,57 | 17,57 |  | Narrow rock pillar |
-| `rocks2-rock-026` | `pillar_3` | `rock` | `sprites/rocks2/rocks2-rock-026.png` | 906,239,43,48 | 15,48 |  | Narrow rock pillar with small shadow |
-| `rocks2-rock-027` | `pillar_4` | `rock` | `sprites/rocks2/rocks2-rock-027.png` | 969,225,46,62 | 19,62 |  | Narrow rock pillar with small shadow |
-| `rocks2-rock-028` | `pillar_5` | `rock` | `sprites/rocks2/rocks2-rock-028.png` | 765,296,59,55 | 21,55 | y | Narrow rock pillar with cast shadow |
-| `rocks2-rock-029` | `pillar_6` | `rock` | `sprites/rocks2/rocks2-rock-029.png` | 831,294,58,58 | 17,57 | y | Narrow rock pillar with cast shadow |
-| `rocks2-rock-030` | `pillar_7` | `rock` | `sprites/rocks2/rocks2-rock-030.png` | 894,303,55,51 | 15,48 | y | Narrow rock pillar with cast shadow |
-| `rocks2-rock-031` | `pillar_8` | `rock` | `sprites/rocks2/rocks2-rock-031.png` | 957,289,63,62 | 19,62 | y | Narrow rock pillar with cast shadow |
-| `rocks2-rock-032` | `plateau_tall` | `rock` | `sprites/rocks2/rocks2-rock-032.png` | 672,352,194,219 | 92,219 |  | Standalone tall circular plateau with layered cliffs |
-| `rocks2-rock-033` | `outcrop_medium` | `rock` | `sprites/rocks2/rocks2-rock-033.png` | 6,404,134,97 | 67,97 |  | Medium rock outcrop |
-| `rocks2-rock-034` | `outcrop_medium_shadow` | `rock` | `sprites/rocks2/rocks2-rock-034.png` | 166,404,144,104 | 90,104 | y | Medium rock outcrop with cast shadow |
-| `rocks2-rock-035` | `outcrop_medium_grass` | `rock` | `sprites/rocks2/rocks2-rock-035.png` | 326,404,179,108 | 103,108 |  | Medium rock outcrop merged with grass |
-| `rocks2-rock-036` | `outcrop_medium_fog` | `rock` | `sprites/rocks2/rocks2-rock-036.png` | 518,404,134,104 | 90,104 |  | Medium rock outcrop with fog-faded base |
-| `rocks2-rock-037` | `outcrop_small` | `rock` | `sprites/rocks2/rocks2-rock-037.png` | 0,522,101,75 | 52,75 |  | Small rock outcrop |
-| `rocks2-rock-038` | `outcrop_small_shadow` | `rock` | `sprites/rocks2/rocks2-rock-038.png` | 128,522,109,77 | 52,75 | y | Small rock outcrop with cast shadow |
-| `rocks2-rock-039` | `outcrop_small_grass` | `rock` | `sprites/rocks2/rocks2-rock-039.png` | 256,522,123,75 | 34,75 |  | Small rock outcrop merged with grass |
-| `rocks2-rock-040` | `outcrop_small_fog` | `rock` | `sprites/rocks2/rocks2-rock-040.png` | 384,522,101,75 | 52,75 |  | Small rock outcrop with fog-faded base |
-| `rocks2-rock-041` | `cliff_fog_tile` | `rock` | `sprites/rocks2/rocks2-rock-041.png` | 512,544,32,32 | 16,32 |  | 32x32 fogged cliff fill tile |
-| `rocks2-terrain-001` | `grass_patch_octagon` | `terrain` | `sprites/rocks2/rocks2-terrain-001.png` | 2,614,157,146 | 0,0 |  | Octagonal dark-green grass patch |
-| `rocks2-terrain-002` | `grass_cross_frame` | `terrain` | `sprites/rocks2/rocks2-terrain-002.png` | 170,615,140,144 | 0,0 |  | Yellow-green grass frame around a cross of 32px tiles (inner tiles exported separately) |
-| `rocks2-terrain-003` | `grass_cross_cutout` | `terrain` | `sprites/rocks2/rocks2-terrain-003.png` | 330,615,140,144 | 0,0 |  | Grass autotile cutout mask (cross-shaped hole) |
+| `rocks2-rock-001` | `mesa_hollow_open_tl` | `rock` | `sprites/rocks2/rocks2-rock-001.png` | 224,0,64,64 | 0,0 |  | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: top-left corner |
+| `rocks2-rock-002` | `mesa_hollow_open_t1` | `rock` | `sprites/rocks2/rocks2-rock-002.png` | 288,0,32,64 | 0,0 |  | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: top edge |
+| `rocks2-rock-003` | `mesa_hollow_open_t2` | `rock` | `sprites/rocks2/rocks2-rock-003.png` | 320,0,32,64 | 0,0 |  | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: top edge |
+| `rocks2-rock-004` | `mesa_hollow_open_tr` | `rock` | `sprites/rocks2/rocks2-rock-004.png` | 352,0,96,64 | 0,0 |  | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: top-right corner |
+| `rocks2-rock-005` | `mesa_hollow_open_l` | `rock` | `sprites/rocks2/rocks2-rock-005.png` | 224,64,64,32 | 0,0 |  | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: left edge |
+| `rocks2-rock-006` | `mesa_hollow_open_r` | `rock` | `sprites/rocks2/rocks2-rock-006.png` | 352,64,96,32 | 0,0 | y | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: right edge |
+| `rocks2-rock-007` | `mesa_hollow_open_bl` | `rock` | `sprites/rocks2/rocks2-rock-007.png` | 224,96,64,128 | 0,0 | y | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: bottom-left corner |
+| `rocks2-rock-008` | `mesa_hollow_open_b1` | `rock` | `sprites/rocks2/rocks2-rock-008.png` | 288,96,32,128 | 0,0 | y | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: bottom edge |
+| `rocks2-rock-009` | `mesa_hollow_open_b2` | `rock` | `sprites/rocks2/rocks2-rock-009.png` | 320,96,32,128 | 0,0 | y | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: bottom edge |
+| `rocks2-rock-010` | `mesa_hollow_open_br` | `rock` | `sprites/rocks2/rocks2-rock-010.png` | 352,96,96,128 | 0,0 | y | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow: bottom-right corner |
+| `rocks2-rock-011` | `mesa_solid_tl` | `rock` | `sprites/rocks2/rocks2-rock-011.png` | 448,0,64,64 | 0,0 |  | Mesa with gravel top, cliff face and shadow: top-left corner |
+| `rocks2-rock-012` | `mesa_solid_t1` | `rock` | `sprites/rocks2/rocks2-rock-012.png` | 512,0,32,64 | 0,0 |  | Mesa with gravel top, cliff face and shadow: top edge |
+| `rocks2-rock-013` | `mesa_solid_t2` | `rock` | `sprites/rocks2/rocks2-rock-013.png` | 544,0,32,64 | 0,0 |  | Mesa with gravel top, cliff face and shadow: top edge |
+| `rocks2-rock-014` | `mesa_solid_tr` | `rock` | `sprites/rocks2/rocks2-rock-014.png` | 576,0,96,64 | 0,0 |  | Mesa with gravel top, cliff face and shadow: top-right corner |
+| `rocks2-rock-015` | `mesa_solid_l` | `rock` | `sprites/rocks2/rocks2-rock-015.png` | 448,64,64,32 | 0,0 |  | Mesa with gravel top, cliff face and shadow: left edge |
+| `rocks2-rock-016` | `mesa_solid_c` | `rock` | `sprites/rocks2/rocks2-rock-016.png` | 512,64,32,32 | 0,0 |  | Mesa with gravel top, cliff face and shadow: fill |
+| `rocks2-rock-017` | `mesa_solid_r` | `rock` | `sprites/rocks2/rocks2-rock-017.png` | 576,64,96,32 | 0,0 | y | Mesa with gravel top, cliff face and shadow: right edge |
+| `rocks2-rock-018` | `mesa_solid_bl` | `rock` | `sprites/rocks2/rocks2-rock-018.png` | 448,96,64,128 | 0,0 | y | Mesa with gravel top, cliff face and shadow: bottom-left corner |
+| `rocks2-rock-019` | `mesa_solid_b1` | `rock` | `sprites/rocks2/rocks2-rock-019.png` | 512,96,32,128 | 0,0 | y | Mesa with gravel top, cliff face and shadow: bottom edge |
+| `rocks2-rock-020` | `mesa_solid_b2` | `rock` | `sprites/rocks2/rocks2-rock-020.png` | 544,96,32,128 | 0,0 | y | Mesa with gravel top, cliff face and shadow: bottom edge |
+| `rocks2-rock-021` | `mesa_solid_br` | `rock` | `sprites/rocks2/rocks2-rock-021.png` | 576,96,96,128 | 0,0 | y | Mesa with gravel top, cliff face and shadow: bottom-right corner |
+| `rocks2-rock-022` | `mesa_solid_fog_tl` | `rock` | `sprites/rocks2/rocks2-rock-022.png` | 672,0,64,64 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: top-left corner |
+| `rocks2-rock-023` | `mesa_solid_fog_t1` | `rock` | `sprites/rocks2/rocks2-rock-023.png` | 736,0,32,64 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: top edge |
+| `rocks2-rock-024` | `mesa_solid_fog_t2` | `rock` | `sprites/rocks2/rocks2-rock-024.png` | 768,0,32,64 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: top edge |
+| `rocks2-rock-025` | `mesa_solid_fog_tr` | `rock` | `sprites/rocks2/rocks2-rock-025.png` | 800,0,64,64 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: top-right corner |
+| `rocks2-rock-026` | `mesa_solid_fog_l` | `rock` | `sprites/rocks2/rocks2-rock-026.png` | 672,64,64,32 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: left edge |
+| `rocks2-rock-027` | `mesa_solid_fog_c` | `rock` | `sprites/rocks2/rocks2-rock-027.png` | 736,64,32,32 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: fill |
+| `rocks2-rock-028` | `mesa_solid_fog_r` | `rock` | `sprites/rocks2/rocks2-rock-028.png` | 800,64,64,32 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: right edge |
+| `rocks2-rock-029` | `mesa_solid_fog_bl` | `rock` | `sprites/rocks2/rocks2-rock-029.png` | 672,96,64,128 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: bottom-left corner |
+| `rocks2-rock-030` | `mesa_solid_fog_b1` | `rock` | `sprites/rocks2/rocks2-rock-030.png` | 736,96,32,128 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: bottom edge |
+| `rocks2-rock-031` | `mesa_solid_fog_b2` | `rock` | `sprites/rocks2/rocks2-rock-031.png` | 768,96,32,128 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: bottom edge |
+| `rocks2-rock-032` | `mesa_solid_fog_br` | `rock` | `sprites/rocks2/rocks2-rock-032.png` | 800,96,64,128 | 0,0 |  | Mesa with gravel top and fog-faded cliff face: bottom-right corner |
+| `rocks2-rock-033` | `rock_cluster_grass_a` | `rock` | `sprites/rocks2/rocks2-rock-033.png` | 928,4,32,28 | 17,28 |  | Small rock cluster on grass |
+| `rocks2-rock-034` | `rock_cluster_grass_b` | `rock` | `sprites/rocks2/rocks2-rock-034.png` | 960,5,32,27 | 7,27 |  | Small rock cluster on grass |
+| `rocks2-rock-035` | `rock_cluster_grass_c` | `rock` | `sprites/rocks2/rocks2-rock-035.png` | 995,7,26,25 | 14,25 |  | Small rock cluster on grass |
+| `rocks2-rock-036` | `low_rock_grass_a` | `rock` | `sprites/rocks2/rocks2-rock-036.png` | 932,46,23,18 | 12,18 |  | Low rock on grass |
+| `rocks2-rock-037` | `small_rock_a` | `rock` | `sprites/rocks2/rocks2-rock-037.png` | 966,42,19,21 | 10,21 |  | Small rock |
+| `rocks2-rock-038` | `small_rock_b` | `rock` | `sprites/rocks2/rocks2-rock-038.png` | 966,79,19,17 | 8,17 |  | Small rock |
+| `rocks2-rock-039` | `low_rock_grass_b` | `rock` | `sprites/rocks2/rocks2-rock-039.png` | 995,78,25,18 | 13,18 |  | Low rock pair on grass |
+| `rocks2-rock-040` | `low_rock_c` | `rock` | `sprites/rocks2/rocks2-rock-040.png` | 997,50,19,14 | 9,14 |  | Low small rock |
+| `rocks2-rock-041` | `pebble_pair_a` | `rock` | `sprites/rocks2/rocks2-rock-041.png` | 935,83,14,11 | 11,11 |  | Pair of pebbles |
+| `rocks2-rock-042` | `pebble_a` | `rock` | `sprites/rocks2/rocks2-rock-042.png` | 938,114,12,10 | 6,10 |  | Single pebble |
+| `rocks2-rock-043` | `low_rock_grass_d` | `rock` | `sprites/rocks2/rocks2-rock-043.png` | 965,116,21,12 | 12,12 |  | Low rock on grass |
+| `rocks2-rock-044` | `pebble_pair_b` | `rock` | `sprites/rocks2/rocks2-rock-044.png` | 999,116,15,10 | 8,10 |  | Pair of pebbles |
+| `rocks2-rock-045` | `small_boulder_a` | `rock` | `sprites/rocks2/rocks2-rock-045.png` | 931,132,26,24 | 12,24 |  | Small boulder |
+| `rocks2-rock-046` | `small_boulder_b` | `rock` | `sprites/rocks2/rocks2-rock-046.png` | 972,128,40,32 | 14,32 |  | Small boulder |
+| `rocks2-rock-047` | `small_boulder_c` | `rock` | `sprites/rocks2/rocks2-rock-047.png` | 929,174,30,18 | 13,18 |  | Low small boulder |
+| `rocks2-rock-048` | `cliff_column` | `rock` | `sprites/rocks2/rocks2-rock-048.png` | 2,224,108,139 | 65,139 |  | Vertical cliff column, no shadow |
+| `rocks2-rock-049` | `cliff_column_shadow` | `rock` | `sprites/rocks2/rocks2-rock-049.png` | 130,224,149,139 | 62,138 | y | Vertical cliff column with cast shadow |
+| `rocks2-rock-050` | `cliff_column_grass` | `rock` | `sprites/rocks2/rocks2-rock-050.png` | 322,224,133,146 | 94,146 |  | Vertical cliff column with grass at the base |
+| `rocks2-rock-051` | `cliff_column_fog` | `rock` | `sprites/rocks2/rocks2-rock-051.png` | 483,224,107,139 | 64,139 |  | Vertical cliff column with fog-faded base |
+| `rocks2-rock-052` | `cliff_ledge_fog` | `rock` | `sprites/rocks2/rocks2-rock-052.png` | 640,224,128,91 | 64,91 |  | Horizontal cliff ledge fading into fog |
+| `rocks2-rock-053` | `pillar_1` | `rock` | `sprites/rocks2/rocks2-rock-053.png` | 780,232,40,55 | 18,55 |  | Narrow rock pillar |
+| `rocks2-rock-054` | `pillar_2` | `rock` | `sprites/rocks2/rocks2-rock-054.png` | 843,230,42,57 | 17,57 |  | Narrow rock pillar |
+| `rocks2-rock-055` | `pillar_3` | `rock` | `sprites/rocks2/rocks2-rock-055.png` | 906,239,43,48 | 15,48 |  | Narrow rock pillar with small shadow |
+| `rocks2-rock-056` | `pillar_4` | `rock` | `sprites/rocks2/rocks2-rock-056.png` | 969,225,46,62 | 19,62 |  | Narrow rock pillar with small shadow |
+| `rocks2-rock-057` | `pillar_5` | `rock` | `sprites/rocks2/rocks2-rock-057.png` | 765,296,59,55 | 21,55 | y | Narrow rock pillar with cast shadow |
+| `rocks2-rock-058` | `pillar_6` | `rock` | `sprites/rocks2/rocks2-rock-058.png` | 831,294,58,58 | 17,57 | y | Narrow rock pillar with cast shadow |
+| `rocks2-rock-059` | `pillar_7` | `rock` | `sprites/rocks2/rocks2-rock-059.png` | 894,303,55,51 | 15,48 | y | Narrow rock pillar with cast shadow |
+| `rocks2-rock-060` | `pillar_8` | `rock` | `sprites/rocks2/rocks2-rock-060.png` | 957,289,63,62 | 19,62 | y | Narrow rock pillar with cast shadow |
+| `rocks2-rock-061` | `plateau_tall_tl` | `rock` | `sprites/rocks2/rocks2-rock-061.png` | 672,352,64,64 | 0,0 |  | Plateau with gravel top and layered cliff face: top-left corner |
+| `rocks2-rock-062` | `plateau_tall_t1` | `rock` | `sprites/rocks2/rocks2-rock-062.png` | 736,352,32,64 | 0,0 |  | Plateau with gravel top and layered cliff face: top edge |
+| `rocks2-rock-063` | `plateau_tall_t2` | `rock` | `sprites/rocks2/rocks2-rock-063.png` | 768,352,32,64 | 0,0 |  | Plateau with gravel top and layered cliff face: top edge |
+| `rocks2-rock-064` | `plateau_tall_tr` | `rock` | `sprites/rocks2/rocks2-rock-064.png` | 800,352,64,64 | 0,0 |  | Plateau with gravel top and layered cliff face: top-right corner |
+| `rocks2-rock-065` | `plateau_tall_l` | `rock` | `sprites/rocks2/rocks2-rock-065.png` | 672,416,64,32 | 0,0 |  | Plateau with gravel top and layered cliff face: left edge |
+| `rocks2-rock-066` | `plateau_tall_c` | `rock` | `sprites/rocks2/rocks2-rock-066.png` | 736,416,32,32 | 0,0 |  | Plateau with gravel top and layered cliff face: fill |
+| `rocks2-rock-067` | `plateau_tall_r` | `rock` | `sprites/rocks2/rocks2-rock-067.png` | 800,416,64,32 | 0,0 |  | Plateau with gravel top and layered cliff face: right edge |
+| `rocks2-rock-068` | `plateau_tall_bl` | `rock` | `sprites/rocks2/rocks2-rock-068.png` | 672,448,64,128 | 0,0 |  | Plateau with gravel top and layered cliff face: bottom-left corner |
+| `rocks2-rock-069` | `plateau_tall_b1` | `rock` | `sprites/rocks2/rocks2-rock-069.png` | 736,448,32,128 | 0,0 |  | Plateau with gravel top and layered cliff face: bottom edge |
+| `rocks2-rock-070` | `plateau_tall_b2` | `rock` | `sprites/rocks2/rocks2-rock-070.png` | 768,448,32,128 | 0,0 |  | Plateau with gravel top and layered cliff face: bottom edge |
+| `rocks2-rock-071` | `plateau_tall_br` | `rock` | `sprites/rocks2/rocks2-rock-071.png` | 800,448,64,128 | 0,0 |  | Plateau with gravel top and layered cliff face: bottom-right corner |
+| `rocks2-rock-072` | `outcrop_medium` | `rock` | `sprites/rocks2/rocks2-rock-072.png` | 6,404,134,97 | 67,97 |  | Medium rock outcrop |
+| `rocks2-rock-073` | `outcrop_medium_shadow` | `rock` | `sprites/rocks2/rocks2-rock-073.png` | 166,404,144,104 | 90,104 | y | Medium rock outcrop with cast shadow |
+| `rocks2-rock-074` | `outcrop_medium_grass` | `rock` | `sprites/rocks2/rocks2-rock-074.png` | 326,404,179,108 | 103,108 |  | Medium rock outcrop merged with grass |
+| `rocks2-rock-075` | `outcrop_medium_fog` | `rock` | `sprites/rocks2/rocks2-rock-075.png` | 518,404,134,104 | 90,104 |  | Medium rock outcrop with fog-faded base |
+| `rocks2-rock-076` | `outcrop_small` | `rock` | `sprites/rocks2/rocks2-rock-076.png` | 0,522,101,75 | 52,75 |  | Small rock outcrop |
+| `rocks2-rock-077` | `outcrop_small_shadow` | `rock` | `sprites/rocks2/rocks2-rock-077.png` | 128,522,109,77 | 52,75 | y | Small rock outcrop with cast shadow |
+| `rocks2-rock-078` | `outcrop_small_grass` | `rock` | `sprites/rocks2/rocks2-rock-078.png` | 256,522,123,75 | 34,75 |  | Small rock outcrop merged with grass |
+| `rocks2-rock-079` | `outcrop_small_fog` | `rock` | `sprites/rocks2/rocks2-rock-079.png` | 384,522,101,75 | 52,75 |  | Small rock outcrop with fog-faded base |
+| `rocks2-rock-080` | `cliff_fog_tile` | `rock` | `sprites/rocks2/rocks2-rock-080.png` | 512,544,32,32 | 16,32 |  | 32x32 fogged cliff fill tile |
+| `rocks2-terrain-001` | `grass_patch_octagon_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-001.png` | 0,608,64,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: top-left corner |
+| `rocks2-terrain-002` | `grass_patch_octagon_t` | `terrain` | `sprites/rocks2/rocks2-terrain-002.png` | 64,608,32,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: top edge |
+| `rocks2-terrain-003` | `grass_patch_octagon_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-003.png` | 96,608,64,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: top-right corner |
+| `rocks2-terrain-004` | `grass_patch_octagon_l` | `terrain` | `sprites/rocks2/rocks2-terrain-004.png` | 0,672,64,32 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: left edge |
+| `rocks2-terrain-005` | `grass_patch_octagon_c` | `terrain` | `sprites/rocks2/rocks2-terrain-005.png` | 64,672,32,32 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: fill |
+| `rocks2-terrain-006` | `grass_patch_octagon_r` | `terrain` | `sprites/rocks2/rocks2-terrain-006.png` | 96,672,64,32 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: right edge |
+| `rocks2-terrain-007` | `grass_patch_octagon_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-007.png` | 0,704,64,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: bottom-left corner |
+| `rocks2-terrain-008` | `grass_patch_octagon_b` | `terrain` | `sprites/rocks2/rocks2-terrain-008.png` | 64,704,32,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: bottom edge |
+| `rocks2-terrain-009` | `grass_patch_octagon_br` | `terrain` | `sprites/rocks2/rocks2-terrain-009.png` | 96,704,64,64 | 0,0 |  | Dark-green grass patch with light ragged fringe and cut corners: bottom-right corner |
+| `rocks2-terrain-010` | `grass_cross_frame_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-010.png` | 160,608,64,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): top-left corner |
+| `rocks2-terrain-011` | `grass_cross_frame_t` | `terrain` | `sprites/rocks2/rocks2-terrain-011.png` | 224,608,32,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): top edge |
+| `rocks2-terrain-012` | `grass_cross_frame_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-012.png` | 256,608,64,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): top-right corner |
+| `rocks2-terrain-013` | `grass_cross_frame_l` | `terrain` | `sprites/rocks2/rocks2-terrain-013.png` | 160,672,64,32 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): left edge |
+| `rocks2-terrain-014` | `grass_cross_frame_r` | `terrain` | `sprites/rocks2/rocks2-terrain-014.png` | 256,672,64,32 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): right edge |
+| `rocks2-terrain-015` | `grass_cross_frame_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-015.png` | 160,704,64,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): bottom-left corner |
+| `rocks2-terrain-016` | `grass_cross_frame_b` | `terrain` | `sprites/rocks2/rocks2-terrain-016.png` | 224,704,32,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): bottom edge |
+| `rocks2-terrain-017` | `grass_cross_frame_br` | `terrain` | `sprites/rocks2/rocks2-terrain-017.png` | 256,704,64,64 | 0,0 |  | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites): bottom-right corner |
+| `rocks2-terrain-018` | `grass_cross_cutout_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-018.png` | 320,608,64,64 | 0,0 |  | Green grass frame around a hole with notched corners: top-left corner |
+| `rocks2-terrain-019` | `grass_cross_cutout_t` | `terrain` | `sprites/rocks2/rocks2-terrain-019.png` | 384,608,32,64 | 0,0 |  | Green grass frame around a hole with notched corners: top edge |
+| `rocks2-terrain-020` | `grass_cross_cutout_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-020.png` | 416,608,64,64 | 0,0 |  | Green grass frame around a hole with notched corners: top-right corner |
+| `rocks2-terrain-021` | `grass_cross_cutout_l` | `terrain` | `sprites/rocks2/rocks2-terrain-021.png` | 320,672,64,32 | 0,0 |  | Green grass frame around a hole with notched corners: left edge |
+| `rocks2-terrain-022` | `grass_cross_cutout_r` | `terrain` | `sprites/rocks2/rocks2-terrain-022.png` | 416,672,64,32 | 0,0 |  | Green grass frame around a hole with notched corners: right edge |
+| `rocks2-terrain-023` | `grass_cross_cutout_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-023.png` | 320,704,64,64 | 0,0 |  | Green grass frame around a hole with notched corners: bottom-left corner |
+| `rocks2-terrain-024` | `grass_cross_cutout_b` | `terrain` | `sprites/rocks2/rocks2-terrain-024.png` | 384,704,32,64 | 0,0 |  | Green grass frame around a hole with notched corners: bottom edge |
+| `rocks2-terrain-025` | `grass_cross_cutout_br` | `terrain` | `sprites/rocks2/rocks2-terrain-025.png` | 416,704,64,64 | 0,0 |  | Green grass frame around a hole with notched corners: bottom-right corner |
 | `rocks2-plant-001` | `grass_scatter_light` | `plant` | `sprites/rocks2/rocks2-plant-001.png` | 480,608,160,109 | 40,109 |  | Loose light-green grass blades scatter (decal set) |
-| `rocks2-terrain-004` | `grass_tile_teal_dark` | `terrain` | `sprites/rocks2/rocks2-terrain-004.png` | 192,672,32,32 | 0,0 |  | 32x32 dark teal grass tile |
-| `rocks2-terrain-005` | `grass_tile_sage` | `terrain` | `sprites/rocks2/rocks2-terrain-005.png` | 224,640,32,32 | 0,0 |  | 32x32 sage-green grass tile |
-| `rocks2-terrain-006` | `grass_tile_green` | `terrain` | `sprites/rocks2/rocks2-terrain-006.png` | 224,672,32,32 | 0,0 |  | 32x32 mid-green grass tile |
-| `rocks2-terrain-007` | `grass_tile_teal` | `terrain` | `sprites/rocks2/rocks2-terrain-007.png` | 256,672,32,32 | 0,0 |  | 32x32 teal grass tile |
+| `rocks2-terrain-026` | `grass_tile_teal_dark` | `terrain` | `sprites/rocks2/rocks2-terrain-026.png` | 192,672,32,32 | 0,0 |  | 32x32 dark teal grass tile |
+| `rocks2-terrain-027` | `grass_tile_sage` | `terrain` | `sprites/rocks2/rocks2-terrain-027.png` | 224,640,32,32 | 0,0 |  | 32x32 sage-green grass tile |
+| `rocks2-terrain-028` | `grass_tile_green` | `terrain` | `sprites/rocks2/rocks2-terrain-028.png` | 224,672,32,32 | 0,0 |  | 32x32 mid-green grass tile |
+| `rocks2-terrain-029` | `grass_tile_teal` | `terrain` | `sprites/rocks2/rocks2-terrain-029.png` | 256,672,32,32 | 0,0 |  | 32x32 teal grass tile |
 | `rocks2-plant-002` | `grass_tuft_light_a` | `plant` | `sprites/rocks2/rocks2-plant-002.png` | 480,712,64,53 | 29,53 |  | Dense light-green grass tuft |
 | `rocks2-plant-003` | `grass_tuft_light_b` | `plant` | `sprites/rocks2/rocks2-plant-003.png` | 545,717,94,47 | 27,47 |  | Dense light-green grass tuft |
-| `rocks2-terrain-008` | `grass_band` | `terrain` | `sprites/rocks2/rocks2-terrain-008.png` | 704,684,128,104 | 0,0 |  | Horizontal grass band edge tile |
+| `rocks2-terrain-030` | `grass_band` | `terrain` | `sprites/rocks2/rocks2-terrain-030.png` | 704,684,128,104 | 0,0 |  | Horizontal grass band edge tile |
 | `rocks2-plant-004` | `grass_scatter_green` | `plant` | `sprites/rocks2/rocks2-plant-004.png` | 477,757,163,115 | 53,115 |  | Loose green grass blades scatter (decal set) |
-| `rocks2-terrain-009` | `cobble_ground_grass_edge` | `terrain` | `sprites/rocks2/rocks2-terrain-009.png` | 0,768,96,94 | 0,0 |  | Cobblestone ground tile with grassy edge |
-| `rocks2-terrain-010` | `cobble_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-010.png` | 96,768,65,70 | 0,0 |  | Cobblestone tile with hole |
-| `rocks2-terrain-011` | `cobble_overgrown` | `terrain` | `sprites/rocks2/rocks2-terrain-011.png` | 161,769,92,94 | 0,0 |  | Cobblestone ground overgrown with grass |
-| `rocks2-terrain-012` | `stone_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-012.png` | 256,768,64,64 | 0,0 |  | 64x64 stone tile with hole |
+| `rocks2-terrain-031` | `cobble_ground_grass_edge_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-031.png` | 0,768,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: top-left corner |
+| `rocks2-terrain-032` | `cobble_ground_grass_edge_t` | `terrain` | `sprites/rocks2/rocks2-terrain-032.png` | 32,768,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: top edge |
+| `rocks2-terrain-033` | `cobble_ground_grass_edge_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-033.png` | 64,768,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: top-right corner |
+| `rocks2-terrain-034` | `cobble_ground_grass_edge_l` | `terrain` | `sprites/rocks2/rocks2-terrain-034.png` | 0,800,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: left edge |
+| `rocks2-terrain-035` | `cobble_ground_grass_edge_c` | `terrain` | `sprites/rocks2/rocks2-terrain-035.png` | 32,800,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: fill |
+| `rocks2-terrain-036` | `cobble_ground_grass_edge_r` | `terrain` | `sprites/rocks2/rocks2-terrain-036.png` | 64,800,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: right edge |
+| `rocks2-terrain-037` | `cobble_ground_grass_edge_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-037.png` | 0,832,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: bottom-left corner |
+| `rocks2-terrain-038` | `cobble_ground_grass_edge_b` | `terrain` | `sprites/rocks2/rocks2-terrain-038.png` | 32,832,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: bottom edge |
+| `rocks2-terrain-039` | `cobble_ground_grass_edge_br` | `terrain` | `sprites/rocks2/rocks2-terrain-039.png` | 64,832,32,32 | 0,0 |  | Cobblestone ground with grassy ragged edge: bottom-right corner |
+| `rocks2-terrain-040` | `cobble_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-040.png` | 96,768,65,70 | 0,0 |  | Cobblestone tile with hole |
+| `rocks2-terrain-041` | `cobble_overgrown_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-041.png` | 160,768,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: top-left corner |
+| `rocks2-terrain-042` | `cobble_overgrown_t` | `terrain` | `sprites/rocks2/rocks2-terrain-042.png` | 192,768,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: top edge |
+| `rocks2-terrain-043` | `cobble_overgrown_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-043.png` | 224,768,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: top-right corner |
+| `rocks2-terrain-044` | `cobble_overgrown_l` | `terrain` | `sprites/rocks2/rocks2-terrain-044.png` | 160,800,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: left edge |
+| `rocks2-terrain-045` | `cobble_overgrown_c` | `terrain` | `sprites/rocks2/rocks2-terrain-045.png` | 192,800,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: fill |
+| `rocks2-terrain-046` | `cobble_overgrown_r` | `terrain` | `sprites/rocks2/rocks2-terrain-046.png` | 224,800,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: right edge |
+| `rocks2-terrain-047` | `cobble_overgrown_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-047.png` | 160,832,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: bottom-left corner |
+| `rocks2-terrain-048` | `cobble_overgrown_b` | `terrain` | `sprites/rocks2/rocks2-terrain-048.png` | 192,832,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: bottom edge |
+| `rocks2-terrain-049` | `cobble_overgrown_br` | `terrain` | `sprites/rocks2/rocks2-terrain-049.png` | 224,832,32,32 | 0,0 |  | Cobblestone ground overgrown with grass: bottom-right corner |
+| `rocks2-terrain-050` | `stone_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-050.png` | 256,768,64,64 | 0,0 |  | 64x64 stone tile with hole |
 | `rocks2-plant-005` | `grass_scatter_yellow` | `plant` | `sprites/rocks2/rocks2-plant-005.png` | 320,768,157,104 | 50,104 |  | Loose yellow grass blades scatter (decal set) |
-| `rocks2-terrain-013` | `grass_rim_bar_left` | `terrain` | `sprites/rocks2/rocks2-terrain-013.png` | 626,792,79,104 | 0,0 |  | Vertical green cliff-rim bar with ragged edges (left) |
-| `rocks2-rock-042` | `pebble_crumbs_a` | `rock` | `sprites/rocks2/rocks2-rock-042.png` | 96,835,58,26 | 10,25 | y | Loose pebble crumbs |
-| `rocks2-terrain-014` | `grass_tile_light` | `terrain` | `sprites/rocks2/rocks2-terrain-014.png` | 256,832,64,64 | 0,0 |  | 64x64 light-green grass tile |
-| `rocks2-terrain-015` | `grass_rim_bar_right` | `terrain` | `sprites/rocks2/rocks2-terrain-015.png` | 767,800,65,96 | 0,0 |  | Vertical green cliff-rim bar with ragged edges (right) |
-| `rocks2-terrain-016` | `gravel_patch_round` | `terrain` | `sprites/rocks2/rocks2-terrain-016.png` | 2,866,93,96 | 0,0 | y | Round gravel patch |
-| `rocks2-terrain-017` | `gravel_tile_holes` | `terrain` | `sprites/rocks2/rocks2-terrain-017.png` | 96,860,64,66 | 0,0 |  | Gravel tile with holes |
+| `rocks2-terrain-051` | `grass_rim_bar_left` | `terrain` | `sprites/rocks2/rocks2-terrain-051.png` | 626,792,79,104 | 0,0 |  | Vertical green cliff-rim bar with ragged edges (left) |
+| `rocks2-rock-081` | `pebble_crumbs_a` | `rock` | `sprites/rocks2/rocks2-rock-081.png` | 96,835,58,26 | 10,25 | y | Loose pebble crumbs |
+| `rocks2-terrain-052` | `grass_tile_light` | `terrain` | `sprites/rocks2/rocks2-terrain-052.png` | 256,832,64,64 | 0,0 |  | 64x64 light-green grass tile |
+| `rocks2-terrain-053` | `grass_rim_bar_right` | `terrain` | `sprites/rocks2/rocks2-terrain-053.png` | 767,800,65,96 | 0,0 |  | Vertical green cliff-rim bar with ragged edges (right) |
+| `rocks2-terrain-054` | `gravel_patch_round_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-054.png` | 0,864,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top-left corner |
+| `rocks2-terrain-055` | `gravel_patch_round_t` | `terrain` | `sprites/rocks2/rocks2-terrain-055.png` | 32,864,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top edge |
+| `rocks2-terrain-056` | `gravel_patch_round_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-056.png` | 64,864,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top-right corner |
+| `rocks2-terrain-057` | `gravel_patch_round_l` | `terrain` | `sprites/rocks2/rocks2-terrain-057.png` | 0,896,32,32 | 0,0 | y | Gravel ground with loose-stone edge: left edge |
+| `rocks2-terrain-058` | `gravel_patch_round_c` | `terrain` | `sprites/rocks2/rocks2-terrain-058.png` | 32,896,32,32 | 0,0 |  | Gravel ground with loose-stone edge: fill |
+| `rocks2-terrain-059` | `gravel_patch_round_r` | `terrain` | `sprites/rocks2/rocks2-terrain-059.png` | 64,896,32,32 | 0,0 |  | Gravel ground with loose-stone edge: right edge |
+| `rocks2-terrain-060` | `gravel_patch_round_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-060.png` | 0,928,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom-left corner |
+| `rocks2-terrain-061` | `gravel_patch_round_b` | `terrain` | `sprites/rocks2/rocks2-terrain-061.png` | 32,928,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom edge |
+| `rocks2-terrain-062` | `gravel_patch_round_br` | `terrain` | `sprites/rocks2/rocks2-terrain-062.png` | 64,928,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom-right corner |
+| `rocks2-terrain-063` | `gravel_tile_holes` | `terrain` | `sprites/rocks2/rocks2-terrain-063.png` | 96,860,64,66 | 0,0 |  | Gravel tile with holes |
 | `rocks2-plant-006` | `grass_tuft_yellow_cluster` | `plant` | `sprites/rocks2/rocks2-plant-006.png` | 320,870,78,85 | 38,85 |  | Dense yellow grass tufts cluster |
 | `rocks2-plant-007` | `grass_tuft_yellow` | `plant` | `sprites/rocks2/rocks2-plant-007.png` | 388,877,84,51 | 70,51 |  | Dense yellow grass tuft |
 | `rocks2-plant-008` | `grass_tuft_green_cluster` | `plant` | `sprites/rocks2/rocks2-plant-008.png` | 472,870,83,58 | 41,58 |  | Dense green grass tufts cluster |
 | `rocks2-plant-009` | `grass_tuft_green` | `plant` | `sprites/rocks2/rocks2-plant-009.png` | 548,877,84,51 | 70,51 |  | Dense green grass tuft |
-| `rocks2-terrain-018` | `grass_rim_diamond` | `terrain` | `sprites/rocks2/rocks2-terrain-018.png` | 632,848,199,160 | 0,0 |  | Diamond-shaped green cliff-rim corner piece |
-| `rocks2-terrain-019` | `rubble_overlay_set` | `terrain` | `sprites/rocks2/rocks2-terrain-019.png` | 162,896,89,96 | 0,0 |  | Rubble and dirt overlay pieces |
-| `rocks2-terrain-020` | `grass_tile_dark` | `terrain` | `sprites/rocks2/rocks2-terrain-020.png` | 256,896,64,64 | 0,0 |  | 64x64 dark-green grass tile |
-| `rocks2-rock-043` | `pebble_b` | `rock` | `sprites/rocks2/rocks2-rock-043.png` | 960,915,21,10 | 10,9 | y | Single pebble |
-| `rocks2-rock-044` | `pebble_crumbs_b` | `rock` | `sprites/rocks2/rocks2-rock-044.png` | 963,896,27,20 | 19,19 | y | Loose pebble crumbs |
-| `rocks2-rock-045` | `pebble_c` | `rock` | `sprites/rocks2/rocks2-rock-045.png` | 1001,905,17,16 | 2,15 | y | Single pebble |
-| `rocks2-terrain-021` | `rubble_overlay_a` | `terrain` | `sprites/rocks2/rocks2-terrain-021.png` | 64,958,83,34 | 0,0 |  | Rubble and dirt overlay strip |
-| `rocks2-terrain-022` | `pebble_patch_round` | `terrain` | `sprites/rocks2/rocks2-terrain-022.png` | 865,930,94,94 | 0,0 | y | Round pebble ground patch |
-| `rocks2-terrain-023` | `pebble_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-023.png` | 960,928,64,64 | 0,0 | y | Pebble ground tile with hole |
-| `rocks2-terrain-024` | `rubble_overlay_c` | `terrain` | `sprites/rocks2/rocks2-terrain-024.png` | 964,992,60,32 | 0,0 |  | Rubble and dirt overlay strip |
+| `rocks2-terrain-064` | `grass_rim_diamond` | `terrain` | `sprites/rocks2/rocks2-terrain-064.png` | 632,848,199,160 | 0,0 |  | Diamond-shaped green cliff-rim corner piece |
+| `rocks2-terrain-065` | `rubble_overlay_set` | `terrain` | `sprites/rocks2/rocks2-terrain-065.png` | 162,896,89,96 | 0,0 |  | Rubble and dirt overlay pieces |
+| `rocks2-terrain-066` | `grass_tile_dark` | `terrain` | `sprites/rocks2/rocks2-terrain-066.png` | 256,896,64,64 | 0,0 |  | 64x64 dark-green grass tile |
+| `rocks2-rock-082` | `pebble_b` | `rock` | `sprites/rocks2/rocks2-rock-082.png` | 960,915,21,10 | 10,9 | y | Single pebble |
+| `rocks2-rock-083` | `pebble_crumbs_b` | `rock` | `sprites/rocks2/rocks2-rock-083.png` | 963,896,27,20 | 19,19 | y | Loose pebble crumbs |
+| `rocks2-rock-084` | `pebble_c` | `rock` | `sprites/rocks2/rocks2-rock-084.png` | 1001,905,17,16 | 2,15 | y | Single pebble |
+| `rocks2-terrain-067` | `rubble_overlay_a` | `terrain` | `sprites/rocks2/rocks2-terrain-067.png` | 64,958,83,34 | 0,0 |  | Rubble and dirt overlay strip |
+| `rocks2-terrain-068` | `pebble_patch_round_tl` | `terrain` | `sprites/rocks2/rocks2-terrain-068.png` | 864,928,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: top-left corner |
+| `rocks2-terrain-069` | `pebble_patch_round_t` | `terrain` | `sprites/rocks2/rocks2-terrain-069.png` | 896,928,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: top edge |
+| `rocks2-terrain-070` | `pebble_patch_round_tr` | `terrain` | `sprites/rocks2/rocks2-terrain-070.png` | 928,928,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: top-right corner |
+| `rocks2-terrain-071` | `pebble_patch_round_l` | `terrain` | `sprites/rocks2/rocks2-terrain-071.png` | 864,960,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: left edge |
+| `rocks2-terrain-072` | `pebble_patch_round_c` | `terrain` | `sprites/rocks2/rocks2-terrain-072.png` | 896,960,32,32 | 0,0 |  | Pebble ground with loose-pebble edge: fill |
+| `rocks2-terrain-073` | `pebble_patch_round_r` | `terrain` | `sprites/rocks2/rocks2-terrain-073.png` | 928,960,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: right edge |
+| `rocks2-terrain-074` | `pebble_patch_round_bl` | `terrain` | `sprites/rocks2/rocks2-terrain-074.png` | 864,992,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: bottom-left corner |
+| `rocks2-terrain-075` | `pebble_patch_round_b` | `terrain` | `sprites/rocks2/rocks2-terrain-075.png` | 896,992,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: bottom edge |
+| `rocks2-terrain-076` | `pebble_patch_round_br` | `terrain` | `sprites/rocks2/rocks2-terrain-076.png` | 928,992,32,32 | 0,0 | y | Pebble ground with loose-pebble edge: bottom-right corner |
+| `rocks2-terrain-077` | `pebble_tile_hole` | `terrain` | `sprites/rocks2/rocks2-terrain-077.png` | 960,928,64,64 | 0,0 | y | Pebble ground tile with hole |
+| `rocks2-terrain-078` | `rubble_overlay_c` | `terrain` | `sprites/rocks2/rocks2-terrain-078.png` | 964,992,60,32 | 0,0 |  | Rubble and dirt overlay strip |
 
 ### beach — `ZRPGBeach.png`
 
@@ -287,8 +381,18 @@ Columns: `src` = box in the source sheet (x, y, w, h); `anchor` = foot point in 
 | `beach-prop-032` | `bone_a` | `prop` | `sprites/beach/beach-prop-032.png` | 163,422,24,26 | 20,24 | y | Bone |
 | `beach-prop-033` | `bone_b` | `prop` | `sprites/beach/beach-prop-033.png` | 197,422,24,26 | 3,24 | y | Bone |
 | `beach-prop-034` | `bone_ring_arch` | `prop` | `sprites/beach/beach-prop-034.png` | 258,419,89,93 | 44,91 | y | Circular bone archway |
-| `beach-terrain-001` | `sand_ring_tile` | `terrain` | `sprites/beach/beach-terrain-001.png` | 448,416,96,96 | 0,0 |  | Sand ring edge tile (hole in centre) |
-| `beach-terrain-002` | `sand_ring_small` | `terrain` | `sprites/beach/beach-terrain-002.png` | 548,419,56,56 | 0,0 |  | Small sand ring disc |
+| `beach-terrain-001` | `sand_ring_tile_tl` | `terrain` | `sprites/beach/beach-terrain-001.png` | 448,416,32,32 | 0,0 |  | Sand border around a hole (ring): top-left corner |
+| `beach-terrain-002` | `sand_ring_tile_t` | `terrain` | `sprites/beach/beach-terrain-002.png` | 480,416,32,32 | 0,0 |  | Sand border around a hole (ring): top edge |
+| `beach-terrain-003` | `sand_ring_tile_tr` | `terrain` | `sprites/beach/beach-terrain-003.png` | 512,416,32,32 | 0,0 |  | Sand border around a hole (ring): top-right corner |
+| `beach-terrain-004` | `sand_ring_tile_l` | `terrain` | `sprites/beach/beach-terrain-004.png` | 448,448,32,32 | 0,0 |  | Sand border around a hole (ring): left edge |
+| `beach-terrain-005` | `sand_ring_tile_r` | `terrain` | `sprites/beach/beach-terrain-005.png` | 512,448,32,32 | 0,0 |  | Sand border around a hole (ring): right edge |
+| `beach-terrain-006` | `sand_ring_tile_bl` | `terrain` | `sprites/beach/beach-terrain-006.png` | 448,480,32,32 | 0,0 |  | Sand border around a hole (ring): bottom-left corner |
+| `beach-terrain-007` | `sand_ring_tile_b` | `terrain` | `sprites/beach/beach-terrain-007.png` | 480,480,32,32 | 0,0 |  | Sand border around a hole (ring): bottom edge |
+| `beach-terrain-008` | `sand_ring_tile_br` | `terrain` | `sprites/beach/beach-terrain-008.png` | 512,480,32,32 | 0,0 |  | Sand border around a hole (ring): bottom-right corner |
+| `beach-terrain-009` | `sand_ring_small_tl` | `terrain` | `sprites/beach/beach-terrain-009.png` | 544,416,32,32 | 0,0 |  | Small sand disc in four quadrants: top-left corner |
+| `beach-terrain-010` | `sand_ring_small_tr` | `terrain` | `sprites/beach/beach-terrain-010.png` | 576,416,32,32 | 0,0 |  | Small sand disc in four quadrants: top-right corner |
+| `beach-terrain-011` | `sand_ring_small_bl` | `terrain` | `sprites/beach/beach-terrain-011.png` | 544,448,32,32 | 0,0 |  | Small sand disc in four quadrants: bottom-left corner |
+| `beach-terrain-012` | `sand_ring_small_br` | `terrain` | `sprites/beach/beach-terrain-012.png` | 576,448,32,32 | 0,0 |  | Small sand disc in four quadrants: bottom-right corner |
 | `beach-prop-035` | `animal_skull` | `prop` | `sprites/beach/beach-prop-035.png` | 65,452,60,58 | 11,55 | y | Animal skull |
 | `beach-prop-036` | `long_bone` | `prop` | `sprites/beach/beach-prop-036.png` | 128,452,63,60 | 7,60 |  | Long curved bone |
 | `beach-prop-037` | `bone_fragment_c` | `prop` | `sprites/beach/beach-prop-037.png` | 133,469,9,9 | 2,8 |  | Small bone fragment |
@@ -304,73 +408,125 @@ Columns: `src` = box in the source sheet (x, y, w, h); `anchor` = foot point in 
 | `beach-prop-041` | `bone_fragment_e` | `prop` | `sprites/beach/beach-prop-041.png` | 15,484,9,9 | 6,8 |  | Small bone fragment |
 | `beach-prop-042` | `bone_fragments_f` | `prop` | `sprites/beach/beach-prop-042.png` | 29,491,19,17 | 6,16 |  | Scattered small bone fragments |
 | `beach-prop-043` | `bone_fragment_g` | `prop` | `sprites/beach/beach-prop-043.png` | 31,480,13,12 | 8,11 |  | Small bone fragment |
-| `beach-terrain-003` | `grass_patch_tile` | `terrain` | `sprites/beach/beach-terrain-003.png` | 320,512,192,64 | 0,0 |  | 192x64 bright grass terrain tile |
+| `beach-terrain-013` | `grass_patch_tile` | `terrain` | `sprites/beach/beach-terrain-013.png` | 320,512,192,64 | 0,0 |  | 192x64 bright grass terrain tile |
 | `beach-rock-003` | `pebble_cluster` | `rock` | `sprites/beach/beach-rock-003.png` | 0,531,21,10 | 10,9 | y | Small pebble cluster |
-| `beach-terrain-004` | `gravel_tile_crack` | `terrain` | `sprites/beach/beach-terrain-004.png` | 0,540,64,68 | 0,0 |  | Gravel tile with cracked hole |
+| `beach-terrain-014` | `gravel_tile_crack` | `terrain` | `sprites/beach/beach-terrain-014.png` | 0,540,64,68 | 0,0 |  | Gravel tile with cracked hole |
 | `beach-rock-004` | `pebble_b` | `rock` | `sprites/beach/beach-rock-004.png` | 8,524,9,5 | 4,4 |  | Small pebble |
 | `beach-rock-005` | `pebble_c` | `rock` | `sprites/beach/beach-rock-005.png` | 22,527,8,5 | 3,4 |  | Small pebble |
 | `beach-rock-006` | `pebble_d` | `rock` | `sprites/beach/beach-rock-006.png` | 41,532,7,5 | 2,4 |  | Small pebble |
 | `beach-rock-007` | `pebble_e` | `rock` | `sprites/beach/beach-rock-007.png` | 45,521,13,10 | 5,9 | y | Small pebble |
-| `beach-terrain-005` | `sand_tile_hole` | `terrain` | `sprites/beach/beach-terrain-005.png` | 64,544,64,64 | 0,0 |  | 64x64 sand tile with hole |
-| `beach-terrain-006` | `sand_splat` | `terrain` | `sprites/beach/beach-terrain-006.png` | 139,552,48,51 | 0,0 |  | Sand splat decal |
-| `beach-terrain-007` | `gravel_tile_hole` | `terrain` | `sprites/beach/beach-terrain-007.png` | 192,544,64,64 | 0,0 |  | 64x64 gravel tile with hole |
-| `beach-terrain-008` | `gravel_splat` | `terrain` | `sprites/beach/beach-terrain-008.png` | 267,520,48,52 | 0,0 |  | Gravel splat decal |
+| `beach-terrain-015` | `sand_tile_hole` | `terrain` | `sprites/beach/beach-terrain-015.png` | 64,544,64,64 | 0,0 |  | 64x64 sand tile with hole |
+| `beach-terrain-016` | `sand_splat` | `terrain` | `sprites/beach/beach-terrain-016.png` | 139,552,48,51 | 0,0 |  | Sand splat decal |
+| `beach-terrain-017` | `gravel_tile_hole` | `terrain` | `sprites/beach/beach-terrain-017.png` | 192,544,64,64 | 0,0 |  | 64x64 gravel tile with hole |
+| `beach-terrain-018` | `gravel_splat` | `terrain` | `sprites/beach/beach-terrain-018.png` | 267,520,48,52 | 0,0 |  | Gravel splat decal |
 | `beach-rock-008` | `pebble_f` | `rock` | `sprites/beach/beach-rock-008.png` | 32,573,9,6 | 4,5 |  | Small pebble |
 | `beach-plant-001` | `tall_grass_wide` | `plant` | `sprites/beach/beach-plant-001.png` | 289,576,191,127 | 60,127 | y | Wide block of tall reeds with foreground tufts |
 | `beach-plant-002` | `tall_grass_narrow` | `plant` | `sprites/beach/beach-plant-002.png` | 480,576,64,96 | 31,96 |  | Narrow tall reed block with gaps |
 | `beach-plant-003` | `tall_grass_block` | `plant` | `sprites/beach/beach-plant-003.png` | 544,577,96,127 | 37,127 | y | Tall reed block |
-| `beach-terrain-009` | `gravel_patch` | `terrain` | `sprites/beach/beach-terrain-009.png` | 2,610,93,94 | 0,0 | y | Gravel patch with ragged edge |
-| `beach-terrain-010` | `sand_pit_square` | `terrain` | `sprites/beach/beach-terrain-010.png` | 107,614,77,81 | 0,0 |  | Sand edge around a square pit |
-| `beach-terrain-011` | `gravel_pit` | `terrain` | `sprites/beach/beach-terrain-011.png` | 202,614,78,81 | 0,0 |  | Gravel patch with sand edge |
+| `beach-terrain-019` | `gravel_patch_tl` | `terrain` | `sprites/beach/beach-terrain-019.png` | 0,608,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top-left corner |
+| `beach-terrain-020` | `gravel_patch_t` | `terrain` | `sprites/beach/beach-terrain-020.png` | 32,608,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top edge |
+| `beach-terrain-021` | `gravel_patch_tr` | `terrain` | `sprites/beach/beach-terrain-021.png` | 64,608,32,32 | 0,0 | y | Gravel ground with loose-stone edge: top-right corner |
+| `beach-terrain-022` | `gravel_patch_l` | `terrain` | `sprites/beach/beach-terrain-022.png` | 0,640,32,32 | 0,0 | y | Gravel ground with loose-stone edge: left edge |
+| `beach-terrain-023` | `gravel_patch_c` | `terrain` | `sprites/beach/beach-terrain-023.png` | 32,640,32,32 | 0,0 |  | Gravel ground with loose-stone edge: fill |
+| `beach-terrain-024` | `gravel_patch_r` | `terrain` | `sprites/beach/beach-terrain-024.png` | 64,640,32,32 | 0,0 |  | Gravel ground with loose-stone edge: right edge |
+| `beach-terrain-025` | `gravel_patch_bl` | `terrain` | `sprites/beach/beach-terrain-025.png` | 0,672,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom-left corner |
+| `beach-terrain-026` | `gravel_patch_b` | `terrain` | `sprites/beach/beach-terrain-026.png` | 32,672,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom edge |
+| `beach-terrain-027` | `gravel_patch_br` | `terrain` | `sprites/beach/beach-terrain-027.png` | 64,672,32,32 | 0,0 | y | Gravel ground with loose-stone edge: bottom-right corner |
+| `beach-terrain-028` | `sand_pit_square_tl` | `terrain` | `sprites/beach/beach-terrain-028.png` | 96,608,32,32 | 0,0 |  | Sand border around a square hole: top-left corner |
+| `beach-terrain-029` | `sand_pit_square_t` | `terrain` | `sprites/beach/beach-terrain-029.png` | 128,608,32,32 | 0,0 |  | Sand border around a square hole: top edge |
+| `beach-terrain-030` | `sand_pit_square_tr` | `terrain` | `sprites/beach/beach-terrain-030.png` | 160,608,32,32 | 0,0 |  | Sand border around a square hole: top-right corner |
+| `beach-terrain-031` | `sand_pit_square_l` | `terrain` | `sprites/beach/beach-terrain-031.png` | 96,640,32,32 | 0,0 |  | Sand border around a square hole: left edge |
+| `beach-terrain-032` | `sand_pit_square_r` | `terrain` | `sprites/beach/beach-terrain-032.png` | 160,640,32,32 | 0,0 |  | Sand border around a square hole: right edge |
+| `beach-terrain-033` | `sand_pit_square_bl` | `terrain` | `sprites/beach/beach-terrain-033.png` | 96,672,32,32 | 0,0 |  | Sand border around a square hole: bottom-left corner |
+| `beach-terrain-034` | `sand_pit_square_b` | `terrain` | `sprites/beach/beach-terrain-034.png` | 128,672,32,32 | 0,0 |  | Sand border around a square hole: bottom edge |
+| `beach-terrain-035` | `sand_pit_square_br` | `terrain` | `sprites/beach/beach-terrain-035.png` | 160,672,32,32 | 0,0 |  | Sand border around a square hole: bottom-right corner |
+| `beach-terrain-036` | `gravel_pit_tl` | `terrain` | `sprites/beach/beach-terrain-036.png` | 192,608,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: top-left corner |
+| `beach-terrain-037` | `gravel_pit_t` | `terrain` | `sprites/beach/beach-terrain-037.png` | 224,608,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: top edge |
+| `beach-terrain-038` | `gravel_pit_tr` | `terrain` | `sprites/beach/beach-terrain-038.png` | 256,608,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: top-right corner |
+| `beach-terrain-039` | `gravel_pit_l` | `terrain` | `sprites/beach/beach-terrain-039.png` | 192,640,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: left edge |
+| `beach-terrain-040` | `gravel_pit_c` | `terrain` | `sprites/beach/beach-terrain-040.png` | 224,640,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: fill |
+| `beach-terrain-041` | `gravel_pit_r` | `terrain` | `sprites/beach/beach-terrain-041.png` | 256,640,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: right edge |
+| `beach-terrain-042` | `gravel_pit_bl` | `terrain` | `sprites/beach/beach-terrain-042.png` | 192,672,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: bottom-left corner |
+| `beach-terrain-043` | `gravel_pit_b` | `terrain` | `sprites/beach/beach-terrain-043.png` | 224,672,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: bottom edge |
+| `beach-terrain-044` | `gravel_pit_br` | `terrain` | `sprites/beach/beach-terrain-044.png` | 256,672,32,32 | 0,0 |  | Gravel ground with sandy ragged edge: bottom-right corner |
 | `beach-plant-004` | `grass_sprig_a` | `plant` | `sprites/beach/beach-plant-004.png` | 469,678,11,7 | 4,6 |  | Small grass sprig |
 | `beach-tree-016` | `palm_trunk_a` | `tree` | `sprites/beach/beach-tree-016.png` | 693,672,116,125 | 9,125 | y | Palm trunk segment with shadow (stack under a crown) |
 | `beach-tree-017` | `palm_trunk_b` | `tree` | `sprites/beach/beach-tree-017.png` | 858,672,143,125 | 8,125 | y | Palm trunk segment with shadow (stack under a crown) |
 | `beach-rock-009` | `pebble_g` | `rock` | `sprites/beach/beach-rock-009.png` | 12,718,8,6 | 3,6 |  | Small pebble |
-| `beach-terrain-012` | `sand_tile_pit_a` | `terrain` | `sprites/beach/beach-terrain-012.png` | 30,704,66,68 | 0,0 |  | Sand tile with pit |
+| `beach-terrain-045` | `sand_tile_pit_a` | `terrain` | `sprites/beach/beach-terrain-045.png` | 30,704,66,68 | 0,0 |  | Sand tile with pit |
 | `beach-rock-010` | `pebble_h` | `rock` | `sprites/beach/beach-rock-010.png` | 107,717,10,8 | 4,8 |  | Small pebble |
-| `beach-terrain-013` | `sand_tile_pit_b` | `terrain` | `sprites/beach/beach-terrain-013.png` | 128,704,64,64 | 0,0 |  | Sand tile with pit |
+| `beach-terrain-046` | `sand_tile_pit_b` | `terrain` | `sprites/beach/beach-terrain-046.png` | 128,704,64,64 | 0,0 |  | Sand tile with pit |
 | `beach-rock-011` | `pebble_i` | `rock` | `sprites/beach/beach-rock-011.png` | 204,718,8,6 | 3,6 |  | Small pebble |
-| `beach-terrain-014` | `sand_tile_pit_c` | `terrain` | `sprites/beach/beach-terrain-014.png` | 222,704,66,68 | 0,0 |  | Sand tile with pit |
+| `beach-terrain-047` | `sand_tile_pit_c` | `terrain` | `sprites/beach/beach-terrain-047.png` | 222,704,66,68 | 0,0 |  | Sand tile with pit |
 | `beach-plant-005` | `grass_sprig_b` | `plant` | `sprites/beach/beach-plant-005.png` | 298,692,10,9 | 5,9 |  | Small grass sprig |
 | `beach-rock-012` | `pebble_j` | `rock` | `sprites/beach/beach-rock-012.png` | 299,717,10,8 | 4,8 |  | Small pebble |
-| `beach-terrain-015` | `sand_tile_pit_d` | `terrain` | `sprites/beach/beach-terrain-015.png` | 320,703,64,65 | 0,0 |  | Sand tile with pit |
+| `beach-terrain-048` | `sand_tile_pit_d` | `terrain` | `sprites/beach/beach-terrain-048.png` | 320,703,64,65 | 0,0 |  | Sand tile with pit |
 | `beach-plant-006` | `grass_sprig_c` | `plant` | `sprites/beach/beach-plant-006.png` | 388,714,13,15 | 7,15 |  | Small grass sprig |
 | `beach-plant-007` | `grass_sprig_d` | `plant` | `sprites/beach/beach-plant-007.png` | 404,711,8,12 | 4,12 |  | Small grass sprig |
 | `beach-plant-008` | `grass_sprig_e` | `plant` | `sprites/beach/beach-plant-008.png` | 425,708,11,7 | 5,7 |  | Small grass sprig |
 | `beach-plant-009` | `grass_sprig_f` | `plant` | `sprites/beach/beach-plant-009.png` | 441,691,6,7 | 1,6 |  | Small grass sprig |
 | `beach-plant-010` | `grass_sprig_g` | `plant` | `sprites/beach/beach-plant-010.png` | 452,691,20,12 | 13,11 | y | Small grass sprigs |
 | `beach-tree-018` | `palm_leaning` | `tree` | `sprites/beach/beach-tree-018.png` | 564,717,108,107 | 14,107 | y | Leaning palm tree with shadow |
-| `beach-terrain-016` | `sand_clump_a` | `terrain` | `sprites/beach/beach-terrain-016.png` | 5,740,23,23 | 0,0 |  | Sand clump decal |
-| `beach-terrain-017` | `sand_clump_b` | `terrain` | `sprites/beach/beach-terrain-017.png` | 100,739,25,25 | 0,0 |  | Sand clump decal |
-| `beach-terrain-018` | `sand_clump_c` | `terrain` | `sprites/beach/beach-terrain-018.png` | 197,740,23,23 | 0,0 |  | Sand clump decal |
-| `beach-terrain-019` | `sand_clump_d` | `terrain` | `sprites/beach/beach-terrain-019.png` | 292,739,25,25 | 0,0 |  | Sand clump decal |
+| `beach-terrain-049` | `sand_clump_a` | `terrain` | `sprites/beach/beach-terrain-049.png` | 5,740,23,23 | 0,0 |  | Sand clump decal |
+| `beach-terrain-050` | `sand_clump_b` | `terrain` | `sprites/beach/beach-terrain-050.png` | 100,739,25,25 | 0,0 |  | Sand clump decal |
+| `beach-terrain-051` | `sand_clump_c` | `terrain` | `sprites/beach/beach-terrain-051.png` | 197,740,23,23 | 0,0 |  | Sand clump decal |
+| `beach-terrain-052` | `sand_clump_d` | `terrain` | `sprites/beach/beach-terrain-052.png` | 292,739,25,25 | 0,0 |  | Sand clump decal |
 | `beach-plant-011` | `grass_sprig_h` | `plant` | `sprites/beach/beach-plant-011.png` | 387,741,12,10 | 6,10 |  | Small grass sprig |
 | `beach-plant-012` | `grass_sprig_i` | `plant` | `sprites/beach/beach-plant-012.png` | 402,755,12,9 | 6,9 |  | Small grass sprig |
 | `beach-plant-013` | `agave_a` | `plant` | `sprites/beach/beach-plant-013.png` | 416,743,28,25 | 13,24 | y | Agave plant |
 | `beach-plant-014` | `grass_sprig_j` | `plant` | `sprites/beach/beach-plant-014.png` | 422,726,6,7 | 3,7 |  | Small grass sprig |
 | `beach-bush-030` | `cactus_tall_arms` | `bush` | `sprites/beach/beach-bush-030.png` | 454,738,58,87 | 28,86 | y | Tall cactus with arms and shadow |
-| `beach-terrain-020` | `sand_pit_dark_large` | `terrain` | `sprites/beach/beach-terrain-020.png` | 4,770,91,91 | 0,0 |  | Large sand pit with dark rim |
-| `beach-terrain-021` | `sand_pit_light_small` | `terrain` | `sprites/beach/beach-terrain-021.png` | 110,783,68,70 | 0,0 |  | Sand pit, light rim |
-| `beach-terrain-022` | `sand_pit_dark_b` | `terrain` | `sprites/beach/beach-terrain-022.png` | 196,770,91,91 | 0,0 |  | Large sand pit with dark rim |
-| `beach-terrain-023` | `sand_pit_light_b` | `terrain` | `sprites/beach/beach-terrain-023.png` | 302,783,68,70 | 0,0 |  | Sand pit, light rim |
+| `beach-terrain-053` | `sand_pit_dark_large_tl` | `terrain` | `sprites/beach/beach-terrain-053.png` | 0,768,32,32 | 0,0 |  | Sand ground with dark raised rim: top-left corner |
+| `beach-terrain-054` | `sand_pit_dark_large_t` | `terrain` | `sprites/beach/beach-terrain-054.png` | 32,768,32,32 | 0,0 |  | Sand ground with dark raised rim: top edge |
+| `beach-terrain-055` | `sand_pit_dark_large_tr` | `terrain` | `sprites/beach/beach-terrain-055.png` | 64,768,32,32 | 0,0 |  | Sand ground with dark raised rim: top-right corner |
+| `beach-terrain-056` | `sand_pit_dark_large_l` | `terrain` | `sprites/beach/beach-terrain-056.png` | 0,800,32,32 | 0,0 |  | Sand ground with dark raised rim: left edge |
+| `beach-terrain-057` | `sand_pit_dark_large_c` | `terrain` | `sprites/beach/beach-terrain-057.png` | 32,800,32,32 | 0,0 |  | Sand ground with dark raised rim: fill |
+| `beach-terrain-058` | `sand_pit_dark_large_r` | `terrain` | `sprites/beach/beach-terrain-058.png` | 64,800,32,32 | 0,0 |  | Sand ground with dark raised rim: right edge |
+| `beach-terrain-059` | `sand_pit_dark_large_bl` | `terrain` | `sprites/beach/beach-terrain-059.png` | 0,832,32,32 | 0,0 |  | Sand ground with dark raised rim: bottom-left corner |
+| `beach-terrain-060` | `sand_pit_dark_large_b` | `terrain` | `sprites/beach/beach-terrain-060.png` | 32,832,32,32 | 0,0 |  | Sand ground with dark raised rim: bottom edge |
+| `beach-terrain-061` | `sand_pit_dark_large_br` | `terrain` | `sprites/beach/beach-terrain-061.png` | 64,832,32,32 | 0,0 |  | Sand ground with dark raised rim: bottom-right corner |
+| `beach-terrain-062` | `sand_pit_light_small_tl` | `terrain` | `sprites/beach/beach-terrain-062.png` | 96,768,32,32 | 0,0 |  | Sand ground with light rim: top-left corner |
+| `beach-terrain-063` | `sand_pit_light_small_t` | `terrain` | `sprites/beach/beach-terrain-063.png` | 128,768,32,32 | 0,0 |  | Sand ground with light rim: top edge |
+| `beach-terrain-064` | `sand_pit_light_small_tr` | `terrain` | `sprites/beach/beach-terrain-064.png` | 160,768,32,32 | 0,0 |  | Sand ground with light rim: top-right corner |
+| `beach-terrain-065` | `sand_pit_light_small_l` | `terrain` | `sprites/beach/beach-terrain-065.png` | 96,800,32,32 | 0,0 |  | Sand ground with light rim: left edge |
+| `beach-terrain-066` | `sand_pit_light_small_c` | `terrain` | `sprites/beach/beach-terrain-066.png` | 128,800,32,32 | 0,0 |  | Sand ground with light rim: fill |
+| `beach-terrain-067` | `sand_pit_light_small_r` | `terrain` | `sprites/beach/beach-terrain-067.png` | 160,800,32,32 | 0,0 |  | Sand ground with light rim: right edge |
+| `beach-terrain-068` | `sand_pit_light_small_bl` | `terrain` | `sprites/beach/beach-terrain-068.png` | 96,832,32,32 | 0,0 |  | Sand ground with light rim: bottom-left corner |
+| `beach-terrain-069` | `sand_pit_light_small_b` | `terrain` | `sprites/beach/beach-terrain-069.png` | 128,832,32,32 | 0,0 |  | Sand ground with light rim: bottom edge |
+| `beach-terrain-070` | `sand_pit_light_small_br` | `terrain` | `sprites/beach/beach-terrain-070.png` | 160,832,32,32 | 0,0 |  | Sand ground with light rim: bottom-right corner |
+| `beach-terrain-071` | `sand_pit_dark_b_tl` | `terrain` | `sprites/beach/beach-terrain-071.png` | 192,768,32,32 | 0,0 |  | Golden sand ground with dark raised rim: top-left corner |
+| `beach-terrain-072` | `sand_pit_dark_b_t` | `terrain` | `sprites/beach/beach-terrain-072.png` | 224,768,32,32 | 0,0 |  | Golden sand ground with dark raised rim: top edge |
+| `beach-terrain-073` | `sand_pit_dark_b_tr` | `terrain` | `sprites/beach/beach-terrain-073.png` | 256,768,32,32 | 0,0 |  | Golden sand ground with dark raised rim: top-right corner |
+| `beach-terrain-074` | `sand_pit_dark_b_l` | `terrain` | `sprites/beach/beach-terrain-074.png` | 192,800,32,32 | 0,0 |  | Golden sand ground with dark raised rim: left edge |
+| `beach-terrain-075` | `sand_pit_dark_b_c` | `terrain` | `sprites/beach/beach-terrain-075.png` | 224,800,32,32 | 0,0 |  | Golden sand ground with dark raised rim: fill |
+| `beach-terrain-076` | `sand_pit_dark_b_r` | `terrain` | `sprites/beach/beach-terrain-076.png` | 256,800,32,32 | 0,0 |  | Golden sand ground with dark raised rim: right edge |
+| `beach-terrain-077` | `sand_pit_dark_b_bl` | `terrain` | `sprites/beach/beach-terrain-077.png` | 192,832,32,32 | 0,0 |  | Golden sand ground with dark raised rim: bottom-left corner |
+| `beach-terrain-078` | `sand_pit_dark_b_b` | `terrain` | `sprites/beach/beach-terrain-078.png` | 224,832,32,32 | 0,0 |  | Golden sand ground with dark raised rim: bottom edge |
+| `beach-terrain-079` | `sand_pit_dark_b_br` | `terrain` | `sprites/beach/beach-terrain-079.png` | 256,832,32,32 | 0,0 |  | Golden sand ground with dark raised rim: bottom-right corner |
+| `beach-terrain-080` | `sand_pit_light_b` | `terrain` | `sprites/beach/beach-terrain-080.png` | 302,783,68,70 | 0,0 |  | Sand pit, light rim |
 | `beach-plant-015` | `grass_tuft_tall` | `plant` | `sprites/beach/beach-plant-015.png` | 390,775,25,52 | 11,51 | y | Tall grass tuft |
 | `beach-plant-016` | `agave_b` | `plant` | `sprites/beach/beach-plant-016.png` | 419,768,29,25 | 13,24 | y | Agave plant |
-| `beach-terrain-024` | `sand_crater_a` | `terrain` | `sprites/beach/beach-terrain-024.png` | 384,835,96,89 | 0,0 |  | Sand crater with stone well rim |
+| `beach-terrain-081` | `sand_crater_a` | `terrain` | `sprites/beach/beach-terrain-081.png` | 384,835,96,89 | 0,0 |  | Sand crater with stone well rim |
 | `beach-plant-017` | `spiky_plant` | `plant` | `sprites/beach/beach-plant-017.png` | 426,800,22,28 | 8,27 | y | Spiky green-blue plant |
 | `beach-rock-013` | `sand_pebbles_set_a` | `rock` | `sprites/beach/beach-rock-013.png` | 485,837,49,57 | 29,57 |  | Set of small sand pebbles |
 | `beach-tree-019` | `palm_c` | `tree` | `sprites/beach/beach-tree-019.png` | 740,821,156,139 | 68,139 | y | Palm tree with shadow |
 | `beach-tree-020` | `palm_d` | `tree` | `sprites/beach/beach-tree-020.png` | 897,821,127,139 | 22,139 | y | Palm tree with shadow |
-| `beach-terrain-025` | `sand_strip_a` | `terrain` | `sprites/beach/beach-terrain-025.png` | 0,864,101,32 | 0,0 |  | Sand strip tile |
+| `beach-terrain-082` | `sand_strip_a` | `terrain` | `sprites/beach/beach-terrain-082.png` | 0,864,101,32 | 0,0 |  | Sand strip tile |
 | `beach-rock-014` | `sand_crumbs` | `rock` | `sprites/beach/beach-rock-014.png` | 98,866,58,27 | 16,27 |  | Sand crumbs |
-| `beach-terrain-026` | `sand_strip_b` | `terrain` | `sprites/beach/beach-terrain-026.png` | 192,864,96,32 | 0,0 |  | Sand strip tile |
+| `beach-terrain-083` | `sand_strip_b` | `terrain` | `sprites/beach/beach-terrain-083.png` | 192,864,96,32 | 0,0 |  | Sand strip tile |
 | `beach-tree-021` | `palm_e` | `tree` | `sprites/beach/beach-tree-021.png` | 599,844,137,107 | 69,107 | y | Palm tree with shadow |
-| `beach-rock-015` | `desert_rock_arch_a` | `rock` | `sprites/beach/beach-rock-015.png` | 0,918,192,106 | 97,106 |  | Desert rock arch with small crater |
-| `beach-rock-016` | `desert_rock_arch_b` | `rock` | `sprites/beach/beach-rock-016.png` | 192,918,191,106 | 97,106 |  | Desert rock arch with small crater |
-| `beach-terrain-027` | `sand_ripples_set` | `terrain` | `sprites/beach/beach-terrain-027.png` | 481,896,63,128 | 0,0 |  | Sand ripple decal set |
-| `beach-terrain-028` | `sand_crater_b` | `terrain` | `sprites/beach/beach-terrain-028.png` | 383,931,97,89 | 0,0 |  | Sand crater with stone well rim |
-| `beach-terrain-029` | `sand_ripple_tile_a` | `terrain` | `sprites/beach/beach-terrain-029.png` | 545,960,63,64 | 0,0 |  | Sand ripple decal tile |
-| `beach-terrain-030` | `sand_ripple_tile_b` | `terrain` | `sprites/beach/beach-terrain-030.png` | 609,960,63,64 | 0,0 |  | Sand ripple decal tile |
-| `beach-rock-017` | `sand_pebbles_set_b` | `rock` | `sprites/beach/beach-rock-017.png` | 677,965,49,57 | 29,57 |  | Set of small sand pebbles |
+| `beach-rock-015` | `sand_dune_a_left` | `rock` | `sprites/beach/beach-rock-015.png` | 0,918,97,106 | 37,106 |  | Curved sand dune, left half of a dune arch (pairs with sand_dune_a_right) |
+| `beach-rock-016` | `sand_dune_a_right` | `rock` | `sprites/beach/beach-rock-016.png` | 96,918,96,106 | 56,106 |  | Curved sand dune, right half of a dune arch (pairs with sand_dune_a_left) |
+| `beach-rock-017` | `sand_dune_b_left` | `rock` | `sprites/beach/beach-rock-017.png` | 192,918,97,106 | 37,106 |  | Curved sand dune, left half of a dune arch (pairs with sand_dune_b_right) |
+| `beach-rock-018` | `sand_dune_b_right` | `rock` | `sprites/beach/beach-rock-018.png` | 288,918,95,106 | 56,106 |  | Curved sand dune, right half of a dune arch (pairs with sand_dune_b_left) |
+| `beach-terrain-084` | `sand_ripples_a` | `terrain` | `sprites/beach/beach-terrain-084.png` | 481,896,63,65 | 0,0 |  | Group of sand ripples decal |
+| `beach-terrain-085` | `sand_crater_b` | `terrain` | `sprites/beach/beach-terrain-085.png` | 383,931,97,89 | 0,0 |  | Sand crater with stone well rim |
+| `beach-terrain-086` | `sand_crater_small_a` | `terrain` | `sprites/beach/beach-terrain-086.png` | 96,992,32,32 | 0,0 |  | 32x32 small sand crater decal |
+| `beach-terrain-087` | `sand_crater_small_b` | `terrain` | `sprites/beach/beach-terrain-087.png` | 288,992,32,32 | 0,0 |  | 32x32 small sand crater decal |
+| `beach-terrain-088` | `sand_ripples_b` | `terrain` | `sprites/beach/beach-terrain-088.png` | 481,960,63,64 | 0,0 |  | Group of sand ripples decal |
+| `beach-terrain-089` | `sand_ripple_tile_a` | `terrain` | `sprites/beach/beach-terrain-089.png` | 545,960,63,64 | 0,0 |  | Sand ripple decal tile |
+| `beach-terrain-090` | `sand_ripple_tile_b` | `terrain` | `sprites/beach/beach-terrain-090.png` | 609,960,63,64 | 0,0 |  | Sand ripple decal tile |
+| `beach-rock-019` | `sand_pebbles_set_b` | `rock` | `sprites/beach/beach-rock-019.png` | 677,965,49,57 | 29,57 |  | Set of small sand pebbles |
 
 ### jungle — `ZRPGJunglePlants.png`
 
@@ -455,21 +611,48 @@ Columns: `src` = box in the source sheet (x, y, w, h); `anchor` = foot point in 
 | `water-water-020` | `water_frame_20` | `water` | `sprites/water/water-water-020.png` | 0,3040,320,128 | 0,0 |  | Animated deep-water texture, frame 20 of 21 (tileable horizontally) |
 | `water-water-021` | `water_frame_21` | `water` | `sprites/water/water-water-021.png` | 0,3200,320,128 | 0,0 |  | Animated deep-water texture, frame 21 of 21 (tileable horizontally) |
 
-## 5. How the boxes were made
+## 5. Tilesets
+
+A tileset is a composite from the sheets (mesa, ground patch, pit, ring) split into 9-slice pieces on the 32 px grid. Draw it as 3 × 3 bands: corners once, `t`/`b` edges repeated along the top/bottom, `l`/`r` edges down the sides, `c` fill inside. `cols`/`rows` are the band sizes in px, [left, centre, right] and [top, middle, bottom]. Side bands can be wider than one cell (mesa rims are 64 px, the cliff face is 128 px). The centre band repeats in 32 px steps, so `nx × ny` centre cells give `cols[0] + 32·nx + cols[2]` × `rows[0] + 32·ny + rows[2]` px. When a role has several variants, cycle them. `hole` = no fill: the ground under the tileset shows through. `layout` lists piece ids as arranged in the source sheet, so drawing it row by row reproduces the original art. Reference renderer: `examples/terrain.js`.
+
+| Tileset | Sheet | Class | cols px | rows px | Hole | Pieces | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `mesa_hollow_open` | `rocks2` | `rock` | 64/64/96 | 64/32/128 | y | tl `rocks2-rock-001`, t `rocks2-rock-002` `rocks2-rock-003`, tr `rocks2-rock-004`, l `rocks2-rock-005`, r `rocks2-rock-006`, bl `rocks2-rock-007`, b `rocks2-rock-008` `rocks2-rock-009`, br `rocks2-rock-010` | Mesa ring with grassy inner rim and open (transparent) centre, cliff face and shadow |
+| `mesa_solid` | `rocks2` | `rock` | 64/64/96 | 64/32/128 |  | tl `rocks2-rock-011`, t `rocks2-rock-012` `rocks2-rock-013`, tr `rocks2-rock-014`, l `rocks2-rock-015`, c `rocks2-rock-016`, r `rocks2-rock-017`, bl `rocks2-rock-018`, b `rocks2-rock-019` `rocks2-rock-020`, br `rocks2-rock-021` | Mesa with gravel top, cliff face and shadow |
+| `mesa_solid_fog` | `rocks2` | `rock` | 64/64/64 | 64/32/128 |  | tl `rocks2-rock-022`, t `rocks2-rock-023` `rocks2-rock-024`, tr `rocks2-rock-025`, l `rocks2-rock-026`, c `rocks2-rock-027`, r `rocks2-rock-028`, bl `rocks2-rock-029`, b `rocks2-rock-030` `rocks2-rock-031`, br `rocks2-rock-032` | Mesa with gravel top and fog-faded cliff face |
+| `plateau_tall` | `rocks2` | `rock` | 64/64/64 | 64/32/128 |  | tl `rocks2-rock-061`, t `rocks2-rock-062` `rocks2-rock-063`, tr `rocks2-rock-064`, l `rocks2-rock-065`, c `rocks2-rock-066`, r `rocks2-rock-067`, bl `rocks2-rock-068`, b `rocks2-rock-069` `rocks2-rock-070`, br `rocks2-rock-071` | Plateau with gravel top and layered cliff face |
+| `grass_patch_octagon` | `rocks2` | `terrain` | 64/32/64 | 64/32/64 |  | tl `rocks2-terrain-001`, t `rocks2-terrain-002`, tr `rocks2-terrain-003`, l `rocks2-terrain-004`, c `rocks2-terrain-005`, r `rocks2-terrain-006`, bl `rocks2-terrain-007`, b `rocks2-terrain-008`, br `rocks2-terrain-009` | Dark-green grass patch with light ragged fringe and cut corners |
+| `grass_cross_frame` | `rocks2` | `terrain` | 64/32/64 | 64/32/64 | y | tl `rocks2-terrain-010`, t `rocks2-terrain-011`, tr `rocks2-terrain-012`, l `rocks2-terrain-013`, r `rocks2-terrain-014`, bl `rocks2-terrain-015`, b `rocks2-terrain-016`, br `rocks2-terrain-017` | Yellow-green grass frame around a hole for base tiles (the cross tiles are separate sprites) |
+| `grass_cross_cutout` | `rocks2` | `terrain` | 64/32/64 | 64/32/64 | y | tl `rocks2-terrain-018`, t `rocks2-terrain-019`, tr `rocks2-terrain-020`, l `rocks2-terrain-021`, r `rocks2-terrain-022`, bl `rocks2-terrain-023`, b `rocks2-terrain-024`, br `rocks2-terrain-025` | Green grass frame around a hole with notched corners |
+| `cobble_ground_grass_edge` | `rocks2` | `terrain` | 32/32/32 | 32/32/32 |  | tl `rocks2-terrain-031`, t `rocks2-terrain-032`, tr `rocks2-terrain-033`, l `rocks2-terrain-034`, c `rocks2-terrain-035`, r `rocks2-terrain-036`, bl `rocks2-terrain-037`, b `rocks2-terrain-038`, br `rocks2-terrain-039` | Cobblestone ground with grassy ragged edge |
+| `cobble_overgrown` | `rocks2` | `terrain` | 32/32/32 | 32/32/32 |  | tl `rocks2-terrain-041`, t `rocks2-terrain-042`, tr `rocks2-terrain-043`, l `rocks2-terrain-044`, c `rocks2-terrain-045`, r `rocks2-terrain-046`, bl `rocks2-terrain-047`, b `rocks2-terrain-048`, br `rocks2-terrain-049` | Cobblestone ground overgrown with grass |
+| `gravel_patch_round` | `rocks2` | `terrain` | 32/32/32 | 32/32/32 |  | tl `rocks2-terrain-054`, t `rocks2-terrain-055`, tr `rocks2-terrain-056`, l `rocks2-terrain-057`, c `rocks2-terrain-058`, r `rocks2-terrain-059`, bl `rocks2-terrain-060`, b `rocks2-terrain-061`, br `rocks2-terrain-062` | Gravel ground with loose-stone edge |
+| `pebble_patch_round` | `rocks2` | `terrain` | 32/32/32 | 32/32/32 |  | tl `rocks2-terrain-068`, t `rocks2-terrain-069`, tr `rocks2-terrain-070`, l `rocks2-terrain-071`, c `rocks2-terrain-072`, r `rocks2-terrain-073`, bl `rocks2-terrain-074`, b `rocks2-terrain-075`, br `rocks2-terrain-076` | Pebble ground with loose-pebble edge |
+| `sand_ring_tile` | `beach` | `terrain` | 32/32/32 | 32/32/32 | y | tl `beach-terrain-001`, t `beach-terrain-002`, tr `beach-terrain-003`, l `beach-terrain-004`, r `beach-terrain-005`, bl `beach-terrain-006`, b `beach-terrain-007`, br `beach-terrain-008` | Sand border around a hole (ring) |
+| `sand_ring_small` | `beach` | `terrain` | 32/0/32 | 32/0/32 | y | tl `beach-terrain-009`, tr `beach-terrain-010`, bl `beach-terrain-011`, br `beach-terrain-012` | Small sand disc in four quadrants |
+| `gravel_patch` | `beach` | `terrain` | 32/32/32 | 32/32/32 |  | tl `beach-terrain-019`, t `beach-terrain-020`, tr `beach-terrain-021`, l `beach-terrain-022`, c `beach-terrain-023`, r `beach-terrain-024`, bl `beach-terrain-025`, b `beach-terrain-026`, br `beach-terrain-027` | Gravel ground with loose-stone edge |
+| `sand_pit_square` | `beach` | `terrain` | 32/32/32 | 32/32/32 | y | tl `beach-terrain-028`, t `beach-terrain-029`, tr `beach-terrain-030`, l `beach-terrain-031`, r `beach-terrain-032`, bl `beach-terrain-033`, b `beach-terrain-034`, br `beach-terrain-035` | Sand border around a square hole |
+| `gravel_pit` | `beach` | `terrain` | 32/32/32 | 32/32/32 |  | tl `beach-terrain-036`, t `beach-terrain-037`, tr `beach-terrain-038`, l `beach-terrain-039`, c `beach-terrain-040`, r `beach-terrain-041`, bl `beach-terrain-042`, b `beach-terrain-043`, br `beach-terrain-044` | Gravel ground with sandy ragged edge |
+| `sand_pit_dark_large` | `beach` | `terrain` | 32/32/32 | 32/32/32 |  | tl `beach-terrain-053`, t `beach-terrain-054`, tr `beach-terrain-055`, l `beach-terrain-056`, c `beach-terrain-057`, r `beach-terrain-058`, bl `beach-terrain-059`, b `beach-terrain-060`, br `beach-terrain-061` | Sand ground with dark raised rim |
+| `sand_pit_light_small` | `beach` | `terrain` | 32/32/32 | 32/32/32 |  | tl `beach-terrain-062`, t `beach-terrain-063`, tr `beach-terrain-064`, l `beach-terrain-065`, c `beach-terrain-066`, r `beach-terrain-067`, bl `beach-terrain-068`, b `beach-terrain-069`, br `beach-terrain-070` | Sand ground with light rim |
+| `sand_pit_dark_b` | `beach` | `terrain` | 32/32/32 | 32/32/32 |  | tl `beach-terrain-071`, t `beach-terrain-072`, tr `beach-terrain-073`, l `beach-terrain-074`, c `beach-terrain-075`, r `beach-terrain-076`, bl `beach-terrain-077`, b `beach-terrain-078`, br `beach-terrain-079` | Golden sand ground with dark raised rim |
+
+## 6. How the boxes were made
 
 - Boxes were **not** taken from the original `ZRPG*.md` specs (QA in `tiles-qa.json` rejected 120 of them). Every sprite is a pixel-connected component of the sheet alpha (8-connectivity).
 - Cast shadows (pure black, alpha 92) are attached to the object they touch, so a tree and its shadow are one sprite and a neighbour is never included.
 - Where two objects touch in the art (pedestal/leaves, bowl/pot, bone arch/grass/sand tiles, two desert arches, pillar/ledge, tile strips, two jungle plants, frond/shoot) they were separated with hand-placed masks.
 - Specks under 6×6 px were absorbed into the nearest sprite or dropped. Scatter decals (loose grass blades, rubble) are grouped into one sprite per cluster.
 - Removed: solid dark/black placeholder squares (1 in trees, 4 in beach) and the water divider bands.
+- Composites drawn on the 32 px grid (mesas, plateaus, ground patches, pits, rings) were cut into tileset pieces (section 5). Pixels of a composite outside its grid are dropped (11 px in `plateau_tall`, 5 px in `gravel_patch_round`).
 
-## 6. Regenerating
+## 7. Regenerating
 
-Do not edit sprites, atlas or catalog by hand. Change `tools/build.py` (masks: cuts, groups, clips per sheet) or `tools/labels.py` (class, name, description in reading order), then run:
+Do not edit sprites, atlas or catalog by hand. Change `tools/build.py` (masks: cuts, groups, clips, tilesets per sheet) or `tools/labels.py` (class, name, description in reading order), then run:
 
 ```sh
 pip install pillow numpy scipy
 python tools/build.py && python tools/contact.py && python tools/export.py
 ```
 
-`tools/contact.py` writes `tools/.cache/cs_<sheet>.png`, a numbered contact sheet. Its order must match `labels.py`; if a mask change adds or removes a sprite, update the labels to match. Ids are reassigned on regeneration.
+`tools/contact.py` writes `tools/.cache/cs_<sheet>.png`, a numbered contact sheet. Its order must match `labels.py`; if a mask change adds or removes a sprite, update the labels to match. A tileset is one entry (`T<n>` on the sheet) and one label line; its pieces are named `<name>_<role>[<n>]`. Ids are reassigned on regeneration.

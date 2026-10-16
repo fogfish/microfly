@@ -1,12 +1,15 @@
 // Bootstrap: load config → validate → load catalogue and sprites → compose → start the renderer.
 // On any error, show the error panel and draw nothing (FR-021).
-// main.js also owns the visual layers (specs/007-odor-layer): the odour heatmap is drawn over the scene
-// when its switch in the World tab is on. The simulation never sees the layer state.
+// main.js also owns the visual layers (specs/007-odor-layer, contracts/odour-layer-v2.md): four independent
+// overlays (food/danger/heat odour, tile grid) are drawn over the scene when their switch in the World tab is
+// on. The simulation never sees the layer state.
 
 import { loadWorldConfig } from './config/load-world.js';
 import { validateConfig, validateArt } from './world/validate.js';
 import { loadCatalog } from './world/catalog.js';
-import { buildLogic, CELL_PX } from './world/layout.js';
+import { buildLogic, CELL_PX, DECOR_FORBIDDEN } from './world/layout.js';
+import { mapPlan } from './world/sketch-map.js';
+import { paintMap } from './world/sketch-paint.js';
 import { groundPlan } from './world/ground.js';
 import { shorePlacements } from './world/shore.js';
 import { composeScene } from './world/compose.js';
@@ -15,18 +18,21 @@ import { createCamera, resize as resizeCamera } from './render/camera.js';
 import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
-import { buildWorld, spawnFlies, stimulusPoints } from './fly/fly-world.js';
+import { buildWorld, spawnFlies } from './fly/fly-world.js';
 import { loadSnapshot, startFlies } from './fly/fly-host.js';
-import { resolveFlies } from './fly/fly-config.js';
 import { initialLayers, toggleLayer } from './world/layers.js';
-import { odourField } from './world/odour-field.js';
-import { parseRamp, paintField } from './render/heatmap.js';
+import { dangerField } from './world/danger-field.js';
+import { heatField } from './world/heat-field.js';
+import { foodField } from './world/food-field.js';
+import { parseRamp, paintField, paintGrid } from './render/heatmap.js';
 import { renderPanel, updatePanelValues } from './ui/panel/panel.js';
 import { SECTIONS } from './ui/panel/sections/index.js';
 import { initialTab, nextTab } from './ui/panel/tabs.js';
 
 // The status panel refreshes this often while flies run (specs/006 FR-012, amended in specs/007).
 const PANEL_INTERVAL_MS = 200;
+// The first frame of the art pack's water animation; the map is static (spec 014 FR-005).
+const WATER_FRAME = 'water-water-001';
 
 // main.js lives in public/js/, so its parent is the web root that holds world/ and assets/
 const APP_ROOT = new URL('../', import.meta.url);
@@ -75,13 +81,22 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   const canvas = document.getElementById('world');
   const logic = buildLogic(config, catalog);
-  const scene = composeScene({
-    config,
-    sprites,
-    logic,
-    ground: groundPlan(config, catalog),
-    shores: shorePlacements(config),
-  });
+  // A sketch map is painted from its plan (contracts/world-format-sketch-map.md §7, BUG-002), with the food and the
+  // dangers drawn among its scenery; a tile world is composed as before.
+  const scene = config.map !== undefined
+    ? paintMap({
+      plan: mapPlan(config, catalog, DECOR_FORBIDDEN),
+      sprites,
+      objects: logic.objects.filter((o) => o.kind !== undefined),
+      waterFrame: WATER_FRAME,
+    })
+    : composeScene({
+      config,
+      sprites,
+      logic,
+      ground: groundPlan(config, catalog),
+      shores: shorePlacements(config),
+    });
 
   // The world is the canvas's grid cell, which the CSS sizes beside the panel (or above it on a phone).
   const worldBox = () => ({ width: canvas.clientWidth, height: canvas.clientHeight });
@@ -104,36 +119,58 @@ function startWorld({ config, catalog, sprites, snapshot }) {
   let records = [];
   let selectedId = null;
 
-  // Odour layer: off on load. The field and its canvas are built the first time the layer is turned on;
-  // flowers never move, so they are not rebuilt (only repainted when the theme changes).
-  // "v2" worlds have no singular flies.stimulus (contracts/world-config-wide-io.md); the layer's gain/max are
-  // read from the declared odour:food sense instead. That sense is already clamped to [0, 1] with no separate
-  // gain term (stimulus.js senseDistance), so gain 1 / max 1 reproduces it exactly.
-  const resolvedFlies = config.flies !== undefined ? resolveFlies(config) : null;
-  const stimulus = resolvedFlies === null ? { radius: 0, gain: 0, max: 0 }
-    : resolvedFlies.brain?.version === 'v2'
-      ? { radius: resolvedFlies.stimuli['odour:food']?.radius ?? 0, gain: 1, max: 1 }
-      : resolvedFlies.stimulus;
-  const odourPoints = odourSources(config, logic);
-  const legend = odourPoints.length > 0 ? { max: stimulus.max } : null;
+  // Four independent overlays (contracts/odour-layer-v2.md §5): off on load. Each odour field and its canvas
+  // are built the first time its layer is turned on, same build-once-cache pattern as today's single odour
+  // layer; flowers never move, so they are not rebuilt (only repainted when the theme changes). The grid
+  // layer needs no field, only config.grid. The overlay always shows exactly what a fly at that point would
+  // sense — same field-building functions as fly/fly-world.js uses for sensing (data-model.md "Relationships").
   let layers = initialLayers();
-  let odourFieldCache = null;
-  let odourCanvas = null;
-  const paintOdour = () => paintField(odourFieldCache, parseRamp(getComputedStyle(document.documentElement)));
-  const ensureOdour = () => {
-    if (odourFieldCache) return;
+  const legends = {
+    'odour-food': (config.edibles ?? []).length > 0 ? { max: 1 } : null,
+    'odour-danger': logic.forestEdge.some(Boolean) ? { max: 1 } : null,
+    'odour-heat': logic.water.some(Boolean) ? { max: 1 } : null,
+  };
+
+  // Expands a {cols, rows, values} per-cell field to a {width, height, values} per-pixel field for paintField:
+  // the same value repeated across a cell's pixels, no sub-cell interpolation (data-model.md "Danger Odour Field").
+  const expandCellField = ({ cols, rows, values }) => {
+    const width = cols * CELL_PX;
+    const height = rows * CELL_PX;
+    const out = new Float32Array(width * height);
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const v = values[cy * cols + cx];
+        if (v === 0) continue;
+        for (let py = 0; py < CELL_PX; py++) {
+          const row = (cy * CELL_PX + py) * width + cx * CELL_PX;
+          out.fill(v, row, row + CELL_PX);
+        }
+      }
+    }
+    return { width, height, values: out };
+  };
+
+  const foodUnits = (config.edibles ?? []).map((e, i) => ({ x: e.x, y: e.y, seed: (i + 1) * 97, stockFraction: 1 }));
+  const overlayCanvas = {};
+  const ensureOverlay = {
+    'odour-food': () => expandCellField(foodField({ units: foodUnits, cols: logic.cols, rows: logic.rows })),
+    'odour-danger': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: dangerField({ forestEdge: logic.forestEdge, cols: logic.cols, rows: logic.rows }).intensity }),
+    'odour-heat': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: heatField({ water: logic.water, cols: logic.cols, rows: logic.rows }).intensity }),
+  };
+  const RAMP_PREFIX = { 'odour-food': '--odour-food', 'odour-danger': '--odour-danger', 'odour-heat': '--odour-heat' };
+  const paintOdour = (id, field) => paintField(field, parseRamp(getComputedStyle(document.documentElement), RAMP_PREFIX[id]));
+  const odourFieldCache = {};
+  const ensureLayer = (id) => {
+    if (overlayCanvas[id]) return;
+    if (id === 'grid') {
+      overlayCanvas.grid = paintGrid(config.grid.cols, config.grid.rows, CELL_PX, getComputedStyle(document.documentElement));
+      return;
+    }
     try {
-      odourFieldCache = odourField({
-        points: odourPoints,
-        stimulus,
-        cols: config.grid.cols,
-        rows: config.grid.rows,
-        samplesPerCell: CELL_PX,
-      });
-      odourCanvas = paintOdour();
+      odourFieldCache[id] = ensureOverlay[id]();
+      overlayCanvas[id] = paintOdour(id, odourFieldCache[id]);
     } catch (e) {
-      console.error(`odour layer: ${e.message}`);
-      odourCanvas = null;
+      console.error(`${id} layer: ${e.message}`);
     }
   };
 
@@ -142,7 +179,9 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      const overlays = layers.odour && odourCanvas ? [odourCanvas] : [];
+      const overlays = ['odour-food', 'odour-danger', 'odour-heat', 'grid']
+        .filter((id) => layers[id] && overlayCanvas[id])
+        .map((id) => overlayCanvas[id]);
       renderer.render({ camera, scene, flies, overlays });
     });
   };
@@ -161,7 +200,7 @@ function startWorld({ config, catalog, sprites, snapshot }) {
   };
   const toggle = (id) => {
     layers = toggleLayer(layers, id);
-    if (layers.odour) ensureOdour();
+    if (layers[id]) ensureLayer(id);
     requestDraw();
     updatePanel();
   };
@@ -172,7 +211,7 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     if (panelFrame) return;
     panelFrame = requestAnimationFrame(() => {
       panelFrame = 0;
-      renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab, { layers, onLayer: toggle, legend });
+      renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab, { layers, onLayer: toggle, legends });
     });
   };
   // Flies report every tick, but the panel does not follow each tick. Ticks only mark it stale, and a
@@ -217,14 +256,18 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   attachInput(canvas, camera, requestDraw, { onClick: onWorldClick, tileSize: CELL_PX });
 
-  // The heatmap colours come from CSS tokens, so a theme change repaints the cached field.
+  // The heatmap/grid colours come from CSS tokens, so a theme change repaints every already-built canvas.
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (!odourFieldCache) return;
-    try {
-      odourCanvas = paintOdour();
-    } catch (e) {
-      console.error(`odour layer: ${e.message}`);
+    const style = getComputedStyle(document.documentElement);
+    for (const id of ['odour-food', 'odour-danger', 'odour-heat']) {
+      if (!odourFieldCache[id]) continue;
+      try {
+        overlayCanvas[id] = paintOdour(id, odourFieldCache[id]);
+      } catch (e) {
+        console.error(`${id} layer: ${e.message}`);
+      }
     }
+    if (overlayCanvas.grid) overlayCanvas.grid = paintGrid(config.grid.cols, config.grid.rows, CELL_PX, style);
     requestDraw();
   });
 
@@ -237,17 +280,6 @@ function startWorld({ config, catalog, sprites, snapshot }) {
 
   requestDraw();
   updatePanel();
-}
-
-// The odour sources of the world: [{x, y}] cell centres, or [] without flies (no stimulus is declared).
-function odourSources(config, logic) {
-  if (config.flies === undefined) return [];
-  try {
-    return stimulusPoints(buildWorld(config, logic));
-  } catch (e) {
-    console.error(`odour layer: ${e.message}`);
-    return [];
-  }
 }
 
 boot().catch((e) => fail([{ path: '', message: e.message }]));

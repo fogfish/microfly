@@ -3,7 +3,8 @@
 
 import { CELL_PX, outlineBounds } from './layout.js';
 
-// rocks2-terrain-004 to -007 are one-colour solid tiles and are not used (BUG-001).
+// rocks2-terrain-026 to -029 (grass_tile_teal_dark, _sage, _green, _teal) are one-colour solid tiles and are not used
+// (BUG-001; ids of the zrpg-art catalogue of 2026-10-14, spec 014 BUG-002).
 export const BASE_TILES = [
   'trees-terrain-001',
   'trees-terrain-004',
@@ -15,8 +16,17 @@ export const BASE_TILES = [
 export const PATCH_TILES = {
   meadow: ['trees-terrain-010', 'trees-terrain-012'],
   darkGrass: ['trees-terrain-002'],
-  cobble: ['rocks2-terrain-009'],
-  gravel: ['beach-terrain-011'],
+  // The art pack now cuts its cobble and gravel-pit composites into 9-slice tilesets (spec 014 BUG-002); a patch is
+  // one sprite at its native size, so the closest single pieces stand in: cobble_tile_hole and gravel_splat.
+  cobble: ['rocks2-terrain-040'],
+  gravel: ['beach-terrain-018'],
+  // Dense-canopy ground under the border forest (contracts/world-format-sketch-map.md §1); the forest look
+  // itself comes mainly from the grove/scatter tree cover placed over the same area (research.md R5).
+  edgeForest: ['trees-terrain-002', 'trees-terrain-009', 'trees-terrain-011'],
+  // Wet ground joining two water bodies (contracts/world-format-sketch-map.md §6, BUG-001); the same
+  // `grass_tile_dark` base texture WORLD-SPEC §5 uses for swamp (`rocks2/grass_tile_dark`). Not
+  // `rocks2-terrain-026` (`grass_tile_teal_dark`) — that id is one of the banned solid-colour tiles above.
+  swamp: ['rocks2-terrain-066'],
 };
 
 // Integer hash of (seed, a, b). Same inputs always give the same value.

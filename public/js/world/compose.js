@@ -10,8 +10,8 @@ import { CELL_PX, depthOrder } from './layout.js';
 import { waterField, GRASS_STYLE, fbm, vnoise, bayer, lerp, clamp } from './water.js';
 
 const WATER_FRAME = 'water-water-001';
-const LUSH_GRASS = 'rocks2-terrain-020';
-const BANK_FACE = 'beach-terrain-007';
+const LUSH_GRASS = 'rocks2-terrain-066'; // grass_tile_dark (zrpg-art catalogue of 2026-10-14, BUG-002)
+const BANK_FACE = 'beach-terrain-017'; // gravel_tile_hole
 
 // Grass style colours (WATER-SPEC §4.3)
 const MUD_LINE = { color: 'rgba(72,58,22,0.55)', toPx: 1.8, rag: 1.0 };

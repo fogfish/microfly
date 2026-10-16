@@ -1,5 +1,23 @@
 # Changelog
 
+# 2026-10-14
+
+/speckit-specify Create a new world map using my sketch world_map.jpg and existing assets library atlas (`public/assets/atlas`). Keep the shape of terrain and water exactly as my sketch draws. The atlas does not have any building use the tent and bones from atlas. The atlas does not have any bridge, just put the terrain there. Avoid setting any title, ledgend and animals. 
+
+One of the main change is the calibartion of meaning in the world:
+1. The edge of the world is a deep forest is must cast the danger odour. The forest itself is max danger odour, neighbor tile is 50% danger odour, and second neighbor tile is 25% of danger odour. Only the edge forest casts danger odour. 
+2. Water is heat odour, neighbor tile is 50% heat odour, and second neighbor tile is 25% of heat odour. In the sketch the water divides area into two parts, there should be a thin path between terrains with no heat odour so that both sides are connected and reachable by fly. 
+3. Food odour is 100% at the food flower tile, 100% in the next neighbor tile so that 9 title square is an area where fly can eat. The food odour reduces by 10% but do not draw a perfect circles of food odour it has to be an random shape areas. The food MUST be distributed on the map so that one food odour area gently touches another area. The fly has to be able to travel across the map simply following the food odour.   
+4. Any decorations, object or trees on the map causes touch left and right when fly is "touching" them.
+
+Make an optimization of the map and tile sizes so that map is "large" enough to fit the world I've sketched but also proportional to the size of fly. 
+
+Enhance the visualization of food, danger, heat odour and tile grid so that user can switch it on/off for the visualization.
+
+One the new world is complete, apply it to all implemented worlds in this simulator.
+
+/speckit-plan Create a new world map using world_map.jpg and existing assets library atlas (`public/assets/atlas`). Change the dynamic in the food odour and implement a new danger and heat odour following the specification. Optimize the world size so that it fits the map but proportional to fly size. Allow user to switch on/off visualization of food, danger, heat odour and tile grid. Apply the the map to all worlds.
+
 # 2026-10-13
 
 /speckit-specify Build new brain version 2 that uses the 11K brain (ADR 006) fixed the topology but request interface is 12 inputs (food odour, danger odour, heat, mouth taste, leg taste and touch, each L/R) and 6

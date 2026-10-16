@@ -17,7 +17,7 @@ export const REED_SOURCES = ['beach-plant-003', 'beach-plant-002'];
 // against earlier items. maxPond: cap on a pond (one reed bed reads as a pond, three as a marsh).
 export const GRASS_RULES = [
   { name: 'reed beds', kind: 'reedbed', s: [-5, 1], per100: 0.32, spacing: 56, clear: 16, ripple: true, maxPond: 1, rx: [9, 20], ry: [4, 7], height: [14, 26] },
-  { name: 'waterline stones', ids: ['rocks2-rock-013', 'rocks2-rock-011'], s: [-2, 2], per100: 0.35, spacing: 40, clear: 5, ripple: true },
+  { name: 'waterline stones', ids: ['rocks2-rock-042', 'rocks2-rock-040'], s: [-2, 2], per100: 0.35, spacing: 40, clear: 5, ripple: true },
   { name: 'mossy log', ids: ['jungle-prop-007'], s: [-3, 3], per100: 0.05, spacing: 400, clear: 14, ripple: true, max: 1, minPerimeter: 900 },
   { name: 'tufts', ids: ['trees-plant-006', 'trees-plant-007', 'jungle-plant-011', 'beach-plant-015'], t: [0, 1.3], per100: 3.6, spacing: 10, clear: 3 },
   { name: 'sprigs', ids: SPRIGS, t: [0.2, 1.8], per100: 3.0, spacing: 7 },

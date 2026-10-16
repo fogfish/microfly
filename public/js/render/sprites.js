@@ -48,7 +48,10 @@ export async function loadSprites(catalog, assetsRoot, pixelSprites = {}) {
   const images = await Promise.all(
     catalog.atlases.map(async (atlas, index) => {
       try {
-        return await loadImage(new URL(atlas.file, assetsRoot).href);
+        // The atlas image is keyed to the catalogue that cuts it, so a new art pack never draws from a cached old atlas
+        const url = new URL(atlas.file, assetsRoot);
+        if (catalog.generated !== undefined) url.searchParams.set('v', catalog.generated);
+        return await loadImage(url.href);
       } catch (e) {
         errors.push({ path: `atlas.atlases[${index}]`, message: e.message });
         return null;

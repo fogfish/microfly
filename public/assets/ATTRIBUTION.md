@@ -4,64 +4,118 @@
 
 | Asset                                                                                                   | Source URL                                                                           | Author       | Licence                                              | Used by                                               |
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------- | ----------------------------------------------------- |
-| Sprite atlas `atlas-0.png` (2048 × 1822) with `catalog.json` and `OBJECTS.md`, cut from the ZRPG sheets | **Not recorded in this repository.** The atlas folder has no licence or source file. | Not recorded | **To be confirmed by the author before publishing.** | Every sprite below, through `public/world/world.json` |
+| Sprite atlas `atlas-0.png` (2048 × 1835) with `catalog.json` and `OBJECTS.md`, cut from the ZRPG sheets; copied from the `zrpg-art` repository, commit `5d151a3` (catalogue generated 2026-10-14, spec 014 BUG-002) | **Not recorded in this repository.** The atlas folder has no licence or source file. | Not recorded | **To be confirmed by the author before publishing.** | Every sprite below, through `public/world/world.json` |
 
-The world uses these sprites (ids from `catalog.json`; listed from `public/js/world/` and
+The world uses these sprites (ids from `catalog.json`; listed from `public/js/world/map-water.js` and the `map` section of
 `public/world/world.json`):
 
-| Sprite id            | Name                     | Role                 |
-| -------------------- | ------------------------ | -------------------- |
-| `beach-plant-002`    | tall_grass_narrow        | reed bed (cut)       |
-| `beach-plant-003`    | tall_grass_block         | reed bed (cut)       |
-| `beach-plant-004`    | grass_sprig_a            | shore decor          |
-| `beach-plant-005`    | grass_sprig_b            | shore decor          |
-| `beach-plant-006`    | grass_sprig_c            | shore decor          |
-| `beach-plant-007`    | grass_sprig_d            | shore decor          |
-| `beach-plant-008`    | grass_sprig_e            | shore decor          |
-| `beach-plant-010`    | grass_sprig_g            | shore decor          |
-| `beach-plant-011`    | grass_sprig_h            | shore decor          |
-| `beach-plant-012`    | grass_sprig_i            | shore decor          |
-| `beach-plant-015`    | grass_tuft_tall          | shore decor          |
-| `beach-terrain-007`  | gravel_tile_hole         | bank face            |
-| `beach-terrain-011`  | gravel_pit               | ground patch         |
-| `beach-tree-008`     | leafy_tree               | object, grove tree   |
-| `jungle-bush-008`    | fern_low                 | scatter, shore decor |
-| `jungle-bush-018`    | leaf_shrub_red_flower    | scatter              |
-| `jungle-plant-010`   | orange_carnivorous_pod   | scatter              |
-| `jungle-plant-011`   | grass_blades             | shore decor          |
-| `jungle-plant-015`   | glowing_blue_bulb_plant  | scatter              |
-| `jungle-plant-016`   | blue_flower              | scatter, shore decor |
-| `jungle-plant-017`   | white_flower_sprout      | scatter, shore decor |
-| `jungle-prop-005`    | skull_spear_banner       | danger               |
-| `jungle-prop-006`    | oil_lantern_post         | danger               |
-| `jungle-prop-007`    | hollow_log_mossy         | shore decor          |
-| `rocks2-rock-011`    | low_rock_c               | shore decor          |
-| `rocks2-rock-013`    | pebble_a                 | shore decor          |
-| `rocks2-rock-035`    | outcrop_medium_grass     | object               |
-| `rocks2-terrain-009` | cobble_ground_grass_edge | ground patch         |
-| `rocks2-terrain-020` | grass_tile_dark          | shore band           |
-| `trees-bush-001`     | broadleaf_bush           | scatter              |
-| `trees-bush-002`     | yellow_green_bush        | scatter              |
-| `trees-plant-001`    | yellow_flower_single     | edible               |
-| `trees-plant-002`    | yellow_flowers_trio      | edible               |
-| `trees-plant-003`    | yellow_flowers_cluster   | edible               |
-| `trees-plant-005`    | red_flower_plant         | scatter, shore decor |
-| `trees-plant-006`    | grass_tuft_a             | shore decor          |
-| `trees-plant-007`    | grass_tuft_b             | shore decor          |
-| `trees-plant-008`    | fern_small               | scatter, shore decor |
-| `trees-plant-010`    | spiky_plant_a            | scatter              |
-| `trees-terrain-001`  | grass_tile_a             | ground tile          |
-| `trees-terrain-002`  | dark_grass_patch_a       | ground patch         |
-| `trees-terrain-004`  | grass_tile_b             | ground tile          |
-| `trees-terrain-005`  | grass_tile_c             | ground tile          |
-| `trees-terrain-007`  | grass_tile_e             | ground tile          |
-| `trees-terrain-010`  | light_meadow_patch_a     | ground patch         |
-| `trees-terrain-012`  | light_meadow_patch_b     | ground patch         |
-| `trees-tree-001`     | oak_large_a              | object               |
-| `trees-tree-002`     | oak_medium_a             | object               |
-| `trees-tree-005`     | round_tree_small         | object, grove tree   |
-| `trees-tree-006`     | round_tree_tiny          | object, grove tree   |
-| `water-water-001`    | water_frame_01           | water (static frame) |
+| Sprite id | Name | Role |
+| --- | --- | --- |
+| `beach-bush-002` | dry_shrub | scatter: desert |
+| `beach-bush-008` | saguaro_light | object |
+| `beach-bush-019` | saguaro_small_a | object |
+| `beach-bush-021` | prickly_pear | object |
+| `beach-plant-002` | tall_grass_narrow | reed bed (cut) |
+| `beach-plant-003` | tall_grass_block | reed bed (cut) |
+| `beach-plant-004` | grass_sprig_a | shore decor |
+| `beach-plant-005` | grass_sprig_b | shore decor |
+| `beach-plant-006` | grass_sprig_c | shore decor |
+| `beach-plant-007` | grass_sprig_d | shore decor |
+| `beach-plant-008` | grass_sprig_e | shore decor |
+| `beach-plant-010` | grass_sprig_g | shore decor |
+| `beach-plant-011` | grass_sprig_h | shore decor |
+| `beach-plant-012` | grass_sprig_i | shore decor |
+| `beach-plant-015` | grass_tuft_tall | shore decor, scatter: swamp |
+| `beach-prop-025` | fallen_dead_branch | object |
+| `beach-prop-029` | ribcage | object |
+| `beach-prop-030` | bone_fragment_a | scatter: dunes |
+| `beach-prop-031` | bone_fragments_b | scatter: dunes |
+| `beach-prop-032` | bone_a | scatter: dunes |
+| `beach-prop-033` | bone_b | scatter: dunes |
+| `beach-prop-035` | animal_skull | object |
+| `beach-prop-036` | long_bone | object |
+| `beach-prop-037` | bone_fragment_c | scatter: dunes |
+| `beach-prop-041` | bone_fragment_e | scatter: dunes |
+| `beach-prop-042` | bone_fragments_f | scatter: dunes |
+| `beach-prop-043` | bone_fragment_g | scatter: dunes |
+| `beach-rock-001` | pebble_a | scatter: dunes |
+| `beach-rock-002` | pebble_pair | scatter: dunes |
+| `beach-rock-003` | pebble_cluster | scatter: dunes |
+| `beach-rock-004` | pebble_b | scatter: dunes |
+| `beach-rock-005` | pebble_c | scatter: dunes |
+| `beach-rock-007` | pebble_e | scatter: dunes |
+| `beach-rock-013` | sand_pebbles_set_a | scatter: desert |
+| `beach-rock-015` | sand_dune_a_left | object |
+| `beach-rock-018` | sand_dune_b_right | object |
+| `beach-terrain-017` | gravel_tile_hole | bank face |
+| `beach-terrain-049` | sand_clump_a | ground decal |
+| `beach-terrain-051` | sand_clump_c | ground decal |
+| `beach-terrain-066` | sand_pit_light_small_c | ground: dunes, trail |
+| `beach-terrain-075` | sand_pit_dark_b_c | ground: desert |
+| `beach-terrain-084` | sand_ripples_a | ground decal |
+| `beach-terrain-086` | sand_crater_small_a | ground decal |
+| `beach-terrain-088` | sand_ripples_b | ground decal |
+| `beach-terrain-089` | sand_ripple_tile_a | ground decal |
+| `beach-terrain-090` | sand_ripple_tile_b | ground decal |
+| `beach-tree-007` | dead_gnarled_tree | object |
+| `jungle-bush-008` | fern_low | shore decor |
+| `jungle-bush-013` | dark_frond_bush_1 | object |
+| `jungle-plant-001` | purple_pitcher_plant | object |
+| `jungle-plant-002` | purple_spiky_alien | object |
+| `jungle-plant-004` | purple_alien_pod | object |
+| `jungle-plant-010` | orange_carnivorous_pod | food (medium) |
+| `jungle-plant-011` | grass_blades | shore decor, scatter: swamp |
+| `jungle-plant-015` | glowing_blue_bulb_plant | food (large) |
+| `jungle-prop-002` | campfire_logs | object |
+| `jungle-prop-003` | hollow_log | object |
+| `jungle-prop-004` | canvas_tent | object |
+| `jungle-prop-005` | skull_spear_banner | object |
+| `jungle-prop-007` | hollow_log_mossy | shore decor, object |
+| `jungle-rock-005` | crystal_node_corrupted | object |
+| `rocks2-plant-008` | grass_tuft_green_cluster | scatter: swamp |
+| `rocks2-plant-009` | grass_tuft_green | scatter: swamp |
+| `rocks2-rock-033` | rock_cluster_grass_a | object, meadow scatter |
+| `rocks2-rock-036` | low_rock_grass_a | scatter: desert |
+| `rocks2-rock-040` | low_rock_c | shore decor |
+| `rocks2-rock-042` | pebble_a | shore decor |
+| `rocks2-rock-045` | small_boulder_a | object, scatter: desert, meadow scatter |
+| `rocks2-rock-046` | small_boulder_b | scatter: desert, meadow scatter |
+| `rocks2-rock-048` | cliff_column | mountain |
+| `rocks2-rock-049` | cliff_column_shadow | mountain |
+| `rocks2-rock-053` | pillar_1 | object |
+| `rocks2-rock-054` | pillar_2 | mountain |
+| `rocks2-rock-055` | pillar_3 | object |
+| `rocks2-rock-056` | pillar_4 | mountain |
+| `rocks2-rock-058` | pillar_6 | mountain |
+| `rocks2-rock-060` | pillar_8 | mountain |
+| `rocks2-rock-076` | outcrop_small | object |
+| `rocks2-rock-077` | outcrop_small_shadow | mountain, object |
+| `rocks2-rock-081` | pebble_crumbs_a | scatter: desert |
+| `rocks2-rock-084` | pebble_c | scatter: desert |
+| `rocks2-terrain-016` | grass_cross_frame_b | trail |
+| `rocks2-terrain-052` | grass_tile_light | ground |
+| `rocks2-terrain-058` | gravel_patch_round_c | ground: desert |
+| `rocks2-terrain-066` | grass_tile_dark | shore band, ground: swamp |
+| `trees-bush-001` | broadleaf_bush | object, meadow scatter |
+| `trees-bush-002` | yellow_green_bush | object, meadow scatter |
+| `trees-bush-004` | dense_shrub | object, meadow scatter |
+| `trees-plant-001` | yellow_flower_single | shore decor |
+| `trees-plant-002` | yellow_flowers_trio | shore decor, meadow scatter |
+| `trees-plant-003` | yellow_flowers_cluster | shore decor, object, meadow scatter |
+| `trees-plant-005` | red_flower_plant | food (small) |
+| `trees-plant-006` | grass_tuft_a | shore decor, scatter: swamp |
+| `trees-plant-007` | grass_tuft_b | shore decor |
+| `trees-plant-008` | fern_small | shore decor, scatter: swamp |
+| `trees-prop-005` | wooden_signpost | object |
+| `trees-prop-006` | hollow_log | object |
+| `trees-tree-005` | round_tree_small | tree, object |
+| `trees-tree-006` | round_tree_tiny | tree, object |
+| `trees-tree-014` | oak_small_c | tree |
+| `trees-tree-015` | pine_small_wide | tree |
+| `trees-tree-016` | pine_small | tree |
+| `trees-tree-017` | round_tree_dense | tree |
+| `trees-tree-018` | oak_small_d | tree |
+| `water-water-001` | water_frame_01 | water |
 
 The water and shore pipeline (`public/js/world/water.js`, `shore.js` and the water part of
 `compose.js`) is ported from the ZRPG art pack's reference renderer `examples/water.js` and follows

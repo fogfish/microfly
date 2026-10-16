@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 import { shorePlacements, GRASS_RULES, REED_SOURCES } from '../js/world/shore.js';
 import { waterField, distanceAt } from '../js/world/water.js';
 
-const load = () => JSON.parse(readFileSync(new URL('../world/world.json', import.meta.url), 'utf8'));
+// The tile sections (ground, waterBodies, objects, groves, scatter) are exercised on a tile-world fixture: the shipped
+// worlds use a sketch map instead (spec 014 BUG-002, contracts/world-format-sketch-map.md §7).
+const load = () => JSON.parse(readFileSync(new URL('./fixtures/world-tile.json', import.meta.url), 'utf8'));
 const config = load();
 const shore = shorePlacements(config);
 const field = waterField(config);
@@ -15,7 +17,7 @@ test('placement is deterministic', () => {
   assert.deepEqual(shorePlacements(load()), shore);
 });
 
-test('every water body of the shipped world has shore decor', () => {
+test('every water body of the tile world has shore decor', () => {
   for (const b of config.waterBodies) assert.ok(shore.some((p) => p.body === b.id), b.id);
 });
 

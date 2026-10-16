@@ -29,7 +29,8 @@ test('water and solid objects are blocked, and open grass is free', () => {
 test('stimulus cells are the food cells, not dangers, and each carries the reach of its unit (spec 009)', () => {
   const expected = config.edibles.filter((e) => EDIBLE_KINDS.includes(e.kind));
   assert.equal(world.stimulusCells.size, expected.length);
-  for (const d of config.dangers) {
+  // world.json no longer carries a point-source dangers list (research.md R10); this loop is a no-op for it.
+  for (const d of config.dangers ?? []) {
     assert.equal(world.isStimulusCell(Math.floor(d.x), Math.floor(d.y)), false, `danger ${d.kind} must not be a stimulus`);
   }
   // reach = radius × sprite size in tiles, the size from the catalogue (contracts/odour-reach.md §1)
