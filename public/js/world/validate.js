@@ -262,6 +262,19 @@ function validateMap(config, err) {
         err(`map.border.gaps[${i}]`, 'must be [from x, to x, "top" | "bottom"]');
       }
     });
+    // Dead edge forest (contracts/world-format-sketch-map.md §7): the named area, a non-empty list of dead tree
+    // sprites, and the blend distance in reference px over which the live forest fades into the dead one.
+    if (B.dead !== undefined) {
+      const named = (map.grounds ?? []).some((g) => g?.name === B.dead?.area);
+      if (!named) err('map.border.dead.area', 'must name a map.grounds entry');
+      if (!Array.isArray(B.dead?.trees) || B.dead.trees.length === 0 || !B.dead.trees.every(isText)) {
+        err('map.border.dead.trees', 'must be a non-empty list of sprite names ("sheet/name")');
+      }
+      if (!(isNum(B.dead?.blend) && B.dead.blend > 0)) err('map.border.dead.blend', 'must be a positive number of reference px');
+      if (B.dead?.density !== undefined && !(isNum(B.dead.density) && B.dead.density >= 0 && B.dead.density <= 1)) {
+        err('map.border.dead.density', 'must be a number from 0 to 1 (the chance of a dead tree inside the area)');
+      }
+    }
   }
   refs(map.trees, 'map.trees');
   refs(map.peaks, 'map.peaks');
@@ -314,6 +327,7 @@ function mapRefs(map) {
   (map.decals ?? []).forEach((d, i) => each(d?.sprites, `map.decals[${i}].sprites`));
   out.push([map.roads?.texture, 'map.roads.texture'], [map.roads?.worn, 'map.roads.worn']);
   each(map.trees, 'map.trees');
+  each(map.border?.dead?.trees, 'map.border.dead.trees');
   each(map.peaks, 'map.peaks');
   (map.objects ?? []).forEach((o, i) => out.push([Array.isArray(o) ? o[0] : undefined, `map.objects[${i}]`]));
   (map.areaScatter ?? []).forEach((a, i) => each(a?.sprites, `map.areaScatter[${i}].sprites`));

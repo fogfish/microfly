@@ -93,3 +93,55 @@ test('food on the drawn water is refused', () => {
   c.edibles.push({ kind: 'small', sprite: 'red_flower_plant', x: (i % cols) + 0.5, y: Math.floor(i / cols) + 0.5 });
   assert.deepEqual(validateArt(c, catalog).map((e) => e.path), [`edibles[${c.edibles.length - 1}]`]);
 });
+
+// border.dead (contracts/world-format-sketch-map.md §7): the edge forest inside the dunes is dead, and live trees
+// stay on the rest of the edge, so the transition between them is the blend, not a rule about one tree.
+test('the edge forest in the dunes corner is dead; the rest of the edge stays live (border.dead)', () => {
+  const plan = planMap(config, catalog, DECOR_FORBIDDEN);
+  const deadId = catalog.lookup(config.map.border.dead.trees[0]).sprite.id;
+  const liveIds = new Set(config.map.trees.map((ref) => catalog.lookup(ref).sprite.id));
+  // The border loop also places trees just past the map edge; those are never drawn, so only the map itself counts.
+  const onMap = (it) => it.x >= 0 && it.y >= 0 && it.x < plan.W && it.y < plan.H;
+  const trees = plan.items.filter((it) => onMap(it) && plan.inBorder(it.x, it.y) && (it.id === deadId || liveIds.has(it.id)));
+  const corner = trees.filter((it) => it.x > plan.W - 300 && it.y > plan.H - 300);
+  assert.ok(corner.length > 0, 'no border trees in the corner');
+  assert.ok(corner.every((it) => it.id === deadId), 'a live tree stands in the dead corner');
+  assert.ok(trees.some((it) => it.id === deadId), 'no dead tree on the edge');
+  assert.ok(trees.some((it) => liveIds.has(it.id) && it.x < plan.W / 3), 'no live tree on the west edge');
+});
+
+test('a border.dead rule naming no ground, no trees or a bad blend is refused', () => {
+  const c = JSON.parse(JSON.stringify(config));
+  c.map.border.dead.area = 'no-such-ground';
+  c.map.border.dead.blend = 0;
+  c.map.border.dead.trees = [];
+  const paths = validateConfig(c).map((e) => e.path);
+  assert.ok(paths.includes('map.border.dead.area'));
+  assert.ok(paths.includes('map.border.dead.trees'));
+  assert.ok(paths.includes('map.border.dead.blend'));
+});
+
+test('a border.dead tree sprite that does not resolve names its entry', () => {
+  const c = JSON.parse(JSON.stringify(config));
+  c.map.border.dead.trees = ['beach/no_such_tree'];
+  assert.deepEqual(validateArt(c, catalog).map((e) => e.path), ['map.border.dead.trees[0]']);
+});
+
+// One dead tree sprite is 96 px wide: a bare patch narrower than a sprite is not a visible gap at the edge.
+test('every dunes cell on the map edge has a dead tree within one sprite width, and no live border tree stands on the dunes', () => {
+  const plan = planMap(config, catalog, DECOR_FORBIDDEN);
+  const deadId = catalog.lookup(config.map.border.dead.trees[0]).sprite.id;
+  const liveIds = new Set(config.map.trees.map((ref) => catalog.lookup(ref).sprite.id));
+  const dunes = plan.areas.find((a) => a.name === config.map.border.dead.area).index;
+  const dead = plan.items.filter((it) => it.id === deadId);
+  for (let y = 0; y < plan.H; y += 8) {
+    for (let x = 0; x < plan.W; x += 8) {
+      if (!(x >= plan.W - 40 || y >= plan.H - 40) || plan.areaOf[y * plan.W + x] !== dunes) continue;
+      const near = Math.min(...dead.map((d) => Math.hypot(d.x - x, d.y - y)));
+      assert.ok(near <= 96, `bare dunes edge at (${x}, ${y}): nearest dead tree ${Math.round(near)} px`);
+    }
+  }
+  const live = plan.items.filter((it) => liveIds.has(it.id) && plan.inBorder(it.x, it.y) && it.x >= 0 && it.y >= 0
+    && it.x < plan.W && it.y < plan.H && plan.areaOf[Math.round(it.y) * plan.W + Math.round(it.x)] === dunes);
+  assert.deepEqual(live, []);
+});

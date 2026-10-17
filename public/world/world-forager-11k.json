@@ -62,15 +62,7 @@
         "tex": "beach/sand_pit_light_small_c",
         "rim": "rgba(168,118,58,0.55)",
         "wet": "rgba(110,70,30,0.32)",
-        "blobs": [[1015, 556, 96, 90], [925, 548, 60, 84], [960, 625, 80, 42], [1085, 612, 44, 48]]
-      },
-      {
-        "name": "desert",
-        "tex": "beach/sand_pit_dark_b_c",
-        "tex2": "rocks2/gravel_patch_round_c",
-        "tex2At": 0.52,
-        "rim": "rgba(120,80,40,0.5)",
-        "blobs": [[1200, 566, 74, 80], [1160, 616, 46, 38], [1236, 516, 38, 30]]
+        "blobs": [[1015, 556, 96, 90], [925, 548, 60, 84], [960, 625, 80, 42], [1085, 612, 44, 48], [1200, 640, 190, 160], [1320, 740, 90, 80], [1150, 520, 120, 90], [1290, 600, 110, 120], [1080, 700, 120, 90]]
       }
     ],
     "beach": "dunes",
@@ -105,7 +97,8 @@
       "rag": 22,
       "step": 44,
       "fill": 0.85,
-      "gaps": [[600, 700, "bottom"], [680, 720, "top"]]
+      "gaps": [[600, 700, "bottom"], [680, 720, "top"]],
+      "dead": {"area": "dunes", "trees": ["beach/dead_gnarled_tree"], "blend": 200, "density": 0.33}
     },
     "trees": [
       "trees/round_tree_small",
@@ -146,10 +139,6 @@
       {"x": 1222, "y": 372, "rx": 52, "ry": 98, "n": 16}
     ],
     "objects": [
-      ["jungle/canvas_tent", 300, 226],
-      ["jungle/campfire_logs", 330, 232],
-      ["trees/wooden_signpost", 260, 296],
-      ["jungle/skull_spear_banner", 196, 586],
       ["trees/hollow_log", 230, 624],
       ["trees/yellow_green_bush", 170, 468],
       ["trees/broadleaf_bush", 214, 446],
@@ -157,8 +146,6 @@
       ["rocks2/small_boulder_a", 236, 536],
       ["rocks2/rock_cluster_grass_a", 148, 548],
       ["trees/yellow_flowers_cluster", 202, 494],
-      ["jungle/purple_alien_pod", 372, 470],
-      ["jungle/purple_pitcher_plant", 406, 503],
       ["rocks2/pillar_1", 300, 520],
       ["rocks2/pillar_3", 318, 528],
       ["jungle/hollow_log", 568, 238],
@@ -169,26 +156,15 @@
       ["trees/broadleaf_bush", 660, 632],
       ["jungle/hollow_log_mossy", 664, 428],
       ["beach/dead_gnarled_tree", 652, 372],
-      ["jungle/dark_frond_bush_1", 770, 368],
-      ["jungle/crystal_node_corrupted", 1112, 262],
-      ["jungle/purple_spiky_alien", 1150, 270],
-      ["jungle/crystal_node_corrupted", 1215, 250],
-      ["beach/saguaro_light", 1080, 530],
       ["beach/saguaro_small_a", 958, 600],
       ["beach/prickly_pear", 1018, 646],
       ["beach/sand_dune_a_left", 1040, 512],
       ["beach/sand_dune_b_right", 1068, 650],
       ["beach/animal_skull", 1030, 590],
-      ["beach/ribcage", 972, 520],
+      ["beach/animal_skull", 1120, 640],
       ["beach/long_bone", 1002, 616],
       ["beach/dead_gnarled_tree", 1186, 560],
-      ["beach/dead_gnarled_tree", 1250, 620],
-      ["beach/fallen_dead_branch", 1170, 626],
-      ["rocks2/outcrop_small", 1226, 540],
-      ["rocks2/outcrop_small_shadow", 1150, 586],
-      ["jungle/purple_alien_pod", 600, 384],
-      ["jungle/purple_pitcher_plant", 840, 372],
-      ["jungle/purple_spiky_alien", 950, 280]
+      ["beach/dead_gnarled_tree", 1250, 620]
     ],
     "areaScatter": [
       {
@@ -234,21 +210,6 @@
           "beach/pebble_e",
           "beach/pebble_pair",
           "beach/pebble_cluster"
-        ]
-      },
-      {
-        "area": "desert",
-        "max": 14,
-        "spacing": 48,
-        "waterMargin": 10,
-        "sprites": [
-          "rocks2/small_boulder_a",
-          "rocks2/small_boulder_b",
-          "rocks2/pebble_crumbs_a",
-          "rocks2/pebble_c",
-          "beach/sand_pebbles_set_a",
-          "rocks2/low_rock_grass_a",
-          "beach/dry_shrub"
         ]
       }
     ],

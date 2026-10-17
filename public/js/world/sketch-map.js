@@ -12,7 +12,7 @@
 // step, jitter, water margins) are sprite-scale and stay as they are.
 
 import { createPrng } from './prng.js';
-import { fbm, edt, bayer } from './water.js';
+import { fbm, edt, bayer, clamp } from './water.js';
 import { buildWaterFields, placeWaterDecor } from './map-water.js';
 
 const CELL_PX = 32;
@@ -209,16 +209,62 @@ export function planMap(config, catalog, forbidden = new Set()) {
     return !nearArea(x, y, pad);
   };
   const trees = ids(map.trees);
+  // The dead forest rule (border.dead): chance that a border tree is dead, and the dead sprites to pick from.
+  function deadForest(rule) {
+    const inside = new Uint8Array(W * H);
+    const A = AREA[rule.area];
+    for (let i = 0; i < W * H; i++) inside[i] = areaOf[i] === A ? 1 : 0;
+    const D = edt(inside, W, H);
+    const blend = L(rule.blend);
+    const density = rule.density ?? 1;
+    const next = createPrng(((map.seed ?? 1) * 1231 + 17) >>> 0).next;
+    const deadTrees = ids(rule.trees);
+    return {
+      // Per border cell, a fixed value in [0, 1): a dead tree is placed where the value is below the chance, so a lower
+      // density keeps a subset of the trees a higher one placed, and the count scales with the density.
+      cell: (ix, iy) => {
+        let h = Math.imul(ix, 0x9e3779b1) ^ Math.imul(iy, 0x85ebca77);
+        h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+        h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+        return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+      },
+      chance(x, y) {
+        // Off the map the point is clamped to the edge, so trees past the edge follow the edge's own area.
+        const px = clamp(Math.round(x), 0, W - 1);
+        const py = clamp(Math.round(y), 0, H - 1);
+        const d = D[py * W + px];
+        if (d === 0) return density;
+        const jitter = (fbm(x / 40, y / 40, 53) - 0.5) * 0.6;
+        return density * clamp(1 - d / blend + jitter, 0, 1);
+      },
+      pick: () => deadTrees[Math.floor(next() * deadTrees.length)],
+    };
+  }
 
   // Border forest: a jittered grid inside the ragged edge band, with gaps where the river crosses an edge.
+  // Dead edge forest (WORLD-SPEC §7, border.dead): inside the named area every border tree is dead, and the chance
+  // falls off linearly over `blend` px outside it, so the live forest fades into the dead one. The fade has its own
+  // PRNG, so the draws of the rest of the layout do not move when the rule is on or off.
   const B = map.border;
   const inBorder = borderTest(B, scale);
+  const dead = B.dead ? deadForest(B.dead) : null;
   for (let y = -40; y < H + 90; y += B.step) {
     for (let x = -40; x < W + 40; x += B.step) {
       const jx = x + (rnd() - 0.5) * B.step * 0.9;
       const jy = y + (rnd() - 0.5) * B.step * 0.9;
+      const ix = Math.round((x + 40) / B.step);
+      const iy = Math.round((y + 40) / B.step);
       const rock = map.mountains.some((m) => Math.hypot((jx / sx - m.x) / (m.rx + MOUNTAIN_PAD), (jy / sy - m.y) / (m.ry + MOUNTAIN_PAD)) < 1);
-      if (inBorder(jx, jy) && !rock && rnd() < B.fill && landAt(jx, jy, 10) && !nearArea(jx, jy, 20)) add(pick(trees), jx, jy);
+      if (!inBorder(jx, jy) || rock) continue;
+      // A dead candidate is rolled on its own PRNG against its chance (density inside the area, fading outside);
+      // live candidates keep the fill roll and the shore clearance of the plain forest.
+      const pDead = dead ? dead.chance(jx, jy) : 0;
+      if (pDead > 0 && dead.cell(ix, iy) < pDead) {
+        if (landAt(jx, jy, 10)) add(dead.pick(), jx, jy);
+        continue;
+      }
+      if (!(rnd() < B.fill) || !landAt(jx, jy, 10) || nearArea(jx, jy, 20)) continue;
+      add(pick(trees), jx, jy);
     }
   }
   // Groves

@@ -18,6 +18,9 @@ It is format version 3 (`"version": 3`). The app refuses any other version and n
   cell whose centre is drawn water. Heat is the 100%/50%/25% ring from water (`"from": "water"`,
   `world/heat-field.js`). The reference water leaves no zero-heat crossing: the walkable crossing runs between
   the swamp pools at heat ≤ 50% (`tests/water-corridor.test.mjs`, BUG-002 finding).
+- Dead edge forest: `map.border.dead` (`{ area, trees, blend }`) makes every border tree inside the named ground
+  `dead` (`beach/dead_gnarled_tree`) with chance `density` (0.33), and fades that chance to live over `blend` ref px (200), so the live forest and the
+  dead one meet in a gradual mix. Contract: [world-format-sketch-map.md §7](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).
 - Edge forest: cells whose centre lies in the ragged border band (outside the river gaps) are edge forest, the only
   source of danger odour: 100%/50%/25%/0% over three tile-steps (`"from": "forestEdge"`, `world/danger-field.js`).
   There is no point-source `dangers` list (spec 014 research.md R10).

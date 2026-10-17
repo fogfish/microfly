@@ -151,7 +151,8 @@ tile sections`. `edibles`, `dangers`, `flies` and the rest are unchanged.
 | `beach` | the ground area with no shore decor and no road (§4, §6) |
 | `decals` | `{ area, max, inset, waterMargin, sprites }`: ground decals on an area (§5) |
 | `roads` | `{ texture, textureRows, worn, paths: [{ w, pts }] }`: trampled-grass trails (§6) |
-| `border` | `{ left, right, top, bottom, rag, step, fill, gaps: [[from x, to x, "top" \| "bottom"]] }`: the edge forest band (§7) |
+| `border` | `{ left, right, top, bottom, rag, step, fill, gaps: [[from x, to x, "top" \| "bottom"]], dead? }`: the edge forest band (§7) |
+| `border.dead` | `{ area, trees, blend, density? }`: dead edge forest. Inside the named ground `area` a border candidate is a dead tree (one of `trees`) when its fixed per-cell value is below the chance `density` (default 1, from 0 to 1); outside it the chance falls linearly to 0 over `blend` ref px, times `density`, with a fixed noise, so live forest fades into dead. Own PRNG: the rest of the layout keeps its draws (§7) |
 | `trees`, `groves`, `keepOut` | tree sprites, grove ellipses, boxes with no trees or scatter (§7) |
 | `peaks`, `mountains` | rock sprites and `{ x, y, rx, ry, n }` clusters (§7) |
 | `objects` | `["sheet/name", x, y]` hand-placed region objects (§7) |
