@@ -121,7 +121,7 @@
       {"x": 590, "y": 600, "rx": 26, "ry": 44},
       {"x": 900, "y": 650, "rx": 20, "ry": 16},
       {"x": 460, "y": 152, "rx": 18, "ry": 16},
-      {"x": 1150, "y": 200, "rx": 62, "ry": 40},
+      {"x": 1150, "y": 200, "rx": 34, "ry": 22},
       {"x": 330, "y": 190, "rx": 30, "ry": 22}
     ],
     "keepOut": [[110, 280, 250, 450], [120, 410, 260, 560], [160, 560, 320, 640], [255, 225, 335, 300], [1160, 270, 1290, 470]],
@@ -233,10 +233,11 @@
     {"kind": "small", "sprite": "red_flower_plant", "x": 17.5, "y": 21.5},
     {"kind": "large", "sprite": "jungle-plant-015", "x": 13.5, "y": 13.5},
     {"kind": "medium", "sprite": "jungle-plant-010", "x": 24, "y": 21},
-    {"kind": "small", "sprite": "red_flower_plant", "x": 30.5, "y": 19.5},
+    {"kind": "large", "sprite": "jungle-plant-015", "x": 30.5, "y": 19.5},
     {"kind": "medium", "sprite": "jungle-plant-010", "x": 40.5, "y": 19.5},
     {"kind": "large", "sprite": "jungle-plant-015", "x": 48.5, "y": 17.5},
     {"kind": "medium", "sprite": "jungle-plant-010", "x": 53.5, "y": 25.5},
+    {"kind": "medium", "sprite": "jungle-plant-010", "x": 55.5, "y": 8.5},
     {"kind": "small", "sprite": "red_flower_plant", "x": 47.5, "y": 31.5}
   ],
   "sprites": {
