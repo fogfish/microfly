@@ -32,6 +32,11 @@ Bugfix (specs/017-demo-forager/bugs/BUG-004.md): Fly make a "jump" immediate tur
 
 Bugfix (specs/017-demo-forager/bugs/BUG-005.md): What make fly to turn 180 degree, is this escape signal? Implement both 1 (fewer false escapes: raise escape threshold) and 2 (a smaller, randomly signed escape turn when the side is unknown).
 
+--
+
+/speckit-specify Hunger below a thresholds increases sensivity of food odor then eating state either suspend a fly until energy is recovered or slow it down. Eating shall decrease the availability of the resource on the map as a consequence level of odor from that drops. Small food resource is consumed by one food consumption, medium by two and large by three. The food resources are recovered in 30 seconds (to be configurable)  
+
+/speckit-plan Implement the feature as parameters of the world simulation, sensor filters and motor control. Do not change the brain of LIF parameters. 
 
 # 2026-10-14
 
