@@ -119,6 +119,8 @@ def seed_bodies(config, bodies):
     """
     seeds = {}
     for filt in config["seeds"]:
+        if "partnersOf" in filt:
+            continue  # resolved on the thresholded edges by partner_seeds (ADR 009 D24)
         if "class" in filt:
             key, values = "class", filt["class"]
         else:
@@ -129,6 +131,29 @@ def seed_bodies(config, bodies):
             _fail("E-SEED-EMPTY", f"seed filter {key}={values} matches no traced body")
         seeds.update(matched)
     return seeds
+
+
+def partner_seeds(config, bodies, edges, output_bodies, pool_bodies):
+    """ADR 009 D24: {"partnersOf": "outputs"} seeds every admitted body with an edge of at least minSynapses onto
+    an output pool body, minus the bodies D9 never fills (sensory, motor) and every input or output pool body. Plain
+    connectivity, like D9: no flow, no sign, no per-output score. The cut otherwise drops the premotor neurons
+    between the central brain and the readout DNs (scripts/connectivity-audit.py, ADR 009 Context).
+
+    `edges` is (pre, post, synapses) already thresholded at minSynapses (D11). Returns {bodyId: "seed:outputPartner"}
+    (empty when the config declares no partner filter). Raises E-SEED-EMPTY when the filter matches no body.
+    """
+    if not any("partnersOf" in filt for filt in config["seeds"]):
+        return {}
+    pre, post, _ = (np.asarray(a, dtype=np.int64) for a in edges)
+    outputs = np.array(sorted(output_bodies), dtype=np.int64)
+    candidates = np.unique(pre[np.isin(post, outputs)])
+    partners = {
+        int(b): "seed:outputPartner" for b in candidates.tolist()
+        if b in bodies and b not in pool_bodies and not _excluded_from_fill(bodies[b], config["fill"])
+    }
+    if not partners:
+        _fail("E-SEED-EMPTY", "seed filter partnersOf=outputs matches no admitted body")
+    return partners
 
 
 def _excluded_from_fill(body, fill_cfg):
@@ -368,6 +393,9 @@ def select_class_seed(config, bodies, edges):
         _fail("E-CONFIG", "a body is a member of two pools")
 
     class_seeds = seed_bodies(config, bodies)
+    # ADR 009 D24: output partners are seeds too; a class-seed tag wins where a body is both.
+    for body, tag in partner_seeds(config, bodies, (pre, post, syn), set(output_bodies), pool_bodies).items():
+        class_seeds.setdefault(body, tag)
     seed_ids = set(class_seeds) | pool_bodies
     fill_ids = fill_candidates(config, bodies, (pre, post, syn), seed_ids)
     brain_ids = sorted(seed_ids | fill_ids)
@@ -388,8 +416,23 @@ def select_class_seed(config, bodies, edges):
     output_dense[np.searchsorted(all_ids, np.array(output_bodies, dtype=np.int64))] = True
     keep_brain = in_brain[pre_i_full] & in_brain[post_i_full] & ~output_dense[pre_i_full]
 
+    # Neuron order (W5/container-v4): inputs, then outputs, then interneurons by ascending bodyId. The CSR is
+    # indexed in this order, because the reader takes CSR row k and target k to be neuron record k. BUG-001
+    # (spec 012): it used to be indexed by bodyId order instead, so in every class-seeded snapshot the input drive
+    # and the output readout landed on unrelated neurons. The fixtures could not show it: their pool bodyIds sort
+    # before every interneuron.
+    order = []
+    for cid in _input_order(config):
+        order += [(b, "input", cid) for b in inputs[cid]]
+    for cid in _output_order(config):
+        order += [(b, "output", cid) for b in outputs[cid]]
+    interneurons = sorted(set(brain_ids) - pool_bodies)
+    order += [(b, "interneuron", None) for b in interneurons]
+    if len(order) != brain_ids_arr.size:
+        _fail("E-NODE-RANGE", f"selected {len(order)} neurons, fill.neuronCount is {config['fill']['neuronCount']}")
+
     local = np.full(n_all, -1, dtype=np.int64)
-    local[np.searchsorted(all_ids, brain_ids_arr)] = np.arange(brain_ids_arr.size)
+    local[np.searchsorted(all_ids, np.array([b for b, _, _ in order], dtype=np.int64))] = np.arange(len(order))
 
     src = local[pre_i_full[keep_brain]]
     dst = local[post_i_full[keep_brain]]
@@ -407,17 +450,6 @@ def select_class_seed(config, bodies, edges):
         local_members = {int(local[int(np.searchsorted(all_ids, b))]) for b in members}
         if not any(int(d) in local_members for d in dst):
             _fail("E-OUTPUT-UNREACHED", f"output pool {cid} receives no edge from the selected neurons")
-
-    # Neuron order (W5/container-v4): inputs, then outputs, then interneurons by ascending bodyId.
-    order = []
-    for cid in _input_order(config):
-        order += [(b, "input", cid) for b in inputs[cid]]
-    for cid in _output_order(config):
-        order += [(b, "output", cid) for b in outputs[cid]]
-    interneurons = sorted(set(brain_ids) - pool_bodies)
-    order += [(b, "interneuron", None) for b in interneurons]
-    if len(order) != count:
-        _fail("E-NODE-RANGE", f"selected {len(order)} neurons, fill.neuronCount is {config['fill']['neuronCount']}")
 
     neurons = []
     for k, (body, role, channel) in enumerate(order):
@@ -458,7 +490,7 @@ def select_class_seed(config, bodies, edges):
         "n": n_all,
         "index_of": index_of_all,
     }
-    index_of_brain = {int(b): i for i, b in enumerate(brain_ids)}
+    index_of_brain = {int(b): k for k, (b, _, _) in enumerate(order)}
     brain_graph = {"pre": src, "post": dst, "weight": weights.astype(np.float64), "n": count,
                    "index_of": index_of_brain}
     probe_inputs, probe_outputs = _probe_pools(config, inputs, outputs)

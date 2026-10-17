@@ -276,6 +276,14 @@ export function parseSnapshot(arrayBuffer) {
     if (inflow.some((sum) => sum > 1 + WEIGHT_TOLERANCE)) {
       reject('snapshot CSR is inconsistent: input weights into a neuron exceed 1 in absolute sum');
     }
+    // N6 (container-v4.md): output neurons are sinks (ADR 003 D2). A CSR not indexed like the neuron records (N5)
+    // breaks this: spec 012 BUG-001 shipped class-seeded snapshots indexed by bodyId order, whose output rows held
+    // interneurons' edges, so the senses drove and the motors read unrelated neurons.
+    manifest.neurons.forEach((neuron, i) => {
+      if (neuron.role === 'output' && offsets[i + 1] > offsets[i]) {
+        reject(`snapshot CSR is inconsistent: output neuron ${i} has outgoing edges`);
+      }
+    });
   }
 
   return version === 3

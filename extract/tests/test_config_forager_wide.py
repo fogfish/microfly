@@ -121,6 +121,27 @@ class ValidateForagerWideTest(unittest.TestCase):
             validate_forager_wide(config)
         self.assertEqual(ctx.exception.code, "E-CONFIG")
 
+    def test_partners_of_outputs_is_a_format_5_seed_filter(self):
+        # ADR 009 D24.
+        config = copy.deepcopy(shipped_config())
+        self.assertIn({"partnersOf": "outputs"}, config["seeds"])
+        validate_forager_wide(config)  # raises on failure
+
+    def test_partners_of_anything_but_outputs_is_e_config(self):
+        for bad in ({"partnersOf": "inputs"}, {"partnersOf": "outputs", "class": ["MBON"]}):
+            config = copy.deepcopy(shipped_config())
+            config["seeds"] = [s for s in config["seeds"] if "partnersOf" not in s] + [bad]
+            with self.assertRaises(ExtractError) as ctx:
+                validate_forager_wide(config)
+            self.assertEqual(ctx.exception.code, "E-CONFIG")
+
+    def test_partners_of_twice_is_e_config(self):
+        config = copy.deepcopy(shipped_config())
+        config["seeds"] = config["seeds"] + [{"partnersOf": "outputs"}]
+        with self.assertRaises(ExtractError) as ctx:
+            validate_forager_wide(config)
+        self.assertEqual(ctx.exception.code, "E-CONFIG")
+
 
 if __name__ == "__main__":
     unittest.main()

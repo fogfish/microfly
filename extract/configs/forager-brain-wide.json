@@ -23,10 +23,13 @@
     },
     {
       "superclass": ["descending_neuron"]
+    },
+    {
+      "partnersOf": "outputs"
     }
   ],
   "fill": {
-    "neuronCount": 11000,
+    "neuronCount": 14500,
     "excludeClasses": ["olfactory", "gustatory"],
     "excludeSuperclassSuffix": "_sensory",
     "excludeSuperclasses": ["vnc_motor", "cb_motor"]
@@ -203,5 +206,5 @@
       { "kind": "contrast", "pair": "touch", "minFraction": 0.1 }
     ]
   },
-  "neuronCountRange": [10000, 12000]
+  "neuronCountRange": [14000, 15000]
 }

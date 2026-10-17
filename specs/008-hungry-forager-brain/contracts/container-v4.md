@@ -36,6 +36,12 @@ section's `byteOffset` and `byteLength`, and the file ends after the last sectio
   (the channel id); interneurons carry `channel: null`.
 - **N3** `soma`, `superclass`: as v3 (`null` or valid, else `malformed` error).
 - **N4** `sign` ∈ {−1, 0, 1}. An output neuron may have sign 0 (ADR 003 D2); every other neuron has sign ±1.
+- **N5** *(spec 012 BUG-001, clarification)* The CSR is indexed like the neuron records: row `i` of `offsets` holds the
+  outgoing edges of `neurons[i]`, and a `targets` value `j` names `neurons[j]`. A writer that orders the records one way
+  and the CSR another (spec 012 BUG-001: bodyId order) breaks every channel silently.
+- **N6** *(spec 012 BUG-001)* Output neurons have no outgoing edges (ADR 003 D2). The reader rejects a file that breaks
+  this with `snapshot CSR is inconsistent: output neuron <i> has outgoing edges`. It is the cheap check that catches an
+  N5 violation, since a mis-indexed output row holds some interneuron's edges.
 
 ## Modulator rules
 

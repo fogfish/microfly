@@ -41,6 +41,22 @@ test('touchTurn: mean turnLeft - turnRight over the ten ticks after a one-sided 
   assert.ok(Math.abs(touchTurn(records) - (0.8 / 3)) < 1e-9);
 });
 
+test('touchTurn is signed by the touched side: a right touch followed by a right turn is toward (BUG-001)', () => {
+  const records = [
+    { touchLeft: 0, touchRight: 1, turnLeft: 0, turnRight: 0 }, // right-touch event
+    { touchLeft: 0, touchRight: 0, turnLeft: 0.1, turnRight: 0.5 }, // turns right: toward, +0.4
+  ];
+  assert.ok(Math.abs(touchTurn(records) - 0.4) < 1e-9);
+  // a fly that turns left after either touch has no net touch response, not a +ve one (the old left-bias reading)
+  const biased = [
+    { touchLeft: 1, touchRight: 0, turnLeft: 0, turnRight: 0 },
+    { touchLeft: 0, touchRight: 0, turnLeft: 0.5, turnRight: 0.1 },
+    { touchLeft: 0, touchRight: 1, turnLeft: 0, turnRight: 0 },
+    { touchLeft: 0, touchRight: 0, turnLeft: 0.5, turnRight: 0.1 },
+  ];
+  assert.ok(Math.abs(touchTurn(biased, 1)) < 1e-9);
+});
+
 test('touchTurn ignores a bilateral touch (both sides at once) and returns null with no event', () => {
   const noEvent = [{ touchLeft: 0, touchRight: 0, turnLeft: 1, turnRight: 0 }];
   assert.equal(touchTurn(noEvent), null);

@@ -382,12 +382,30 @@ FILL_KEYS = {"neuronCount", "excludeClasses", "excludeSuperclassSuffix", "exclud
 FIDELITY_KEYS = {"require", "steps", "minContrastFraction"}
 
 
-def _check_seed_filters(seeds):
+# ADR 009 D24: the one partner seed filter. Only the output side is defined: the input side (postsynaptic partners
+# of the input pools) was measured and rejected (ADR 009 Annex A3).
+PARTNER_SEED_VALUES = {"outputs"}
+
+
+def _check_seed_filters(seeds, allow_partners=False):
+    """Seed filters: {"class": [...]} or {"superclass": [...]}; under format 5 also {"partnersOf": "outputs"}
+    (ADR 009 D24), at most once."""
     if not isinstance(seeds, list) or not seeds:
         _fail("seeds must be a non-empty list")
+    partner_filters = 0
     for index, filt in enumerate(seeds):
         if not isinstance(filt, dict):
             _fail(f"seeds[{index}] must be an object")
+        if allow_partners and "partnersOf" in filt:
+            if filt["partnersOf"] not in PARTNER_SEED_VALUES:
+                _fail(f'seeds[{index}].partnersOf must be "outputs"')
+            unknown = sorted(set(filt) - {"partnersOf"})
+            if unknown:
+                _fail(f"unknown key in seeds[{index}]: {unknown[0]}")
+            partner_filters += 1
+            if partner_filters > 1:
+                _fail("seeds may declare partnersOf only once")
+            continue
         has_class, has_superclass = "class" in filt, "superclass" in filt
         if has_class == has_superclass:
             _fail(f"seeds[{index}] needs exactly one of class or superclass")
@@ -490,7 +508,7 @@ def validate_forager_wide(config):
     if not _is_int(min_synapses) or min_synapses < 1:
         _fail("minSynapses must be an integer ≥ 1")
 
-    _check_seed_filters(config["seeds"])
+    _check_seed_filters(config["seeds"], allow_partners=True)
 
     fill = config["fill"]
     if not isinstance(fill, dict):

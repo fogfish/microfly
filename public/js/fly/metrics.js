@@ -93,17 +93,21 @@ export function avoidFraction(records, radius) {
   return records.filter((r) => r.distance <= radius).length / records.length;
 }
 
-// Metric 9. Touch: mean turnLeft − turnRight over the `window` ticks following a one-sided touch event (a tick
-// whose touchLeft or touchRight input exceeds 0, but not both). records: [{ touchLeft, touchRight, turnLeft,
-// turnRight }], one per tick, in order. Null when no touch event occurred (nothing to average).
+// Metric 9. Touch: mean turn toward the touched side over the `window` ticks following a one-sided touch event (a
+// tick whose touchLeft or touchRight input exceeds 0, but not both): turnLeft − turnRight after a left touch, its
+// negative after a right touch, so > 0 is toward the touched side for either side. BUG-001 (spec 013): it used to
+// average turnLeft − turnRight for both sides, which measured the fly's left bias, not its touch response.
+// records: [{ touchLeft, touchRight, turnLeft, turnRight }], one per tick, in order. Null when no touch event
+// occurred (nothing to average).
 export function touchTurn(records, window = 10) {
   const deltas = [];
   for (let i = 0; i < records.length; i++) {
     const r = records[i];
     const oneSided = (r.touchLeft > 0) !== (r.touchRight > 0);
     if (!oneSided) continue;
+    const side = r.touchLeft > 0 ? 1 : -1;
     for (let k = i + 1; k <= Math.min(i + window, records.length - 1); k++) {
-      deltas.push(records[k].turnLeft - records[k].turnRight);
+      deltas.push(side * (records[k].turnLeft - records[k].turnRight));
     }
   }
   return deltas.length ? deltas.reduce((a, b) => a + b, 0) / deltas.length : null;

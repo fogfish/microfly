@@ -133,3 +133,11 @@ test('checkBrainVersion: v1 needs kind "forager", v2 needs kind "forager-wide"',
   assert.doesNotThrow(() => checkBrainVersion('v2', 4, 'forager-wide', 'brains/forager-brain-wide.brain'));
   assert.doesNotThrow(() => checkBrainVersion('v1', 4, 'forager', 'brains/forager-brain-11k.brain'));
 });
+
+// N6 (container-v4.md, spec 012 BUG-001): an output row with outgoing edges is the mark of a CSR indexed in a
+// different order from the neuron records, and is rejected at load instead of running scrambled.
+test('an output neuron with an outgoing edge is rejected (N6)', () => {
+  // neuron 0 (input) -> 8 stays; neuron 2 (turn-left output) -> 9 replaces neuron 1's edge.
+  const csr = { offsets: [0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2], targets: [8, 9], weights: [1, 1], synapses: [5, 5] };
+  assert.throws(() => parseSnapshot(encode({ csr })), { message: 'snapshot CSR is inconsistent: output neuron 2 has outgoing edges' });
+});

@@ -36,18 +36,26 @@ experiment-metrics.md describes, for every arm above. New, gated:
    "Eat must pass for this arm. This is the metric neither v1 nor 11K could pass."
 7. **Stay** (`stayMedian`): median ticks per closed bout (from `fly.bouts`, unchanged `closeBout` shape), compared
    against the `v1-11k` arm's value.
-8. **Avoid** (`avoidFraction`): the fraction of ticks a fly spends within 1.5 tiles of a `spider`, and separately
-   of a `lantern`, reported against the `baseline` (random-walk) arm's value, with its sign. Heat must not be
+8. **Avoid** (`avoidFraction`): the fraction of ticks a fly spends within 1.5 tiles of a danger source, and
+   separately of a heat source, reported against the `baseline` (random-walk) arm's value, with its sign.
+   *(BUG-001)* The source is the one the sense reads (`flies.stimuli['odour:danger'|'heat'].from`). For
+   `forestEdge`/`water`, the distance is the fly cell's tile-step ring in the world's danger or heat field, so
+   "within 1.5" is ring 1, next to the source. For `dangers` it is the distance to the nearest point of the declared
+   `kinds`. For a world with no flies.stimuli (v1) it is the spider/lantern points. A world without the source
+   reports `n/a`, not 0 %. The columns are `avoidDanger`/`avoidHeat` (formerly `avoidSpider`/`avoidLantern`). Heat must not be
    closer-than-baseline; danger's result is reported only, not gated (ADR 007 D19/Annex A5: its sign depends on
    hop count, so gating it would gate on a probe artefact).
-9. **Touch** (`touchTurn`): mean `turnLeft − turnRight` over the ten ticks following a one-sided touch event
-   (`touch-left` or `touch-right` input exceeding `0`), compared against `baseline`. The probe predicts a turn
-   toward the touched side (positive for a left touch).
+9. **Touch** (`touchTurn`): mean turn toward the touched side over the ten ticks following a one-sided touch
+   event (`touch-left` or `touch-right` input exceeding `0`), compared against `baseline`: `turnLeft − turnRight`
+   after a left touch, `turnRight − turnLeft` after a right touch. The probe predicts a turn toward the touched
+   side, so it predicts a positive value. *(BUG-001: the side sign was missing, so the value measured the fly's
+   left-turn bias.)*
 
 Telemetry only, never gated:
 
-10. **Escape** (`escapeMean`): mean `escape` output drive while within the world's danger radius (any `spider` or
-    `lantern` within `flies.stimuli`'s configured radius) versus outside it. Reported for every arm that has an
+10. **Escape** (`escapeMean`): mean `escape` output drive while within the world's danger radius versus outside
+    it. *(BUG-001)* "Within" means the danger or heat sense reads a value there: a non-zero field ring (distance < 3)
+    for a field source, or within the sense's `radius` of a declared point. Reported for every arm that has an
     `escape` output; no pass/fail attached (ADR 007 D17: "Escape is excluded from the behaviour claims of this
     ADR").
 
@@ -61,7 +69,7 @@ expectation; a failing metric is printed as failing, with the run and seeds, and
 ## Table
 
 ```text
-arm                   find [CI]   brake   stay   avoid(spider/lantern)   touch   escape(in/out)   seeds
+arm                   find [CI]   brake   stay   avoid(danger/heat)   touch   escape(in/out)   seeds
 baseline               …
 wide                   …
 v1-11k                 …

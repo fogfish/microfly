@@ -107,8 +107,8 @@ The same map and body/food/escape mechanics as the other forager worlds, with th
 (`brains/forager-brain-wide.brain`, from `extract/configs/forager-brain-wide.json`, ADR 007) under
 `flies.brain.version: "v2"`. It re-extracts the 11K brain's own topology rule (seeds, fill, weights
 unchanged) with twelve bilateral inputs (food odour, danger odour, heat, mouth taste, leg taste, touch) and
-six outputs (turn L/R, forward, backward, feed, escape), sharing 94.6 % of its neurons with the shipped 11K
-brain. Open it with `?world=world/world-forager-wide.json`.
+six outputs (turn L/R, forward, backward, feed, escape), and adds every presynaptic partner of the output pools
+as a seed, at 14,500 neurons (ADR 009). Open it with `?world=world/world-forager-wide.json`.
 
 Two new `flies` sections replace `v1`'s singular `flies.stimulus` and add escape physics:
 

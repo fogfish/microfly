@@ -37,7 +37,8 @@ amendment lands there.
 - `fidelity`: the D13 report (data-model.md `FidelityReport`). `table` keys are `"<inputPoolId>→<outputId>"`.
 - `transmitter`: the dataset transmitter value (from `transmitterColumn`) that decided `sign`, traced back to a
   dataset column (constitution III).
-- `origin`: `"seed:<class or superclass>"` for a neuron admitted by a seed filter, `"fill"` for one chosen by
+- `origin`: `"seed:<class or superclass>"` for a neuron admitted by a seed filter, `"seed:outputPartner"` for one
+  admitted only by the format-5 `partnersOf` seed filter (ADR 009 D24), `"fill"` for one chosen by
   shared-weight fill, absent (not written) for an input/output pool neuron, whose origin is already implied by
   `role`/`channel`.
 

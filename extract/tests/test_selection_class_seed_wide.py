@@ -28,7 +28,9 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 
 from malecns_brain.admission import admit_all_traced  # noqa: E402
 from malecns_brain.errors import ExtractError  # noqa: E402
-from malecns_brain.selection_class_seed import resolve_pools, select_class_seed  # noqa: E402
+from malecns_brain.selection_class_seed import (  # noqa: E402
+    apply_threshold, partner_seeds, resolve_pools, select_class_seed,
+)
 
 FIXTURE = os.path.join(HERE, "fixtures", "forager-wide-synthetic.json")
 
@@ -201,6 +203,66 @@ class FidelityChecksTest(unittest.TestCase):
         with self.assertRaises(ExtractError) as ctx:
             validate_forager_wide(config)
         self.assertEqual(ctx.exception.code, "E-CONFIG")
+
+def with_partners(data):
+    """The fixture plus four labelled SYNTHETIC bodies for ADR 009 D24: 720 sends 5 synapses onto output 601 (a
+    partner), 721 sends 4 (below minSynapses), 722 only receives from 601 (downstream, not a partner), 730 is a
+    gustatory body (never a fill or partner candidate) that sends 6 onto 601. 701 (seed class SEEDCLS) already
+    sends 5 onto output 606, so it is both a class seed and a partner."""
+    data = copy.deepcopy(data)
+    template = next(a for a in data["annotations"] if a["bodyId"] == 710)
+    for body, cls in ((720, "intrinsic"), (721, "intrinsic"), (722, "intrinsic"), (730, "gustatory")):
+        data["annotations"].append({**template, "bodyId": body, "class": cls, "status": "Traced",
+                                    "type": f"SYN_{body}"})
+        data["transmitters"].append({"body": body, "consensus_nt": "acetylcholine"})
+    for pre, post, syn in ((720, 601, 5), (721, 601, 4), (601, 722, 9), (730, 601, 6)):
+        data["edges"]["pre"].append(pre)
+        data["edges"]["post"].append(post)
+        data["edges"]["synapses"].append(syn)
+    data["config"]["seeds"] = data["config"]["seeds"] + [{"partnersOf": "outputs"}]
+    return data
+
+
+class PartnerSeedTest(unittest.TestCase):
+    """ADR 009 D24: {"partnersOf": "outputs"} seeds the presynaptic partners of the output pools."""
+
+    def setUp(self):
+        self.data = with_partners(load())
+        self.config = self.data["config"]
+        self.bodies = admitted(self.data)
+        inputs, outputs = resolve_pools(self.config, self.bodies)
+        self.outputs = {b for members in outputs.values() for b in members}
+        self.pools = self.outputs | {b for members in inputs.values() for b in members}
+        self.edges = apply_threshold(edge_table(self.data), self.config["minSynapses"])
+
+    def test_partner_at_min_synapses_is_seeded(self):
+        self.assertEqual(partner_seeds(self.config, self.bodies, self.edges, self.outputs, self.pools)[720], "seed:outputPartner")
+
+    def test_below_threshold_downstream_and_sensory_bodies_are_not(self):
+        partners = partner_seeds(self.config, self.bodies, self.edges, self.outputs, self.pools)
+        for body in (721, 722, 730):
+            self.assertNotIn(body, partners)
+        # 103/203 (heat) and 501/502 (touch) send onto outputs but are input pool bodies.
+        self.assertFalse(set(partners) & self.pools)
+        self.assertEqual(sorted(partners), [701, 720])
+
+    def test_no_partner_filter_means_no_partner_seeds(self):
+        config = {**self.config, "seeds": [s for s in self.config["seeds"] if "partnersOf" not in s]}
+        self.assertEqual(partner_seeds(config, self.bodies, self.edges, self.outputs, self.pools), {})
+
+    def test_brain_tags_partners_and_keeps_the_class_tag(self):
+        config = {**self.config, "fill": {**self.config["fill"], "neuronCount": 100}}
+        brain = select_class_seed(config, self.bodies, edge_table(self.data))
+        origin = {n["bodyId"]: n["origin"] for n in brain["neurons"]}
+        self.assertEqual(origin[720], "seed:outputPartner")
+        self.assertEqual(origin[701], "seed:SEEDCLS")
+        self.assertNotIn(730, origin)
+
+    def test_partner_seeds_count_as_seeds(self):
+        config = {**self.config, "fill": {**self.config["fill"], "neuronCount": 100}}
+        base = run(self.data, {**config, "seeds": [s for s in config["seeds"] if "partnersOf" not in s]})
+        brain = run(self.data, config)
+        self.assertEqual(brain["seedCount"], base["seedCount"] + 1)  # 720 only; 701 was a seed already
 
 
 class DeterminismTest(unittest.TestCase):

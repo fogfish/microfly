@@ -35,6 +35,7 @@ All keys of format 4 reused verbatim: `datasetRelease`, `edgeVariant`, `expect`,
 | `sideMatch` | `{ [pair]: boolean }` | Keyed by every declared `pair` (six keys), **not** by `class`/pathway as in format 4. A pair not declared `true` keeps both sides as filtered, unmatched. |
 | `outputs` | object | ADR 006's five plus `escape`: `{ "types": ["DNp01"], "drive": "escape" }`. Declaring `DNp01` an output drops its outgoing edges, exactly as any other declared output (ADR 003 D2). |
 | `fidelity` | object | `require` (boolean), `steps` (integer), `checks` (array, below) — **replaces** format 4's `minContrastFraction` with a declared check list. |
+| `seeds[]` `{ "partnersOf": "outputs" }` | object | Optional, at most once (ADR 009 D24). Seeds every admitted body with an edge of at least `minSynapses` onto an output pool body, minus input/output pool bodies and `fill`'s exclusions. Any other value or extra key is `E-CONFIG`; matching no body is `E-SEED-EMPTY`. Format 4 rejects it (`needs exactly one of class or superclass`). |
 | `fidelity.checks[]` | array | Each entry is `{ "kind": "contrast", "pair": <pair>, "minFraction": <number> }` or `{ "kind": "sign", "from": <pair>, "to": <outputId> }`. A `pair`/`from` naming an undeclared pair, or a `to` naming an undeclared output, is `E-CONFIG`. |
 
 ## Selection rule
@@ -42,6 +43,8 @@ All keys of format 4 reused verbatim: `datasetRelease`, `edgeVariant`, `expect`,
 Unchanged from format 4 (ADR 007 D18 — "ADR 006 D8–D12 unchanged; only the pools move"):
 
 ```text
+partners  = { i : syn(i→o) ≥ minSynapses, o ∈ output pools } − pools − fill exclusions   (only with partnersOf, ADR 009)
+seeds     = class seeds ∪ partners
 shared(i) = Σ_{s ∈ seeds ∪ pools} [ syn(i→s) + syn(s→i) ]     over edges with syn ≥ minSynapses
 fill      = top (fill.neuronCount − |seeds ∪ pools|) non-seed, non-excluded candidates by shared(i),
             ties on ascending bodyId
@@ -112,8 +115,9 @@ Every format-4 code still applies unchanged: `E-SEED-EMPTY`, `E-SEED-OVERFLOW`, 
 
 ## Shipped config
 
-- `extract/configs/forager-brain-wide.json`: the ADR 007 D20 config for MaleCNS v1.0, `fill.neuronCount: 11000`
-  (or the format-4 config's value, so the two brains are size-comparable), `minSynapses: 5`, `fidelity.require:
-  true` on the six D19-listed checks. Its output is `public/brains/forager-brain-wide.brain`.
+- `extract/configs/forager-brain-wide.json`: the ADR 007 D20 config for MaleCNS v1.0 with ADR 009's
+  `{ "partnersOf": "outputs" }` seed and `fill.neuronCount: 14500` (`neuronCountRange` [14000, 15000]; it was
+  11000 before ADR 009), `minSynapses: 5`, `fidelity.require: true` on the six D19-listed checks. Its output is
+  `public/brains/forager-brain-wide.brain`.
 - `extract/configs/forager-brain-11k.json` and every earlier config keep producing byte-identical output (spec
   SC-002) — this contract adds a dispatch branch, it does not touch the existing ones.
