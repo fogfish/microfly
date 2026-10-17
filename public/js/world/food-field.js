@@ -58,3 +58,32 @@ export function foodFieldAt(units, flowers, cx, cy) {
   }
   return peak;
 }
+
+// The odour overlay that shows what a fly senses, live (spec 018 follow-up: the overlay was built once from stock 1
+// and never followed depletion). units: the world's sense units [{ cellX, cellY, kernel }] (world/fly-world.js), the
+// same kernels sensing reads, so the overlay cannot disagree with a fly. The kernel of each unit is evaluated once
+// per cell here; fieldFor(flowers) then combines the cached kernels with the flowers' current fractions, which is the
+// same maximum foodFieldAt takes per sample. Returns { cols, rows, values: Float32Array }.
+export function createLiveFoodField(units, cols, rows) {
+  const grids = units.map((u) => {
+    const grid = new Float32Array(cols * rows);
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) grid[cy * cols + cx] = u.kernel(cx, cy);
+    }
+    return { grid, cellX: u.cellX, cellY: u.cellY };
+  });
+  return {
+    fieldFor(flowers) {
+      const values = new Float32Array(cols * rows);
+      for (const { grid, cellX, cellY } of grids) {
+        const fraction = flowers.fraction(cellX, cellY);
+        if (fraction === 0) continue;
+        for (let k = 0; k < values.length; k++) {
+          const v = grid[k] * fraction;
+          if (v > values[k]) values[k] = v;
+        }
+      }
+      return { cols, rows, values };
+    },
+  };
+}

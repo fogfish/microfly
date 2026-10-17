@@ -23,7 +23,7 @@ import { loadDecoderFile, loadSnapshot, startFlies } from './fly/fly-host.js';
 import { initialLayers, toggleLayer } from './world/layers.js';
 import { dangerField } from './world/danger-field.js';
 import { heatField } from './world/heat-field.js';
-import { foodField } from './world/food-field.js';
+import { createLiveFoodField, foodField } from './world/food-field.js';
 import { parseRamp, paintField, paintGrid } from './render/heatmap.js';
 import { renderPanel, updatePanelValues } from './ui/panel/panel.js';
 import { SECTIONS } from './ui/panel/sections/index.js';
@@ -160,9 +160,17 @@ function startWorld({ config, catalog, sprites, snapshot, decoder }) {
   };
 
   const foodUnits = (config.edibles ?? []).map((e, i) => ({ x: e.x, y: e.y, seed: (i + 1) * 97, stockFraction: 1 }));
+  // Food odour follows the flowers that flies sense (spec 018 follow-up): once a forager brain runs, the overlay is the
+  // live field of the world's own sense units and the flowers' current levels. Without flies it stays the static field.
+  let liveFood = null;
+  const FOOD_REPAINT_MS = 250;
+  let foodPaintedAt = -Infinity;
+  const foodOverlayField = () => (liveFood
+    ? liveFood.field.fieldFor(liveFood.flowers)
+    : foodField({ units: foodUnits, cols: logic.cols, rows: logic.rows }));
   const overlayCanvas = {};
   const ensureOverlay = {
-    'odour-food': () => expandCellField(foodField({ units: foodUnits, cols: logic.cols, rows: logic.rows })),
+    'odour-food': () => expandCellField(foodOverlayField()),
     'odour-danger': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: dangerField({ forestEdge: logic.forestEdge, cols: logic.cols, rows: logic.rows }).intensity }),
     'odour-heat': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: heatField({ water: logic.water, cols: logic.cols, rows: logic.rows, quiet: logic.heatQuiet }).intensity }),
   };
@@ -183,11 +191,35 @@ function startWorld({ config, catalog, sprites, snapshot, decoder }) {
     }
   };
 
+  // A depleted or regrowing flower changes what flies sense, so the food overlay follows it. Repaints are throttled:
+  // a regrowing flower changes every tick.
+  // Returns true when it repainted. A timer below calls it too, so a change that lands inside the throttle window (or
+  // after the last fly tick) is still painted, instead of waiting for the next draw request.
+  const refreshFoodOverlay = (now) => {
+    if (!liveFood || !layers['odour-food'] || !overlayCanvas['odour-food']) return false;
+    if (liveFood.flowers.version === liveFood.version || now - foodPaintedAt < FOOD_REPAINT_MS) return false;
+    foodPaintedAt = now;
+    liveFood.version = liveFood.flowers.version;
+    try {
+      liveFood.painted = foodOverlayField();
+      odourFieldCache['odour-food'] = expandCellField(liveFood.painted);
+      overlayCanvas['odour-food'] = paintOdour('odour-food', odourFieldCache['odour-food']);
+      return true;
+    } catch (e) {
+      console.error(`odour-food layer: ${e.message}`);
+      return false;
+    }
+  };
+  setInterval(() => {
+    if (refreshFoodOverlay(performance.now())) requestDraw();
+  }, FOOD_REPAINT_MS);
+
   let frame = 0;
   const requestDraw = () => {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
+      refreshFoodOverlay(performance.now());
       const overlays = ['odour-food', 'odour-danger', 'odour-heat', 'grid']
         .filter((id) => layers[id] && overlayCanvas[id])
         .map((id) => overlayCanvas[id]);
@@ -242,7 +274,37 @@ function startWorld({ config, catalog, sprites, snapshot, decoder }) {
     try {
       const flyWorld = buildWorld(config, logic);
       flies = spawnFlies(config, flyWorld);
-      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate, snapshot, decoder });
+      records = startFlies({
+        config,
+        world: flyWorld,
+        flies,
+        onUpdate: onFlyUpdate,
+        snapshot,
+        decoder,
+        onFlowers: (flowers) => {
+          liveFood = flowers
+            ? { field: createLiveFoodField(flyWorld.foodUnits, logic.cols, logic.rows), flowers, version: -1, painted: null }
+            : null;
+          // Diagnostic (console): microfly.foodLevels() compares each flower's state with the odour overlay's last paint.
+          window.microfly = {
+            foodLevels: () => {
+              if (!liveFood) return 'no forager flies';
+              const live = liveFood.field.fieldFor(liveFood.flowers).values;
+              return [...flyWorld.stimulusCells].map(([idx, { kind }]) => ({
+                x: idx % logic.cols,
+                y: Math.floor(idx / logic.cols),
+                kind,
+                stock: liveFood.flowers.stockAt(idx % logic.cols, Math.floor(idx / logic.cols)),
+                fraction: liveFood.flowers.fraction(idx % logic.cols, Math.floor(idx / logic.cols)),
+                liveOdour: live[idx],
+                paintedOdour: liveFood.painted?.values[idx] ?? null,
+                flowersVersion: liveFood.flowers.version,
+                paintedVersion: liveFood.version,
+              }));
+            },
+          };
+        },
+      });
     } catch (e) {
       console.error(`flies: ${e.message}`);
       panel.textContent = `Flies could not start: ${e.message}`;

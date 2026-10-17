@@ -138,3 +138,31 @@ test('a snapshot site with no matching flies.body.sites entry fails loudly at en
     message: 'flies.body.sites is missing site "nowhere", declared by channel "odour-food-left"',
   });
 });
+
+// Spec 018 US1 (contracts/world-config-food-feeding.md, "Sensor-filter placement"): the hunger filter scales only the
+// declared odour:food channels; every other sense keeps its value, and the twelve-input shape is unchanged.
+const HUNGER = { threshold: 0.4, gain: 1.8 };
+const FED = { ...F, food: { ...F.food, hungerSensitivity: HUNGER } };
+function senseWith(config, energy) {
+  const w = world();
+  const e = forageEnvWide(config, w, createFood(w, config), capabilities());
+  const fly = { body: { x: 9.5, y: 10.5, heading: 0 }, tick: 0, energy };
+  return senseForagerFlyWide(fly, e).inputs;
+}
+
+test('a hungry fly scales only the odour:food inputs by gain; every other sense is unchanged', () => {
+  const plain = senseWith(F, 0.3);
+  const hungry = senseWith(FED, 0.3);
+  const k = (id) => INPUT_IDS.indexOf(id);
+  assert.ok(plain[k('odour-food-left')] > 0, 'the fixture must sense food odour');
+  assert.ok(Math.abs(hungry[k('odour-food-left')] - plain[k('odour-food-left')] * HUNGER.gain) < 1e-6);
+  assert.ok(Math.abs(hungry[k('odour-food-right')] - plain[k('odour-food-right')] * HUNGER.gain) < 1e-6);
+  INPUT_IDS.forEach((id, i) => {
+    if (SENSE_OF[id] !== 'odour:food') assert.equal(hungry[i], plain[i], `${id} must be unchanged`);
+  });
+  assert.equal(hungry.length, 12);
+});
+
+test('a fed fly senses odour:food unscaled, whatever the filter is configured to', () => {
+  assert.deepEqual(Array.from(senseWith(FED, 0.9)), Array.from(senseWith(F, 0.9)));
+});

@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBody } from '../public/js/fly/body.js';
 import { initBodyLayerFly, stepBodyLayer } from '../public/js/fly/body-layer.js';
+import { createFood } from '../public/js/fly/food.js';
 
 const LOCOMOTION = {
   baseSpeed: 0.6, speedGain: 2, maxSpeed: 3, surgeGain: 0.3, wander: 0,
@@ -149,4 +150,61 @@ test('W14: backing up reverses for backup.ticks ticks', () => {
   assert.equal(fly.bodyLayer.backupTicksLeft, BACKUP.ticks - 1);
   // Moved backward (negative x direction from heading 0 reversed to PI).
   assert.ok(fly.body.x < before.x, `expected to move backward (x decreasing), got ${fly.body.x} from ${before.x}`);
+});
+
+// Spec 018 US2/US3 (contracts/world-config-food-feeding.md, "Motor-control placement"): a real food table with one
+// small flower under the fly at (10, 10). `food` is merged into flies.food (capacity, recovery, feedMotion, …).
+const FLOWER = 10 * 1000 + 10;
+function feedingEnv(food = {}) {
+  const w = { width: 1000, height: 1000, stimulusCells: new Map([[FLOWER, { kind: 'small', reach: 0 }]]) };
+  const foodConfig = { eatSpeed: 0.5, feedThreshold: 0.5, sated: 0.9, consumeRate: 0.2, regrowth: 0.02, stock: 1, ...food };
+  return fakeEnv({
+    isStimulusCell: (cx, cy) => cy * 1000 + cx === FLOWER,
+    flowers: createFood(w, { food: foodConfig }),
+    foodConfig,
+  });
+}
+const FEED_ON = decoded({ named: { feed: { r: 1, rest: 0, drive: 1 } } });
+const CFG = { locomotion: LOCOMOTION, escape: { ...ESCAPE, enabled: false }, backup: BACKUP };
+
+test('spec 018 US3: feedMotion "pause" (the default) holds the feeding fly at speed 0 for the whole bout', () => {
+  for (const food of [{}, { feedMotion: 'pause' }]) {
+    const fly = freshFly();
+    const env = feedingEnv(food);
+    for (let t = 0; t < 10; t++) {
+      stepBodyLayer(fly, FEED_ON, CFG, env);
+      assert.equal(fly.body.speed, 0, `eating tick ${t} with ${JSON.stringify(food)}`);
+    }
+  }
+});
+
+test('spec 018 US3: feedMotion "slow" holds the feeding fly at feedSlowSpeed for the whole bout', () => {
+  const fly = freshFly();
+  const env = feedingEnv({ feedMotion: 'slow', feedSlowSpeed: 0.1 });
+  for (let t = 0; t < 10; t++) {
+    stepBodyLayer(fly, FEED_ON, CFG, env);
+    assert.ok(Math.abs(fly.body.speed - 0.1) < 1e-9, `eating tick ${t}: speed ${fly.body.speed}`);
+  }
+});
+
+test('spec 018 US3: normal locomotion resumes the tick the bout closes, for both feed motions', () => {
+  for (const food of [{ feedMotion: 'pause' }, { feedMotion: 'slow', feedSlowSpeed: 0.1 }]) {
+    const fly = freshFly();
+    const env = feedingEnv(food);
+    stepBodyLayer(fly, FEED_ON, CFG, env);
+    stepBodyLayer(fly, decoded(), CFG, env);
+    assert.ok(Math.abs(fly.body.speed - LOCOMOTION.baseSpeed) < 1e-9, `${JSON.stringify(food)}: speed ${fly.body.speed}`);
+  }
+});
+
+// Spec 018 US2: with capacity, eating drains a flower continuously, as the legacy model does; a partly eaten flower is
+// not refilled by the body layer, and an empty one is charged nothing more.
+test('spec 018 US2: with capacity, the body layer drains the flower while the fly feeds, no lump at bout close', () => {
+  const fly = freshFly();
+  const env = feedingEnv({ capacity: { small: 1, medium: 2, large: 3 }, recovery: 30 });
+  for (let t = 0; t < 60; t++) stepBodyLayer(fly, FEED_ON, CFG, env);
+  assert.ok(Math.abs(env.flowers.stockAt(10, 10) - (1 - 60 * 0.2 * 0.05)) < 1e-9, 'drained by consumeRate × dt per tick');
+  stepBodyLayer(fly, decoded(), CFG, env);
+  assert.equal(fly.bouts.at(-1).endedBy, 'sated', 'energy reached satiation, so the bout closes sated');
+  assert.ok(Math.abs(env.flowers.stockAt(10, 10) - 0.4) < 1e-9, 'no extra charge at close');
 });

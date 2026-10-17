@@ -912,6 +912,43 @@ function validateFlyFood(food, err) {
   check('sated', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
   // Eating area (spec 017 BUG-002): Chebyshev radius, in cells, around a flower's cell.
   check('reach', (v) => Number.isInteger(v) && v >= 0 && v <= 3, 'must be a whole number from 0 to 3');
+  // Spec 018 (contracts/world-config-food-feeding.md): hunger-sensitive feeding and food depletion, all optional.
+  validateHungerSensitivity(food.hungerSensitivity, err);
+  check('feedMotion', (v) => v === 'pause' || v === 'slow', 'must be "pause" or "slow"');
+  if (food.feedMotion === 'slow' && food.feedSlowSpeed === undefined) {
+    err('flies.food.feedSlowSpeed', 'is required when flies.food.feedMotion is "slow"');
+  }
+  check('feedSlowSpeed', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
+  validateFoodCapacity(food.capacity, food.recovery, err);
+}
+
+// Spec 018 US1: the hunger at or above which food odour is sensed more strongly, and by how much (>= 1).
+function validateHungerSensitivity(hs, err) {
+  if (hs === undefined) return;
+  if (!isObject(hs)) {
+    err('flies.food.hungerSensitivity', 'must be an object with threshold and gain');
+    return;
+  }
+  if (!(isNum(hs.threshold) && hs.threshold >= 0 && hs.threshold < 1)) {
+    err('flies.food.hungerSensitivity.threshold', 'must be a number from 0 to less than 1');
+  }
+  if (!(isNum(hs.gain) && hs.gain >= 1)) err('flies.food.hungerSensitivity.gain', 'must be a number of 1 or more');
+}
+
+// Spec 018 US2: completed feedings per resource kind (exactly small, medium and large), and the recovery delay,
+// which only has a meaning for the capacity model.
+const FOOD_KINDS = ['small', 'medium', 'large'];
+function validateFoodCapacity(capacity, recovery, err) {
+  if (capacity !== undefined) {
+    const ok = isObject(capacity)
+      && Object.keys(capacity).every((k) => FOOD_KINDS.includes(k))
+      && FOOD_KINDS.every((k) => Number.isInteger(capacity[k]) && capacity[k] >= 1);
+    if (!ok) err('flies.food.capacity', 'must have "small", "medium" and "large", each a positive integer');
+  }
+  if (recovery !== undefined) {
+    if (!(isNum(recovery) && recovery >= 0)) err('flies.food.recovery', 'must be a number of 0 or more');
+    else if (capacity === undefined) err('flies.food.recovery', 'is only valid when flies.food.capacity is set');
+  }
 }
 
 function validateFlyStimulus(stimulus, edible, err) {

@@ -7,6 +7,9 @@ import { BRAIN_DEFAULTS } from '../brain/fly-brain.js';
 export const ENERGY_DEFAULTS = Object.freeze({ initial: 0.3, metabolism: 0.005, intake: 0.2 });
 export const FOOD_DEFAULTS = Object.freeze({
   eatSpeed: 0.5, feedThreshold: 0.5, stock: 1.0, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, reach: 0,
+  // Hunger-sensitive feeding (spec 018, contracts/world-config-food-feeding.md): pause while feeding by default,
+  // and 30 s recovery for a depleted resource (read only when flies.food.capacity is set).
+  feedMotion: 'pause', recovery: 30,
 });
 export const ANTENNA_OFFSET_DEFAULT = 0.5;
 // flies.body.escape defaults (contracts/world-config-wide-io.md, ADR 007 W10): off by default.

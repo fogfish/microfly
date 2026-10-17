@@ -152,7 +152,9 @@ export function stepBodyLayer(fly, decoded, cfg, env) {
   if (sprinting) {
     target = { heading: state.sprintHeading, speed: cfg.motor.sprintSpeed, turnRate: cfg.motor.escapeTurnRate };
   } else if (eating) {
-    target = { heading: body.heading, speed: 0 };
+    // Spec 018 US3 (contracts/world-config-food-feeding.md): a feeding fly pauses (speed 0, the default) or holds
+    // flies.food.feedSlowSpeed for the whole bout. The brain decided to feed; only the body's speed changes here.
+    target = { heading: body.heading, speed: foodConfig.feedMotion === 'slow' ? foodConfig.feedSlowSpeed : 0 };
   } else if (backingUp) {
     target = { heading: body.heading, speed: -cfg.locomotion.baseSpeed };
   } else {

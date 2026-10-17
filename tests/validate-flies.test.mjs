@@ -226,3 +226,79 @@ test('a negative flies.brain.lif.inhibitoryScale is rejected with the engine mes
   assert.deepEqual(paths(errors), ['flies.brain.lif']);
   assert.equal(errors[0].message, 'LIF parameter "inhibitoryScale" must be 0 or more');
 });
+
+// Spec 018 (contracts/world-config-food-feeding.md): the optional flies.food keys for hunger-sensitive feeding and
+// food depletion. Absent keys are valid on every existing world; malformed keys give a named error at their path.
+const withFood = (food) => {
+  const c = loadForager();
+  c.flies.food = { ...c.flies.food, ...food };
+  return validateConfig(c);
+};
+
+test('a valid flies.food.hungerSensitivity loads with no error; it is absent on every existing world', () => {
+  assert.deepEqual(withFood({ hungerSensitivity: { threshold: 0.4, gain: 1.8 } }), []);
+  assert.deepEqual(validateConfig(loadForager()), []);
+});
+
+test('hungerSensitivity.threshold must be a number from 0 to less than 1 (spec 018 US1)', () => {
+  for (const threshold of [undefined, -0.1, 1, 'high']) {
+    const errors = withFood({ hungerSensitivity: { threshold, gain: 1.5 } });
+    assert.deepEqual(paths(errors), ['flies.food.hungerSensitivity.threshold'], `threshold ${threshold}`);
+    assert.equal(errors[0].message, 'must be a number from 0 to less than 1');
+  }
+});
+
+test('hungerSensitivity.gain must be a number of 1 or more (spec 018 US1)', () => {
+  for (const gain of [undefined, 0.5]) {
+    const errors = withFood({ hungerSensitivity: { threshold: 0.4, gain } });
+    assert.deepEqual(paths(errors), ['flies.food.hungerSensitivity.gain'], `gain ${gain}`);
+    assert.equal(errors[0].message, 'must be a number of 1 or more');
+  }
+});
+
+test('a valid flies.food.capacity with recovery loads with no error (spec 018 US2)', () => {
+  assert.deepEqual(withFood({ capacity: { small: 1, medium: 2, large: 3 }, recovery: 30 }), []);
+});
+
+test('flies.food.capacity must have small, medium and large, each a positive integer (spec 018 US2)', () => {
+  const bad = [
+    { small: 1 },
+    { small: 1, medium: 2, large: 0 },
+    { small: 1, medium: 2.5, large: 3 },
+    { small: 1, medium: 2, large: 3, huge: 4 },
+  ];
+  for (const capacity of bad) {
+    const errors = withFood({ capacity });
+    assert.deepEqual(paths(errors), ['flies.food.capacity'], JSON.stringify(capacity));
+    assert.equal(errors[0].message, 'must have "small", "medium" and "large", each a positive integer');
+  }
+});
+
+test('flies.food.recovery without capacity, or negative, is rejected (spec 018 US2)', () => {
+  const orphan = withFood({ recovery: 30 });
+  assert.deepEqual(paths(orphan), ['flies.food.recovery']);
+  assert.equal(orphan[0].message, 'is only valid when flies.food.capacity is set');
+
+  const negative = withFood({ capacity: { small: 1, medium: 2, large: 3 }, recovery: -1 });
+  assert.deepEqual(paths(negative), ['flies.food.recovery']);
+  assert.equal(negative[0].message, 'must be a number of 0 or more');
+});
+
+test('flies.food.feedMotion "pause" and "slow" (with feedSlowSpeed) load; any other value is rejected (spec 018 US3)', () => {
+  assert.deepEqual(withFood({ feedMotion: 'pause' }), []);
+  assert.deepEqual(withFood({ feedMotion: 'slow', feedSlowSpeed: 0.1 }), []);
+
+  const errors = withFood({ feedMotion: 'stop' });
+  assert.deepEqual(paths(errors), ['flies.food.feedMotion']);
+  assert.equal(errors[0].message, 'must be "pause" or "slow"');
+});
+
+test('feedMotion "slow" requires feedSlowSpeed, which must be 0 or more (spec 018 US3)', () => {
+  const missing = withFood({ feedMotion: 'slow' });
+  assert.deepEqual(paths(missing), ['flies.food.feedSlowSpeed']);
+  assert.equal(missing[0].message, 'is required when flies.food.feedMotion is "slow"');
+
+  const negative = withFood({ feedMotion: 'slow', feedSlowSpeed: -0.1 });
+  assert.deepEqual(paths(negative), ['flies.food.feedSlowSpeed']);
+  assert.equal(negative[0].message, 'must be a number of 0 or more');
+});

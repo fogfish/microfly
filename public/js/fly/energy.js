@@ -21,6 +21,12 @@ export function hunger(energy) {
   return 1 - energy;
 }
 
+// Spec 018 US1 (contracts/world-config-food-feeding.md, "Sensor-filter placement"): the gain on food-odour inputs for a
+// fly at this hunger. hungerSensitivity.gain at or above its threshold, else 1 (absent sensitivity: no change).
+export function odourGain(hunger, sensitivity) {
+  return sensitivity && hunger >= sensitivity.threshold ? sensitivity.gain : 1;
+}
+
 // A bout opens on the first eating tick. ticks counts eating ticks.
 export function startBout(cell) {
   return { cell, ticks: 0 };

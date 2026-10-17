@@ -5,7 +5,7 @@
 import * as P3 from '../brain/protocol-v3.js';
 import { applyEscape, stepForagerBody } from './body.js';
 import { senseBilateralField } from './stimulus.js';
-import { canEat, closeBout, eat, hunger as hungerOf, metabolise, startBout, updateBout } from './energy.js';
+import { canEat, closeBout, eat, hunger as hungerOf, metabolise, odourGain, startBout, updateBout } from './energy.js';
 
 // env: forageEnv(...). f: the resolved flies section (tickHz, body, stimulus, food, energy).
 // capabilities: the snapshot's declaration; its outputs name the drives.
@@ -51,8 +51,10 @@ export function senseForagerFly(fly, env) {
   const cx = Math.floor(fly.body.x);
   const cy = Math.floor(fly.body.y);
   const taste = env.isStimulusCell(cx, cy) ? env.flowers.fraction(cx, cy) : 0;
-  const inputs = Float32Array.of(left, right, taste, taste);
   const hunger = hungerOf(fly.energy);
+  // Spec 018 US1: a hungry fly senses food odour more strongly. Scales the odour only; taste is a contact reading.
+  const gain = odourGain(hunger, env.foodConfig.hungerSensitivity);
+  const inputs = Float32Array.of(left * gain, right * gain, taste, taste);
   return { inputs, hunger, message: P3.sense({ tick: fly.tick, inputs, state: { hunger } }) };
 }
 

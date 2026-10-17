@@ -7,7 +7,7 @@
 import * as P3 from '../brain/protocol-v3.js';
 import { bilateralContrast, senseDeclared, sitePoint } from './stimulus.js';
 import { flowerAt, hazardPoints } from './fly-world.js';
-import { hunger as hungerOf } from './energy.js';
+import { hunger as hungerOf, odourGain } from './energy.js';
 import { foodFieldAt } from '../world/food-field.js';
 import { decodeTick } from './decoder.js';
 import { stepBodyLayer } from './body-layer.js';
@@ -125,6 +125,14 @@ export function senseForagerFlyWide(fly, env) {
     const at = sitePoint(fly.body, site, ch.side);
     values[k] = senseDeclared(spec, at, env.samplers[ch.sense]);
   });
+  // Spec 018 US1 (contracts/world-config-food-feeding.md): a hungry fly senses food odour more strongly. Only the
+  // odour:food channels are scaled, before the L/R contrast below; every other sense is untouched.
+  const gain = odourGain(hungerOf(fly.energy), env.foodConfig.hungerSensitivity);
+  if (gain !== 1) {
+    inputs.forEach((ch, k) => {
+      if (ch.sense === 'odour:food') values[k] *= gain;
+    });
+  }
   // flies.stimuli[sense].contrast: applied to each L/R pair of one sense at one site, after both are sampled.
   inputs.forEach((ch, k) => {
     const contrast = env.stimuli[ch.sense].contrast;

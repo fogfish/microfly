@@ -101,7 +101,7 @@ function declarationOf(state, f, snapshot) {
 // Returns one FlyRecord per fly.
 // FlyRecord: { state, worker, status, error, pending, history, motorSource, brainLabel, capabilities,
 //              checks, neuronCount, activity, positions, drawn }
-export function startFlies({ config, world, flies, onUpdate, snapshot = null, decoder = null }) {
+export function startFlies({ config, world, flies, onUpdate, snapshot = null, decoder = null, onFlowers = null }) {
   const f = resolveFlies(config);
   // The forager brain (version v1, v2 or v3) runs on protocol 3. Its toy flies are the only ones that use the
   // brain. v2 (ADR 007) and v3 (ADR 010) are both the wide-I/O interface generation, same v1 runner and sense
@@ -116,7 +116,10 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
       ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
       : null;
   const points = stimulusPoints(world);
-  const flowers = forager ? createFood(world, f) : null;
+  // Every forager (toy) fly calls regrow() each tick, so the table is told how many share it (food.js createFood).
+  const flowers = forager ? createFood(world, f, { sharers: flies.filter((s) => s.mode === 'toy').length }) : null;
+  // The live flower table, for the odour overlay (main.js), null for a world with no forager brain.
+  onFlowers?.(flowers);
   const forageEnvironment = forager
     ? (isWide ? forageEnvWide(f, world, flowers, snapshot.capabilities) : forageEnv(f, world, flowers, snapshot.capabilities))
     : null;
