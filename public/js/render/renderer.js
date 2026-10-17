@@ -54,8 +54,9 @@ export function createRenderer(canvas, sprites) {
     // heading + π/2. The world physics and the sensing sites already use the heading; only the drawing ignored it.
     for (const f of flies) {
       const s = sprites.get(f.sprite);
-      const w = Math.round(s.sw * scale);
-      const h = Math.round(s.sh * scale);
+      // dw/dh: the drawn size of an image sprite (render/sprites.js), else the sprite's own pixel size
+      const w = Math.round((s.dw ?? s.sw) * scale);
+      const h = Math.round((s.dh ?? s.sh) * scale);
       ctx.save();
       ctx.translate(toDeviceX(f.body.x), toDeviceY(f.body.y));
       ctx.rotate((f.body.heading ?? 0) + Math.PI / 2);

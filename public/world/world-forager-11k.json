@@ -92,8 +92,8 @@
     "border": {
       "left": 104,
       "right": 90,
-      "top": 118,
-      "bottom": 94,
+      "top": 80,
+      "bottom": 56,
       "rag": 22,
       "step": 44,
       "fill": 0.85,

@@ -21,6 +21,7 @@ It is format version 3 (`"version": 3`). The app refuses any other version and n
 - Food presentation: `edibleStyle` (optional) draws a ground marker under each food unit (`trees/light_meadow_patch_a` on
   grass, `beach/sand_splat` on the dunes) and draws the small flower at 1.5×. Visual only; contract [world-format-v3.md §8](../../specs/009-food-odour-recalibration/contracts/world-format-v3.md).
 - Heat over the swamp: `flies.heatQuiet` (demo world only: `["swamp"]`) takes the heat ring off the swamp cells, so the fly can cross it. Contract: [world-format-sketch-map.md §3](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).
+- Demo fly art: the demo world draws its flies from `public/assets/fly/fly.png` (256 × 256, rotated to face up), drawn at 64 × 64 px through `{ "image", "size" }` sprites. Contract: [fly-sprite.md §6](../../specs/009-food-odour-recalibration/contracts/fly-sprite.md).
 - Dead edge forest: `map.border.dead` (`{ area, trees, blend }`) makes every border tree inside the named ground
   `dead` (`beach/dead_gnarled_tree`) with chance `density` (0.33), and fades that chance to live over `blend` ref px (200), so the live forest and the
   dead one meet in a gradual mix. Contract: [world-format-sketch-map.md §7](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).

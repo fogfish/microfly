@@ -464,6 +464,12 @@ function validateZoom(zoom, err) {
 // Pixel-form sprites. They hold the fly art, which the atlas does not have.
 function validatePixelSprite(id, sprite, err) {
   const path = `sprites.${id}`;
+  // An image sprite names a PNG under the assets root (public/assets/) and carries no pixel grid (render/sprites.js).
+  if (isObject(sprite) && 'image' in sprite) {
+    if (!isText(sprite.image) || !sprite.image.endsWith('.png')) err(`${path}.image`, 'must be the path of a .png file');
+    if (sprite.size !== undefined && !isInt(sprite.size, 1, 512)) err(`${path}.size`, 'must be an integer from 1 to 512 (px)');
+    return;
+  }
   if (!isObject(sprite) || !('pixels' in sprite)) {
     err(path, 'must be an object with "pixels" and "palette"');
     return;

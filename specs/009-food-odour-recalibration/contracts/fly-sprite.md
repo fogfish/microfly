@@ -52,3 +52,13 @@ Drawn from above, head at the top, as the current fly is drawn:
   the same non-transparent pixels and different palettes; `fly-female` and `fly-male` are allowed (expected) to have
   different non-transparent pixel shapes (BUG-002).
 - Visual check: `quickstart.md` step 4, redone for all four sprites and the sex assignment (BUG-002).
+
+## 6. Image form (optional)
+
+- A `sprites` entry may be `{ "image": "fly/fly.png", "size": 64 }` instead of a pixel grid. `image` is a `.png` path
+  relative to the assets root `public/assets/`; `size` (1 to 512 px, optional) is the square the fly is drawn at on the
+  map. Without `size` it is drawn at the image's own pixel size.
+- The source keeps its own pixels: the demo world uses `public/assets/fly/fly.png`, 256 × 256, the art of `fly.png`
+  rotated 31° clockwise so that it faces up, drawn at 64 × 64 px. The renderer's heading turn (spec 017 BUG-001) applies unchanged.
+- The pixel-grid rules of §§1–5 apply to pixel sprites only; `tests/fly-image.test.mjs` checks the image form.
+

@@ -70,5 +70,28 @@ export async function loadSprites(catalog, assetsRoot, pixelSprites = {}) {
     if (sprite.pixels !== undefined) sprites.set(id, renderPixels(sprite));
   }
 
+  // An image sprite (`{ image: "fly/….png" }`, relative to the assets root public/assets/): drawn at its own pixel size, with its
+  // centre as the anchor. It is loaded here, so the renderer treats it like any other sprite.
+  const imageEntries = Object.entries(pixelSprites).filter(([, sprite]) => typeof sprite?.image === 'string');
+  const loaded = await Promise.all(imageEntries.map(async ([id, sprite]) => {
+    try {
+      const img = await loadImage(new URL(sprite.image, assetsRoot).href);
+      return [id, img, sprite.size];
+    } catch (e) {
+      errors.push({ path: `sprites.${id}.image`, message: e.message });
+      return null;
+    }
+  }));
+  for (const entry of loaded) {
+    if (entry === null) continue;
+    const [id, img, size] = entry;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    // size (optional, px): the square it is drawn at on the map; the source keeps its own pixels.
+    const dw = size ?? w;
+    const dh = size ?? h;
+    sprites.set(id, { source: img, sx: 0, sy: 0, sw: w, sh: h, w: dw, h: dh, dw, dh, anchor: { x: dw / 2, y: dh / 2 } });
+  }
+
   return { sprites, errors };
 }
