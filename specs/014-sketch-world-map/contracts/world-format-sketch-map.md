@@ -68,6 +68,8 @@ export function heatField({ water, cols, rows })
 - Determinism: same mask → same output, called twice.
 - `distance`/`intensity` arrays are `cols × rows` long, row-major, matching `water`/`forestEdge`.
 
+- `flies.heatQuiet` (optional, the world's `flies` section): a list of ground area names from `map.grounds`. Cells whose centre lies inside one of their outlines (the area's own shape, E < 1, water included) take heat 0 whatever the water (`heatField({ quiet })`); the distance and every other cell are unchanged. Absent, no cell is quiet. Used by the demo world to let a fly cross the swamp; the calibrated worlds do not set it.
+
 ## 4. Food field (new module, pure, no DOM)
 
 ```js

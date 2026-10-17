@@ -18,6 +18,9 @@ It is format version 3 (`"version": 3`). The app refuses any other version and n
   cell whose centre is drawn water. Heat is the 100%/50%/25% ring from water (`"from": "water"`,
   `world/heat-field.js`). The reference water leaves no zero-heat crossing: the walkable crossing runs between
   the swamp pools at heat ≤ 50% (`tests/water-corridor.test.mjs`, BUG-002 finding).
+- Food presentation: `edibleStyle` (optional) draws a ground marker under each food unit (`trees/light_meadow_patch_a` on
+  grass, `beach/sand_splat` on the dunes) and draws the small flower at 1.5×. Visual only; contract [world-format-v3.md §8](../../specs/009-food-odour-recalibration/contracts/world-format-v3.md).
+- Heat over the swamp: `flies.heatQuiet` (demo world only: `["swamp"]`) takes the heat ring off the swamp cells, so the fly can cross it. Contract: [world-format-sketch-map.md §3](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).
 - Dead edge forest: `map.border.dead` (`{ area, trees, blend }`) makes every border tree inside the named ground
   `dead` (`beach/dead_gnarled_tree`) with chance `density` (0.33), and fades that chance to live over `blend` ref px (200), so the live forest and the
   dead one meet in a gradual mix. Contract: [world-format-sketch-map.md §7](../../specs/014-sketch-world-map/contracts/world-format-sketch-map.md).

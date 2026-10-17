@@ -164,7 +164,7 @@ function startWorld({ config, catalog, sprites, snapshot, decoder }) {
   const ensureOverlay = {
     'odour-food': () => expandCellField(foodField({ units: foodUnits, cols: logic.cols, rows: logic.rows })),
     'odour-danger': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: dangerField({ forestEdge: logic.forestEdge, cols: logic.cols, rows: logic.rows }).intensity }),
-    'odour-heat': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: heatField({ water: logic.water, cols: logic.cols, rows: logic.rows }).intensity }),
+    'odour-heat': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: heatField({ water: logic.water, cols: logic.cols, rows: logic.rows, quiet: logic.heatQuiet }).intensity }),
   };
   const RAMP_PREFIX = { 'odour-food': '--odour-food', 'odour-danger': '--odour-danger', 'odour-heat': '--odour-heat' };
   const paintOdour = (id, field) => paintField(field, parseRamp(getComputedStyle(document.documentElement), RAMP_PREFIX[id]));

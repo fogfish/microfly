@@ -10,6 +10,7 @@ import {
   cellIndex, EDIBLE_KINDS, DANGER_KINDS, CELL_PX, FOOD_SPRITE_IDS, REMOVED_SPRITE_IDS, rasterizeOutline, buildLogic,
 } from './layout.js';
 import { buildWaterField, waterField, cellWater, bodyKind, BODY_RANGES } from './water.js';
+import { DEFAULT_MARKER } from './edible-style.js';
 const FORMAT = 'arcade-world';
 const VERSION = 3;
 // edgeForest (contracts/world-format-sketch-map.md §1): the border ring whose cells are the only source of
@@ -92,6 +93,7 @@ export function validateConfig(config) {
   validateList(config.dangers, 'dangers', err).forEach((d, i) => {
     validateSpot(d, `dangers[${i}]`, DANGER_KINDS, 'danger', inGrid, water, cols, err);
   });
+  validateEdibleStyle(config, err);
 
   if (config.flies !== undefined) validateFlies(config.flies, config, err);
 
@@ -336,6 +338,24 @@ function mapRefs(map) {
 }
 
 // Art references against the catalogue. catalog is from indexCatalog.
+// edibleStyle (edible-style.js): optional. Marker keys are "default" or a ground area name, each with a sprite and a
+// positive width in px; scale keys are edible kinds with a factor from 0.25 to 4. Sprites resolve in validateArt.
+function validateEdibleStyle(config, err) {
+  const st = config.edibleStyle;
+  if (st === undefined) return;
+  if (!isObject(st)) return err('edibleStyle', 'must be an object with marker and scale');
+  const areas = new Set([DEFAULT_MARKER, ...(config.map?.grounds ?? []).map((g) => g?.name), ...(config.ground ?? []).map((g) => g?.name)]);
+  for (const [area, m] of Object.entries(st.marker ?? {})) {
+    if (!areas.has(area)) err(`edibleStyle.marker.${area}`, `must be "${DEFAULT_MARKER}" or a ground area name`);
+    if (!isObject(m) || !isText(m.sprite)) err(`edibleStyle.marker.${area}.sprite`, 'must be a sprite name ("sheet/name")');
+    if (!(isNum(m?.width) && m.width > 0)) err(`edibleStyle.marker.${area}.width`, 'must be a positive width in px');
+  }
+  for (const [kind, f] of Object.entries(st.scale ?? {})) {
+    if (!EDIBLE_KINDS.includes(kind)) err(`edibleStyle.scale.${kind}`, `must be one of ${EDIBLE_KINDS.join(', ')}`);
+    if (!(isNum(f) && f >= 0.25 && f <= 4)) err(`edibleStyle.scale.${kind}`, 'must be a factor from 0.25 to 4');
+  }
+}
+
 export function validateArt(config, catalog) {
   const errors = [];
   const check = (ref, path) => {
@@ -357,6 +377,7 @@ export function validateArt(config, catalog) {
     if (REMOVED_SPRITE_IDS.includes(sprite.id)) errors.push({ path, message: `"${ref}" is a removed sprite (FR-009)` });
   };
 
+  for (const [area, m] of Object.entries(config.edibleStyle?.marker ?? {})) check(m?.sprite, `edibleStyle.marker.${area}`);
   (config.edibles ?? []).forEach((e, i) => {
     if (!isText(e?.sprite)) return;
     const { sprite, error } = catalog.lookup(e.sprite);
@@ -584,6 +605,13 @@ function validateFlies(flies, config, err) {
   if (flies.count !== undefined && !isInt(flies.count, 0, 64)) err('flies.count', 'must be an integer from 0 to 64');
   if (!FLY_MODES.includes(flies.mode ?? 'toy')) err('flies.mode', 'must be "toy" or "baseline"');
   if (flies.tickHz !== undefined && !isInt(flies.tickHz, 1, 60)) err('flies.tickHz', 'must be an integer from 1 to 60');
+  // flies.heatQuiet (heat-field.js): ground areas the heat ring does not reach. Needs a sketch map, which names them.
+  if (flies.heatQuiet !== undefined) {
+    const grounds = new Set((config.map?.grounds ?? []).map((g) => g?.name));
+    if (!Array.isArray(flies.heatQuiet) || !flies.heatQuiet.every((n) => grounds.has(n))) {
+      err('flies.heatQuiet', 'must be a list of ground area names from map.grounds');
+    }
+  }
 
   if (flies.sprite === undefined) err('flies.sprite', 'is required');
   else if (!hasSprite(flies.sprite)) err('flies.sprite', `unknown sprite "${flies.sprite}"`);

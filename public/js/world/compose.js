@@ -7,6 +7,7 @@
 // Uses the DOM (an offscreen canvas), so it is not part of the Node tests.
 
 import { CELL_PX, depthOrder } from './layout.js';
+import { drawFoodMarker, drawScaledSprite } from './edible-style.js';
 import { waterField, GRASS_STYLE, fbm, vnoise, bayer, lerp, clamp } from './water.js';
 
 const WATER_FRAME = 'water-water-001';
@@ -54,6 +55,11 @@ export function composeScene({ config, sprites, logic, ground, shores }) {
     drawWater(ctx, field, sprites, config.seed);
   }
 
+  // 3b. Food markers (edibleStyle): a ground patch centred on each food unit, under the scenery and the food
+  for (const o of logic.objects) {
+    if (o.marker) drawFoodMarker(ctx, sprites, o.marker, o.x * CELL_PX, o.y * CELL_PX);
+  }
+
   // 4. Overlays: scenery and shore decor, lower on the map drawn over higher ones
   for (const o of depthOrder([...logic.objects, ...shores])) {
     const px = Math.round(o.x * CELL_PX);
@@ -68,6 +74,10 @@ export function composeScene({ config, sprites, logic, ground, shores }) {
     if (o.wet && o.ripple) {
       const rx = clamp(s.w * 0.42, 4, 26);
       ripple(ctx, px, py - 1, rx, Math.max(2, rx * 0.28), RIPPLE);
+    }
+    if (o.scale && o.scale !== 1) {
+      drawScaledSprite(ctx, sprites, o.sprite, px, py, o.scale);
+      continue;
     }
     draw(o.sprite, px - s.anchor.x, py - s.anchor.y);
   }

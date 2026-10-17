@@ -143,11 +143,11 @@
       ["trees/yellow_green_bush", 170, 468],
       ["trees/broadleaf_bush", 214, 446],
       ["trees/dense_shrub", 186, 528],
-      ["rocks2/small_boulder_a", 236, 536],
-      ["rocks2/rock_cluster_grass_a", 148, 548],
+      ["rocks2/rock_cluster_grass_b", 236, 536],
+      ["rocks2/rock_cluster_grass_b", 148, 548],
       ["trees/yellow_flowers_cluster", 202, 494],
-      ["rocks2/pillar_1", 300, 520],
-      ["rocks2/pillar_3", 318, 528],
+      ["rocks2/rock_cluster_grass_b", 300, 520],
+      ["rocks2/rock_cluster_grass_b", 318, 528],
       ["jungle/hollow_log", 568, 238],
       ["jungle/hollow_log_mossy", 790, 512],
       ["jungle/hollow_log", 702, 586],
@@ -220,12 +220,13 @@
       "box": [130, 140, 1266, 658],
       "mix": [
         [0.55, ["trees/yellow_flowers_cluster", "trees/yellow_flowers_trio"]],
-        [0.25, ["rocks2/small_boulder_a", "rocks2/small_boulder_b", "rocks2/rock_cluster_grass_a"]],
+        [0.25, ["rocks2/rock_cluster_grass_b", "rocks2/small_boulder_b", "rocks2/rock_cluster_grass_b"]],
         [0.2, ["trees/broadleaf_bush", "trees/dense_shrub", "trees/yellow_green_bush"]]
       ]
     },
     "finish": {"warm": "rgba(255,206,140,0.22)", "glow": "rgba(255,244,214,0.14)", "vignette": "rgba(6,14,10,0.5)"}
   },
+  "edibleStyle": {"marker": {"default": {"sprite": "trees/light_meadow_patch_a", "width": 128}, "dunes": {"sprite": "beach/sand_splat", "width": 96}}, "scale": {"small": 1.5}},
   "edibles": [
     {"kind": "small", "sprite": "red_flower_plant", "x": 7.5, "y": 33.5},
     {"kind": "medium", "sprite": "jungle-plant-010", "x": 15.5, "y": 30.5},
@@ -414,6 +415,7 @@
       "backup": {"threshold": 0.5, "ticks": 10}
     },
     "food": {"eatSpeed": 0.5, "feedThreshold": 0.12, "reach": 1, "stock": 1, "consumeRate": 0.2, "regrowth": 0.02, "sated": 0.9},
+    "heatQuiet": ["swamp"],
     "stimuli": {
       "odour:food": {"from": "edibles", "scaleBy": "stock", "interpolate": true, "contrast": {"common": 0.5, "gain": 5}},
       "odour:danger": {"from": "forestEdge", "interpolate": true},

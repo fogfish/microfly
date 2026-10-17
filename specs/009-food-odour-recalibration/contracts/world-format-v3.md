@@ -67,6 +67,17 @@ The rule `reach = radius × size` is the same in every world. Size comes from th
 | `public/world/world-forager-bad.json` | v1 fixture | version 3, so that it still fails on the snapshot version (its purpose). |
 | `public/world/world.v1.json` | — | not loaded by the app; unchanged. |
 
+## 8. `edibleStyle` (optional, visual only)
+
+- `edibleStyle.marker`: `{ "default": { sprite, width }, "<ground area>": { sprite, width } }`. Each food unit gets a
+  ground marker centred on its cell, chosen by the ground area under it (`default` where no named area applies, e.g. grass).
+  The sprite is a catalogue name, drawn at `width` px with its aspect kept, under the scenery.
+- `edibleStyle.scale`: `{ <kind>: factor }`, a draw scale per edible kind (0.25 to 4, default 1). The sprite and its anchor
+  both grow by the factor. Logic is unchanged: the odour, the food field and the stock use the unscaled sprite size.
+- Keys are checked by `validateConfig` (marker keys are `default` or a ground name; scale keys are edible kinds). Marker sprites
+  resolve in `validateArt`. Implementation: `public/js/world/edible-style.js`, `layout.js`, `compose.js`.
+- Tests: `tests/edible-style.test.mjs`.
+
 ## 7. Tests
 
 - `tests/validate-v3.test.mjs` (new): refuses version 2, refuses `flower`, refuses a food sprite used as decor, refuses a removed sprite, accepts the shipped worlds, accepts more than one edible of the same kind (BUG-001).

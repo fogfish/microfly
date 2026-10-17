@@ -7,6 +7,7 @@
 import { scatterPlacements } from './scatter.js';
 import { waterField, cellWater, distanceAt } from './water.js';
 import { mapPlan, mapLogic } from './sketch-map.js';
+import { edibleLook } from './edible-style.js';
 
 export const CELL_PX = 32;
 
@@ -143,7 +144,8 @@ export function buildScene(config, catalog) {
   }
 
   for (const e of config.edibles ?? []) {
-    objects.push({ sprite: idOf(e.sprite), x: e.x, y: e.y, solid: false, kind: e.kind });
+    objects.push({ sprite: idOf(e.sprite), x: e.x, y: e.y, solid: false, kind: e.kind,
+      ...edibleLook(config.edibleStyle, e.kind, null, idOf) });
   }
 
   for (const d of config.dangers ?? []) {
@@ -186,15 +188,45 @@ export function buildLogic(config, catalog) {
 function buildMapLogic(config, catalog) {
   const { cols, rows } = config.grid;
   const count = cols * rows;
-  const { water, blocked, forestEdge, objects } = mapLogic(mapPlan(config, catalog, DECOR_FORBIDDEN), cols, rows);
+  const plan = mapPlan(config, catalog, DECOR_FORBIDDEN);
+  const { water, blocked, forestEdge, objects } = mapLogic(plan, cols, rows);
+  const idOf = (ref) => catalog.lookup(ref).sprite.id;
   for (const e of config.edibles ?? []) {
-    objects.push({ sprite: catalog.lookup(e.sprite).sprite.id, x: e.x, y: e.y, solid: false, kind: e.kind });
+    // The ground area under the unit picks its marker (edible-style.js); the plan's area map is in scene px.
+    const area = plan.areaOf[Math.round(e.y * CELL_PX) * plan.W + Math.round(e.x * CELL_PX)];
+    const areaName = plan.areas.find((a) => a.index === area)?.name ?? null;
+    objects.push({ sprite: idOf(e.sprite), x: e.x, y: e.y, solid: false, kind: e.kind,
+      ...edibleLook(config.edibleStyle, e.kind, areaName, idOf) });
   }
   for (const d of config.dangers ?? []) {
     objects.push({ sprite: DANGER_SPRITES[d.kind], x: d.x, y: d.y, solid: false, kind: d.kind });
   }
   const { edible, edibleSize, danger } = foodAndDanger(config, catalog, count, cols);
-  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, danger, forestEdge, objects };
+  const heatQuiet = heatQuietMask(config, plan, cols, rows);
+  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, danger, forestEdge, objects, heatQuiet };
+}
+
+// flies.heatQuiet (optional): the cells whose centre lies inside a named ground area take no heat (heat-field.js).
+// The test is the area's own outline (E < 1 in its box, before the land clip), so the water pools inside a swamp are
+// quiet too. Null when the world names none, so a world without the key keeps its heat unchanged.
+function heatQuietMask(config, plan, cols, rows) {
+  const names = config.flies?.heatQuiet;
+  if (!names || names.length === 0) return null;
+  const quiet = new Uint8Array(cols * rows);
+  for (const area of plan.areas) {
+    if (!names.includes(area.name)) continue;
+    const { x0, y0, x1, y1 } = area.box;
+    const bw = x1 - x0;
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const px = Math.floor((cx + 0.5) * CELL_PX);
+        const py = Math.floor((cy + 0.5) * CELL_PX);
+        if (px < x0 || px >= x1 || py < y0 || py >= y1) continue;
+        if (area.E[(py - y0) * bw + (px - x0)] < 1) quiet[cy * cols + cx] = 1;
+      }
+    }
+  }
+  return quiet;
 }
 
 // edibleSize holds, per cell, the food unit's sprite size in tiles: max(w, h) / CELL_PX (spec 009 research R1).

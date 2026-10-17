@@ -56,7 +56,7 @@ export function buildWorld(config, logic) {
   // the edge-forest/water masks, never from flies.stimuli — the same field feeds the odour:danger/heat sense
   // and the matching overlay (data-model.md "Relationships"). Harmless for a world with no edgeForest/water.
   const danger = dangerField({ forestEdge: logic.forestEdge, cols: width, rows: height });
-  const heat = heatField({ water: logic.water, cols: width, rows: height });
+  const heat = heatField({ water: logic.water, cols: width, rows: height, quiet: logic.heatQuiet });
 
   // One cached kernel per food unit (research.md R4): the shape is static (units never move), so it is built
   // once here; the stock fraction that scales it is read live at sense time (fly/food.js createFood), via

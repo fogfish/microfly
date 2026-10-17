@@ -7,6 +7,7 @@
 
 import { fbm, vnoise, bayer, lerp, clamp } from './water.js';
 import { GRASS } from './map-water.js';
+import { drawFoodMarker, drawScaledSprite } from './edible-style.js';
 
 const CELL_PX = 32;
 const WATERLINE = 'rgba(10,18,36,0.55)';
@@ -55,14 +56,23 @@ export function paintMap({ plan, sprites, objects = [], waterFrame }) {
   const water = paintWater(plan, { W, H, tile, sprites, draw, blit, waterFrame });
   const ground = paintGround(plan, { W, H, tile, blit, sprites });
 
+  // Food markers (edibleStyle): a ground patch centred on each food unit, on the ground layer under the scenery
+  const gctx = ground.getContext('2d');
+  for (const o of objects) {
+    if (o.marker) drawFoodMarker(gctx, sprites, o.marker, o.x * CELL_PX, o.y * CELL_PX);
+  }
+
   // Sprites: everything sorted by foot y, ties by x (WORLD-SPEC §7)
   const [top, tp] = makeCanvas(W, H);
   const list = [
     ...plan.items.map((it) => ({ id: it.id, x: it.x, y: it.y })),
-    ...objects.map((o) => ({ id: o.sprite, x: Math.round(o.x * CELL_PX), y: Math.round(o.y * CELL_PX) })),
+    ...objects.map((o) => ({ id: o.sprite, x: Math.round(o.x * CELL_PX), y: Math.round(o.y * CELL_PX), scale: o.scale })),
   ];
   list.sort((a, b) => a.y - b.y || a.x - b.x);
-  for (const it of list) draw(tp, it.id, it.x, it.y);
+  for (const it of list) {
+    if (it.scale && it.scale !== 1) drawScaledSprite(tp, sprites, it.id, it.x, it.y, it.scale);
+    else draw(tp, it.id, it.x, it.y);
+  }
 
   // Flatten and finish (WORLD-SPEC §8)
   const [out, ox] = makeCanvas(W, H);
