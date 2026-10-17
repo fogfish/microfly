@@ -319,10 +319,11 @@ body {
   margin-top: 12px;
 }
 
-/* Channel rows (BUG-001): one row per channel, zero line in the middle of the track */
+/* Channel rows (BUG-001): one row per signal, zero line in the middle of the track. An L and R pair shares a row.
+   The L value sits left of the bar and the R value right of it, so each number reads from its own end. */
 .channel-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 40px;
+  grid-template-columns: minmax(0, 1fr) 4em 120px 4em;
   align-items: center;
   gap: 8px;
   margin-top: 4px;
@@ -378,7 +379,15 @@ body {
 
 .channel-value {
   font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+.channel-value.value-L {
   text-align: right;
+}
+
+.channel-value.value-R {
+  text-align: left;
 }
 
 /* Energy and hunger bars (BUG-003, FR-031): the fill is the bare <i> action.js creates, with its width set

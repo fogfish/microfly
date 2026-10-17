@@ -66,17 +66,22 @@ fly record or the worker directly, so that a section can be tested with a plain 
 |---|---|---|---|
 | `action` | Action | (none) | The action label. |
 | `neuron-map` | Brain activity | `signal: spikes` | The three.js point cloud and the counts (neuron count, active count). |
-| `channels-input` | Inputs | `channels: inputs` | One row per input, grouped under L and R (see below). |
-| `channels-output` | Outputs | `channels: outputs` | One row per output, grouped under L and R. |
+| `channels-input` | Inputs | `channels: inputs` | One row per signal: an L and R pair shares a row (see below). |
+| `channels-output` | Outputs | `channels: outputs` | One row per signal: an L and R pair shares a row. |
 
 ## Channel rows
 
-Within a channel section, rows are grouped by side. A channel with `side: "both"` appears under both
-L and R. Each row shows:
+Within a channel section, one row per signal (BUG-001 pairing, `pairRows` in `channel-rows.js`). An L channel
+and its R partner share one row, with the zero line in the middle of the track: the L bar grows left, the R bar
+grows right. Partners are matched by id with the left/right token removed (`odour-food-left` and
+`odour-food-right`; `turn-left` and `turn-right`). A channel with `side: "both"`, or with no partner, takes a row
+of its own; a `both` channel draws on each side. Each row shows:
 
-- the label (text),
-- a bar, whose width is the value clamped to the declared range, as a fraction of it,
-- the numeric value, to two decimal places, using the true value.
+- the label (text): the pair's label without its left/right word (`Food odour`), or the channel's own label,
+- a bar, whose width is the value clamped to the declared range, as a fraction of it, on each side,
+- the numeric value, to two decimal places, using the true value. A pair shows the L value at the left end of the
+  bar and the R value at the right end, with no side letters. A lone L or R channel shows its value at its own end;
+  a `both` channel shows its value at the right end.
 
 A new channel needs no code: it is a row generated from the declaration.
 
