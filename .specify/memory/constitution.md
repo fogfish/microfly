@@ -1,25 +1,30 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (template, unversioned) → 1.0.0
-Bump rationale: initial ratification; all placeholders replaced with project-specific content.
+Version change: 1.0.0 → 2.0.0
+Bump rationale: MAJOR — Principle VI is redefined (incompatible with the previous text: scripted
+  behaviour was bounded only by "brain output"; it is now bounded by a declared decoder and body
+  layer, with the brain's decision scope made explicit). Driven by ADR 010 ("Demo forager"),
+  Part A.
 
-Principles defined:
-  - [PRINCIPLE_1_NAME] → I. Static Web, Zero Build
-  - [PRINCIPLE_2_NAME] → II. One Fly, One Worker
-  - [PRINCIPLE_3_NAME] → III. Connectome-Grounded Brain Snapshots
-  - [PRINCIPLE_4_NAME] → IV. Configurable, Reproducible Extraction
-  - [PRINCIPLE_5_NAME] → V. Faithful, Inspectable LIF Simulation
-  - (added)            → VI. Living World, Embodied Flies
-  - (added)            → VII. Simplicity
+Principles modified:
+  - III. Connectome-Grounded Brain Snapshots → one bullet added (declared readout-pool selection
+    rule, applied identically to null-arm brains)
+  - V. Faithful, Inspectable LIF Simulation → one bullet added (bounded, off-by-default online
+    plasticity)
+  - VI. Living World, Embodied Flies → redefined: brain vs. body-layer decision boundary made
+    explicit; decoder and body layer MUST be declared in data; valence MAY be declared
 
 Added sections:
-  - Technology & Architecture Constraints (was [SECTION_2_NAME])
-  - Development Workflow & Quality Gates (was [SECTION_3_NAME])
+  - Demo Acceptance (new top-level section, after Core Principles)
 
 Removed sections: none
 
-Dependent artifacts: templates and commands read this file at runtime; none modified.
+Dependent artifacts:
+  - AGENTS.md hard rule 6 is a follow-on from this amendment (ADR 010, "AGENTS.md hard rules").
+    Not modified by this command per its scope guard; tracked as a Next Action.
+  - specs/*/plan.md Constitution Check sections for any in-flight feature should be re-checked
+    against the new Principle VI text; no in-flight plan found to update at amendment time.
 
 Deferred TODOs: none
 -->
@@ -79,6 +84,10 @@ dataset (described in `malecns.md`) by the Python utilities in this repository.
   stated in the configuration.
 - Hand-made or synthetic networks are allowed only as test fixtures and MUST be labelled as
   such.
+- Readout pools MAY be selected by a declared response rule (for example, side selectivity
+  under a brain-only probe) measured on calibration seeds only. The rule, its seeds and its
+  result MUST be recorded with provenance next to the snapshot, and the same rule MUST be
+  applied to every null-arm brain.
 
 Rationale: the point of the project is to simulate a real fly connectome; the result is only
 meaningful if every snapshot can be traced back to the data.
@@ -120,25 +129,35 @@ and observable.
 - The simulation MUST expose telemetry for inspection: at least spike events and firing
   rates for selected neurons, and the sensory and motor signals crossing the brain–world
   boundary.
+- Online plasticity is allowed where a decision record defines it: named, bounded, off by
+  default in the LIF core, deterministic given the seed, and visible in telemetry.
 
 Rationale: a simulation that cannot be inspected or reproduced cannot be trusted or debugged.
 
 ### VI. Living World, Embodied Flies
 
-Flies MUST live and interact in an interactive environment rendered by the same web app, in
-the spirit of AI Town or "Generative Agents: Interactive Simulacra of Human Behavior".
+Flies MUST live and interact in an interactive environment rendered by the same web app.
 
 - The world owns physics, objects, other flies and the user's interactions. Flies perceive
-  the world only through sensory inputs and act on it only through motor outputs.
-- The mapping from world stimuli to sensory neurons, and from motor neurons to fly actions,
-  MUST be declared in data (configuration or snapshot), not hidden in world code.
-- Fly behaviour MUST come from the simulated brain. Scripted behaviour MUST NOT override
-  brain output, except in clearly labelled debug or baseline modes.
-- The world MUST stay responsive while flies are simulated; world updates and rendering run
-  on the main thread at an interactive frame rate.
+  the world only through declared sensory inputs and act on it only through a declared
+  decoder and body layer.
+- **The brain decides:** which side a stimulus is on, how strong it is, when to feed and
+  when to escape. These MUST be read from simulated neurons.
+- **A body layer MAY supply what the extracted brain does not contain**, as a stand-in for
+  the ventral nerve cord: a walking rhythm and base speed, exploration noise, and fixed
+  reflex laws (tropotaxis, klinotaxis, escape, backing up) applied to decoded brain signals.
+  The body layer MUST be declared in data, MUST NOT read the stimulus or the world state
+  other than the body's own physics, and MUST be identical across every arm of an experiment.
+- **Each sense's valence** (approach or avoid) MAY be declared in data. It MUST be shown on
+  the panel and in the README as declared, not learned.
+- The mapping from world stimuli to sensory neurons, from neurons to decoded signals, and
+  from decoded signals to body commands MUST be declared in data, not hidden in world code.
+- Scripted behaviour MUST NOT override decoded brain signals, except in labelled debug or
+  baseline modes.
 
 Rationale: behaviour emerging from the connectome, observable in a shared world, is the
-product.
+product. The body layer stands in for the ventral nerve cord, which the connectome cut does
+not contain, without letting scripted code decide what the brain is meant to decide.
 
 ### VII. Simplicity
 
@@ -151,6 +170,13 @@ Start with the smallest design that works and add complexity only when a real ne
 
 Rationale: the project spans two languages and a large dataset; simplicity keeps it
 understandable.
+
+## Demo Acceptance
+
+A brain generation is **demo-complete** when its declared behaviour requirements pass on
+held-out seeds, on at least two maps, with one calibration. The random walk (same body layer)
+and the matched random graph (same decoder rule and body layer) MUST be reported alongside. A
+null arm that also passes MUST be stated in the results, not hidden.
 
 ## Technology & Architecture Constraints
 
@@ -199,4 +225,4 @@ conflicts with it, the constitution wins unless it is amended first.
 - **Compliance:** every plan's Constitution Check and every review MUST verify compliance.
   Deviations MUST be justified in the plan's complexity tracking, or the constitution amended.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-04
+**Version**: 2.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-17
