@@ -20,10 +20,12 @@ const SPAWN_SALT = 0x51ed270b;
 // For "v2" (contracts/world-config-wide-io.md): there is no flies.stimulus.objects list — every edible kind is a
 // stimulus cell — and the reach multiplier is flies.stimuli["odour:food"].radius (default 1, the bare sprite
 // size) rather than flies.stimulus.radius, since the old singular stimulus section does not apply to "v2".
+// "v3" (ADR 010) senses through the same wide-I/O generation, so it takes the same branch (spec 017 BUG-001:
+// without it a v3 world has no stimulus cells, hence no flowers, no food odour, no taste and no eating).
 export function buildWorld(config, logic) {
   const { cols: width, rows: height } = logic;
   const f = resolveFlies(config);
-  const isWide = f.brain?.version === 'v2';
+  const isWide = f.brain?.version === 'v2' || f.brain?.version === 'v3';
   const wanted = isWide ? new Set(EDIBLE_KINDS) : new Set(f.stimulus.objects);
   const foodRadius = isWide ? (f.stimuli['odour:food']?.radius ?? 1) : f.stimulus.radius;
 
@@ -43,7 +45,11 @@ export function buildWorld(config, logic) {
     if (kind !== null) dangerCells.set(idx, kind);
   }
 
-  const walkable = (cx, cy) => blocked[cy * width + cx] === 0;
+  // dry: land a fly can stand on. walkable: where the body may move. flies.body.crossWater (v3, spec 017 BUG-003) lets
+  // a fly fly over water (heat then acts on it like danger) but not through solid objects; it spawns on dry land.
+  const dry = (cx, cy) => blocked[cy * width + cx] === 0;
+  const crossWater = f.brain?.version === 'v3' && f.body?.crossWater === true;
+  const walkable = crossWater ? (cx, cy) => dry(cx, cy) || logic.water[cy * width + cx] === 1 : dry;
   const isStimulusCell = (cx, cy) => stimulusCells.has(cy * width + cx);
 
   // Danger/heat fields (ADR 007 W8, contracts/world-format-sketch-map.md §3): built once per world load from
@@ -66,8 +72,37 @@ export function buildWorld(config, logic) {
 
   return {
     width, height, blocked, stimulusCells, dangerCells, walkable, isStimulusCell,
+    // Only a world whose flies cross water says where dry land is; spawnFlies spawns there (else on walkable).
+    ...(crossWater ? { dry } : {}),
     dangerField: danger, heatField: heat, foodUnits,
   };
+}
+
+// The flower whose eating area holds cell (cx, cy): its cell index, or -1 (spec 017 BUG-002). The eating area is
+// every cell within Chebyshev distance `reach` of the flower's cell (flies.food.reach). reach 0 is the flower's own
+// cell, the v1/v2 rule; reach 1 is the 3×3 core where the food odour field is at 100 % (food-field.js). Taste
+// contact, eating and the find metric all read this one rule, for every arm. Ties: the nearer flower, then the
+// lower cell index, so the choice is deterministic. world: anything with width, height, isStimulusCell (a world
+// from buildWorld, or a forager env).
+export function flowerAt(world, cx, cy, reach = 0) {
+  if (reach === 0) return world.isStimulusCell(cx, cy) ? cy * world.width + cx : -1;
+  let best = -1;
+  let bestDistance = Infinity;
+  for (let dy = -reach; dy <= reach; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= world.height) continue;
+    for (let dx = -reach; dx <= reach; dx++) {
+      const x = cx + dx;
+      if (x < 0 || x >= world.width || !world.isStimulusCell(x, y)) continue;
+      const distance = Math.max(Math.abs(dx), Math.abs(dy));
+      const idx = y * world.width + x;
+      if (distance < bestDistance || (distance === bestDistance && idx < best)) {
+        best = idx;
+        bestDistance = distance;
+      }
+    }
+  }
+  return best;
 }
 
 // The odour sources: [{x, y, reach}] cell centres of the stimulus cells, in tiles, with the reach in cells.
@@ -105,7 +140,7 @@ export function spawnFlies(config, world, mode = resolveFlies(config).mode) {
     for (let attempt = 0; attempt < SPAWN_ATTEMPTS && cell === null; attempt++) {
       const cx = prng.int(0, world.width - 1);
       const cy = prng.int(0, world.height - 1);
-      if (world.walkable(cx, cy)) cell = { cx, cy };
+      if ((world.dry ?? world.walkable)(cx, cy)) cell = { cx, cy };
     }
     if (cell === null) throw new Error(`no walkable cell for fly ${i}`);
 

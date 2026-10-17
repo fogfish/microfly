@@ -13,7 +13,8 @@
 // --out and skips recomputing one that already exists, so a killed run can be re-invoked with the same flags to
 // pick up where it left off.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { validateConfig, validateArt } from '../../../../public/js/world/validate.js';
 import { indexCatalog } from '../../../../public/js/world/catalog.js';
 import { buildLogic } from '../../../../public/js/world/layout.js';
@@ -24,6 +25,8 @@ import {
   classifyRegions, ensureDir, fmt, readCheckpoint, readout, regime, robustCandidates, runRegimeGrid,
   runWorldStage, writeCheckpoint,
 } from './engine.mjs';
+import { buildDecoderFile, runC1, runC2, runC3 } from './decoder-engine.mjs';
+import { printForagerTable } from '../../../../scripts/forager-arms.mjs';
 
 const HELP = `
 microfly-calibrate CLI (deterministic, no agent needed while running)
@@ -43,6 +46,10 @@ Stage (default: auto):
                             Stops before stage=world on purpose (a human reviews candidates first).
   --stage=world             B: the expensive stage. Needs --from (one or more "auto"/"regime" checkpoints) and
                             an explicit --budget-minutes. Never runs held-out seeds.
+  --stage=c1|c2|c3|all      ADR 010 Part H, "v3" profiles only (e.g. demo-v3). c1: regime check. c2: pool
+                            selection, writes the decoder-v1 file. c3: closed-loop smoke on calibration seeds,
+                            reported not tuned on. all: c1 -> c2 -> c3 in order, stopping at the first failing
+                            gate. --budget-minutes is a hard cap across the whole --stage=all run.
 
 Common flags:
   --world=<path>            Override the profile's default world config (relative to public/).
@@ -126,7 +133,7 @@ const bytes = readFileSync(new URL(f.brain.snapshot, webRoot));
 const snapshot = parseSnapshot(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
 const capabilities = snapshot.capabilities;
 const ctx = { f, world, expConfig, snapshot, capabilities };
-profile.prepareContext(ctx);
+profile.prepareContext?.(ctx);
 
 console.log(`microfly-calibrate: ${profile.label}, stage=${stage}, world=${worldPath}`);
 
@@ -284,7 +291,98 @@ if (stage === 'regime') {
   });
   writeCheckpoint(jsonPath, { stage, ...result });
   console.log(`Checkpoint: ${jsonPath}`);
+} else if (stage === 'c1' || stage === 'c2' || stage === 'c3' || stage === 'all') {
+  // ADR 010 Part H: C1 regime, C2 decode (writes the decoder-v1 file), C3 smoke. "all" runs them in order and
+  // stops at the first failing gate (spec FR-018); --budget-minutes is a hard cap across the whole run.
+  const startedAt = Date.now();
+  const elapsedMinutes = () => (Date.now() - startedAt) / 60000;
+  const outPath = outDir.replace(/\/$/, '');
+  const checkpointFor = (s) => (stage === s ? jsonPath : `${outPath}/${s}.json`);
+  const checkHardBudget = () => {
+    if (budgetMinutes !== null && elapsedMinutes() > budgetMinutes) {
+      console.error(`Over --budget-minutes=${budgetMinutes} (elapsed ${fmt(elapsedMinutes(), 1)} min). Stopping `
+        + `at the stage in progress, per the hard cap (R4/K7).`);
+      process.exit(1);
+    }
+  };
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const decoderOutUrl = new URL(profile.decoderOutPath, webRoot);
+
+  let lifBlock = { ...f.brain.lif };
+  if (stage === 'c1' || stage === 'all') {
+    console.log(`C1 regime: grid ${JSON.stringify(profile.c1.grid)}, gates ${JSON.stringify(profile.c1.gates)}`);
+    const c1 = runC1(ctx, profile.c1.grid, profile.c1.gates);
+    for (const r of c1.rows) {
+      console.log(`${JSON.stringify(r.point)} rest=${fmt(r.restActivity, 4)} -> ${r.pass ? 'PASS' : r.fails.join(', ')}`);
+    }
+    writeCheckpoint(checkpointFor('c1'), { stage: 'c1', grid: profile.c1.grid, rows: c1.rows, chosen: c1.chosen });
+    checkHardBudget();
+    if (!c1.chosen) {
+      console.error('C1 regime: no grid point passes. This is a finding (AGENTS.md "Behaviour failures are '
+        + 'findings") -- record it, widen the grid per ADR 010 Part L\'s documented fallback, and re-run. Not '
+        + 'continuing to C2.');
+      process.exit(1);
+    }
+    console.log(`C1 chosen: ${JSON.stringify(c1.chosen.point)} (rest activity ${fmt(c1.chosen.restActivity, 4)})`);
+    lifBlock = { ...f.brain.lif, ...c1.chosen.point };
+    if (stage === 'c1') {
+      console.log(`Elapsed: ${fmt(elapsedMinutes(), 1)} min.`);
+      process.exit(0);
+    }
+  }
+
+  let decoderFile = null;
+  if (stage === 'c2' || stage === 'all') {
+    if (stage === 'c2' && args['from-c1']) {
+      const c1Checkpoint = JSON.parse(readFileSync(args['from-c1'], 'utf8'));
+      lifBlock = { ...f.brain.lif, ...c1Checkpoint.chosen.point };
+    }
+    console.log(`C2 decode: lif=${JSON.stringify(lifBlock)}, gates=${JSON.stringify(profile.c2.gates)}`);
+    const c2 = runC2(ctx, lifBlock, { ...profile.c2.gates, valence: profile.c2.valence });
+    checkHardBudget();
+    if (c2.errors.length > 0) {
+      console.error(`C2 decode failed: ${c2.errors.join(', ')}. This is a finding (AGENTS.md) -- no decoder `
+        + 'file written. Not continuing to C3.');
+      writeCheckpoint(checkpointFor('c2'), { stage: 'c2', errors: c2.errors });
+      process.exit(1);
+    }
+    const configHash = createHash('sha256').update(JSON.stringify({ lif: lifBlock, c1: profile.c1 })).digest('hex');
+    const snapshotFile = f.brain.snapshot.split('/').pop();
+    decoderFile = buildDecoderFile(c2, snapshotFile, sha256, lifBlock, configHash);
+    writeCheckpoint(checkpointFor('c2'), { stage: 'c2', decoder: decoderFile });
+    ensureDir(decoderOutUrl.pathname.replace(/\/[^/]*$/, ''));
+    writeFileSync(decoderOutUrl, `${JSON.stringify(decoderFile, null, 2)}\n`);
+    console.log(`Decoder written: ${decoderOutUrl.pathname} (pools: ${Object.keys(decoderFile.pools).join(', ')})`);
+    if (stage === 'c2') {
+      console.log(`Elapsed: ${fmt(elapsedMinutes(), 1)} min.`);
+      process.exit(0);
+    }
+  }
+
+  if (stage === 'c3' || stage === 'all') {
+    if (stage === 'c3') decoderFile = JSON.parse(readFileSync(decoderOutUrl, 'utf8'));
+    console.log('C3 smoke: both maps, calibration seeds, brain arm vs. random walk, hungry start.');
+    const ctxFor = (worldPath) => {
+      const c = JSON.parse(readFileSync(new URL(worldPath, webRoot), 'utf8'));
+      const ec = { ...c, flies: { ...c.flies, mode: 'toy' } };
+      const errs = validateConfig(ec);
+      if (errs.length > 0) throw new Error(`C3 world ${worldPath} is invalid: ${errs.map((e) => `${e.path}: ${e.message}`).join('; ')}`);
+      const ff = resolveFlies(ec);
+      const { catalog: cat } = indexCatalog(JSON.parse(readFileSync(new URL(c.atlas, webRoot), 'utf8')));
+      const w = buildWorld(c, buildLogic(c, cat));
+      return { f: ff, world: w, expConfig: ec, snapshot, capabilities };
+    };
+    const reports = runC3(ctxFor, [profile.worldPath, profile.secondWorldPath], decoderFile, profile.c3.seeds, profile.c3.ticks);
+    for (const { worldPath, metrics } of reports) {
+      console.log(`-- ${worldPath} --`);
+      console.log(printForagerTable(metrics, profile.c3.seeds.length));
+    }
+    writeCheckpoint(checkpointFor('c3'), { stage: 'c3', seeds: profile.c3.seeds, ticks: profile.c3.ticks, reports });
+    checkHardBudget();
+  }
+
+  console.log(`Total elapsed: ${fmt(elapsedMinutes(), 1)} min.`);
 } else {
-  console.error(`--stage must be one of regime, classify, auto, world; got ${JSON.stringify(stage)}`);
+  console.error(`--stage must be one of regime, classify, auto, world, c1, c2, c3, all; got ${JSON.stringify(stage)}`);
   process.exit(1);
 }

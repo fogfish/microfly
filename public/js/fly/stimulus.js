@@ -105,6 +105,36 @@ export function senseDistance(at, points, radius) {
 // (sitePoint), already resolved for the channel's side.
 export function senseDeclared(spec, at, sampler) {
   if (spec.contact) return sampler.contactAt(Math.floor(at.x), Math.floor(at.y));
+  if (spec.field && spec.interpolate) return fieldBilinear(sampler, at.x, at.y);
   if (spec.field) return sampler.fieldAt(Math.floor(at.x), Math.floor(at.y));
   return senseDistance(at, sampler.points(), spec.radius);
+}
+
+// A per-cell field read bilinearly between cell centres (flies.stimuli[sense].interpolate, spec 017 BUG-003). A field
+// steps once per tile, and the antennae sit 1 tile apart, so read per cell both often sample one cell and L = R
+// whatever the heading. Cells off the grid clamp to the edge. sampler: { fieldAt(cx, cy), width, height }.
+export function fieldBilinear(sampler, x, y) {
+  const gx = x - 0.5;
+  const gy = y - 0.5;
+  const x0 = Math.floor(gx);
+  const y0 = Math.floor(gy);
+  const tx = gx - x0;
+  const ty = gy - y0;
+  const cx = (c) => Math.min(sampler.width - 1, Math.max(0, c));
+  const cy = (c) => Math.min(sampler.height - 1, Math.max(0, c));
+  const at = (i, j) => sampler.fieldAt(cx(i), cy(j));
+  const top = at(x0, y0) * (1 - tx) + at(x0 + 1, y0) * tx;
+  const bottom = at(x0, y0 + 1) * (1 - tx) + at(x0 + 1, y0 + 1) * tx;
+  return top * (1 - ty) + bottom * ty;
+}
+
+// The bilateral contrast filter (flies.stimuli[sense].contrast, spec 017 BUG-003; ADR 010 Part L "an optional
+// declared stimulus contrast gain, off by default"). With m = (L + R) / 2 and d = (L − R) / 2, each side becomes
+// clamp(common · m ± gain · d, 0, 1): common < 1 lowers the shared level, so a strong odour does not saturate the
+// channel, and gain > 1 widens the L/R difference the body's small antenna span leaves.
+export function bilateralContrast(left, right, { common, gain }) {
+  const m = (left + right) / 2;
+  const d = (left - right) / 2;
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
+  return { left: clamp01(common * m + gain * d), right: clamp01(common * m - gain * d) };
 }

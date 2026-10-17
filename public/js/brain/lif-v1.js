@@ -22,6 +22,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   noiseAmplitude: 0,      // half-width of a per-neuron, per-step uniform membrane noise term; 0 is a no-op (L7)
   noiseBulkScale: 1,      // noise multiplier for neurons outside the declared input pools; 1 is uniform noise (L7′)
   inhibitoryScale: 1,     // multiplier of every negative edge weight; 1 is a no-op (L8)
+  baselineCurrent: 0,     // constant input current added to every neuron every step; 0 is a no-op (L10)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -63,6 +64,9 @@ export function resolveParams(overrides = {}) {
   }
   if (!(Number.isFinite(p.inhibitoryScale) && p.inhibitoryScale >= 0)) {
     throw new Error('LIF parameter "inhibitoryScale" must be 0 or more');
+  }
+  if (!(Number.isFinite(p.baselineCurrent) && p.baselineCurrent >= 0)) {
+    throw new Error('LIF parameter "baselineCurrent" must be 0 or more');
   }
   return Object.freeze(p);
 }
@@ -191,7 +195,9 @@ export function step(net, external) {
 
     if (refractory[i] > 0) { refractory[i]--; continue; }
     const leak = (p.dt / p.tau) * (p.vRest - v[i]);
-    v[i] += adaptive ? leak + drive + external[i] - adapt[i] + noise : leak + drive + external[i] + noise;
+    // L10: a constant current added to every neuron, input and output pools alike; 0 by default (G1, bit-identical).
+    v[i] += adaptive ? leak + drive + external[i] - adapt[i] + noise + p.baselineCurrent
+                     : leak + drive + external[i] + noise + p.baselineCurrent;
     if (v[i] >= threshold[i]) {
       v[i] = p.vReset;
       refractory[i] = p.refractorySteps;

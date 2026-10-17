@@ -16,6 +16,9 @@ import { stimulusPoints } from './fly-world.js';
 import { createFood } from './food.js';
 import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
 import { forageEnvWide, senseForagerFlyWide } from './forager-step-wide.js';
+import { createDecoderState, decodeTick, loadDecoder, pairOf } from './decoder.js';
+import { initBodyLayerFly, stepBodyLayer } from './body-layer.js';
+import { hunger as hungerOf } from './energy.js';
 
 const HISTORY = 200;
 const NO_SPIKES = new Uint32Array(0);
@@ -40,9 +43,10 @@ export async function loadSnapshot(brain, root) {
   }
   if (!response.ok) throw new Error(`snapshot ${path} could not be loaded (HTTP ${response.status})`);
 
+  const bytes = await response.arrayBuffer();
   let snapshot;
   try {
-    snapshot = parseSnapshot(await response.arrayBuffer());
+    snapshot = parseSnapshot(bytes);
   } catch (e) {
     throw new Error(`snapshot ${path} is not usable: ${e.message}`);
   }
@@ -50,10 +54,16 @@ export async function loadSnapshot(brain, root) {
   // and its declared kind (channel-declaration-v5.md).
   checkBrainVersion(brain.version ?? 'v0', snapshot.version, snapshot.kind, `${path}`);
 
+  // decoder-v1's own snapshot cross-check (contracts/decoder-v1.md rule 1), computed here so the decoder never
+  // re-fetches the (potentially large) .brain file itself.
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const sha256 = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+
   const { provenance } = snapshot.manifest;
   return {
     url: url.href,
     version: snapshot.version,
+    sha256,
     release: provenance?.datasetRelease ?? 'unknown release',
     createdAt: provenance?.createdAt ?? 'unknown date',
     neuronCount: snapshot.neuronCount,
@@ -72,6 +82,13 @@ export async function loadSnapshot(brain, root) {
   };
 }
 
+// Fetches and checks the decoder-v1 sidecar named by flies.brain.decoder (contracts/decoder-v1.md), for a "v3"
+// fly, before any fly starts. snapshot: loadSnapshot's return (sha256, neuronCount, capabilities).
+export async function loadDecoderFile(brain, root, snapshot) {
+  const senses = [...new Set(snapshot.capabilities.channels.inputs.map((ch) => pairOf(ch.id)))];
+  return loadDecoder(brain.decoder, root, { sha256: snapshot.sha256, neuronCount: snapshot.neuronCount, senses });
+}
+
 // The declaration a fly's brain makes (channel-declaration.md): the snapshot's for connectome flies,
 // the toy declaration or its override for toy flies, and the baseline one for random-walk flies.
 function declarationOf(state, f, snapshot) {
@@ -84,14 +101,17 @@ function declarationOf(state, f, snapshot) {
 // Returns one FlyRecord per fly.
 // FlyRecord: { state, worker, status, error, pending, history, motorSource, brainLabel, capabilities,
 //              checks, neuronCount, activity, positions, drawn }
-export function startFlies({ config, world, flies, onUpdate, snapshot = null }) {
+export function startFlies({ config, world, flies, onUpdate, snapshot = null, decoder = null }) {
   const f = resolveFlies(config);
-  // The forager brain (version v1 or v2) runs on protocol 3. Its toy flies are the only ones that use the
-  // brain. v2 (ADR 007) is the wide-I/O interface generation, same v1 runner, dispatched by brain.version below.
-  const isWide = f.brain?.version === 'v2';
+  // The forager brain (version v1, v2 or v3) runs on protocol 3. Its toy flies are the only ones that use the
+  // brain. v2 (ADR 007) and v3 (ADR 010) are both the wide-I/O interface generation, same v1 runner and sense
+  // generation, dispatched by brain.version below; v3 additionally replaces the motor path with the decoder +
+  // body layer (research.md §2).
+  const isWide = f.brain?.version === 'v2' || f.brain?.version === 'v3';
+  const isDemo = f.brain?.version === 'v3';
   const forager = (f.brain?.version === 'v1' || isWide) && snapshot !== null;
   const brainLabel = forager
-    ? `${isWide ? 'v2 wide-I/O' : 'v1'} forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
+    ? `${isDemo ? 'v3 demo' : isWide ? 'v2 wide-I/O' : 'v1'} forager brain (snapshot release ${snapshot.release}, created ${snapshot.createdAt})`
     : snapshot
       ? `connectome snapshot (${snapshot.release}, created ${snapshot.createdAt})`
       : null;
@@ -131,7 +151,12 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   const records = flies.map((state) => {
     const isForager = forager && state.mode === 'toy';
     if (isForager) initForagerFly(state, f.body.energy.initial);
-    const capabilities = declarationOf(state, f, snapshot);
+    const isDemoFly = isForager && isDemo;
+    // D31: the panel's decoder section (panel/sections/decoder.js) is gated on this signal, not on brain.version
+    // directly (registry.js's isRequirementMet convention, panel-provenance-signals.md's own additive-signals rule).
+    const declared = declarationOf(state, f, snapshot);
+    const capabilities = isDemoFly ? { ...declared, signals: [...declared.signals, 'decoder'] } : declared;
+    if (isDemoFly) initBodyLayerFly(state, state.brainSeed);
     const neuronCount = state.mode === 'baseline'
       ? 0
       : (snapshot && state.mode === 'toy' ? snapshot.neuronCount : f.brain?.neuronCount);
@@ -143,6 +168,11 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
       error: null,
       pending: false,
       forager: isForager,
+      demo: isDemoFly,
+      decoderState: isDemoFly ? createDecoderState(decoder, capabilities.channels.inputs) : null,
+      // The decoder-v1 file itself (contracts/decoder-v1.md), not just the per-tick decode: the panel's decoder
+      // section (D31) reports each sense's pool size, which decodeTick's per-tick return does not carry.
+      decoderFile: isDemoFly ? decoder : null,
       history: [],
       motorSource: state.mode === 'baseline' ? createBaselineMotor(state.brainSeed) : null,
       brainLabel: state.mode === 'toy' && brainLabel ? brainLabel : MODE_LABEL[state.mode],
@@ -167,7 +197,28 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
   const senseOf = (s) => senseAt(points, s.body.x, s.body.y, f.stimulus);
 
   // One forager tick: the motor reply drives the body, the flower and the energy, and goes into the history (ADR 003).
+  // For a "v3" fly, the decoder (D27–D29) and body layer (W12–W14) replace applyForagerMotor (research.md §2):
+  // this is the one call site where decoded signals, not a hand-wired formula, drive the body.
   function applyForagerTick(r, msg) {
+    if (r.demo) {
+      const decoded = decodeTick(r.decoderState, { spikes: msg.spikes, inputs: msg.inputs }, decoder);
+      const { eating } = stepBodyLayer(r.state, decoded, { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor }, forageEnvironment);
+      r.activity?.recordTick(msg.spikes, performance.now());
+      r.history.push({
+        tick: r.state.tick, inputs: msg.inputs, sensory: msg.inputs[0], hunger: hungerOf(r.state.energy),
+        energy: r.state.energy, speed: r.state.body.speed, eating, outputs: msg.outputs, spikes: msg.spikes, decoded,
+        // model.js's `forager`/`diagnostic` detection keys on `drives` (the v1/v2 applyForagerMotor entry shape);
+        // a v3 fly has no raw turnLeft/turnRight (steering is continuous heading change, not a discrete output),
+        // so only forward/backward/feed carry over, from the decoded named pools' homeostasis-corrected drive
+        // (D29), not msg.outputs' raw instantaneous value.
+        drives: { forward: decoded.named.forward?.drive ?? 0, backward: decoded.named.backward?.drive ?? 0, feed: decoded.named.feed?.drive ?? 0 },
+      });
+      if (r.history.length > HISTORY) r.history.shift();
+      r.state.tick++;
+      r.pending = false;
+      onUpdate();
+      return;
+    }
     const entry = applyForagerMotor(r.state, msg, forageEnvironment);
     r.activity?.recordTick(msg.spikes, performance.now());
     r.history.push({ ...entry, sensory: entry.inputs[0] });
@@ -241,7 +292,11 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null }) 
     worker.onmessage = (e) => onMessage(r, e.data);
     worker.onerror = (e) => fail(r, e.message || 'worker failed');
     // A snapshot is fetched by each worker from its absolute URL (R7); toy brains are built in place.
-    const brain = snapshot && r.state.mode === 'toy' ? { ...f.brain, snapshot: snapshot.url } : f.brain;
+    // D32: the runtime hunger-threshold override is a world-config key, not a brain-section one (research.md
+    // §6), so it is folded into the worker's brain payload here rather than carried on f.brain itself.
+    const brain = snapshot && r.state.mode === 'toy'
+      ? { ...f.brain, snapshot: snapshot.url, ...(isDemo ? { modulators: f.modulators } : {}) }
+      : f.brain;
     if (r.forager) {
       worker.postMessage(P3.init({ flyId: r.state.id, seed: r.state.brainSeed, brain }));
       return;

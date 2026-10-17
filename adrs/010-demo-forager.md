@@ -177,7 +177,8 @@ computation, so Principle II holds. Protocol v3 already carries `spikes` every t
 ### D27. Pools are selected by a brain-only spiking probe
 
 The pools come from calibration stage C2 (Part H), on calibration seeds only, with the calibrated LIF block. The
-candidates are every descending neuron plus the named output neurons (about 1,320).
+candidates are every descending neuron plus the named output neurons (about 1,320). **Amended (A1 below):** every
+neuron outside the sensory input pools, plus the named outputs.
 
 | Pool                   | Rule                                                                                                                                                                                                                       | Used for                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
@@ -401,6 +402,108 @@ On **held-out seeds**, on **both maps**, with **one** calibration. Arms:
 | Bulk ignites at every `baselineCurrent`              | C1 no point                      | Add `baselineCurrent` 0.01 and `synapticScale` 2 to the grid (still under 30 min)                                                                    |
 | Input too weak at the antenna separation             | `drive.odour-food` rise < 3 Hz   | An optional declared stimulus contrast gain, off by default                                                                                          |
 | RG passes K1/K4                                      | K9                               | Report it. The demo still works; the claim narrows. The per-type fitting path (doc/research.md §2.1) is how the connectome would earn back the claim |
+
+## Amendment A1 (2026-10-17, spec 017 BUG-001): readout candidates and the alarm read
+
+**Finding.** On the 14.5K brain, no descending neuron carries a sense-specific response large enough for D27, at any
+LIF point tried (specs/017-demo-forager/calibration.md, C1). The signal is in the central brain: on calibration
+seeds, with the held-back seed reproducing, 1,623 neurons respond specifically to food odour, 12 to danger, 36 to
+heat and 68 to mouth taste (9 of them DNs). Side-selective neurons are rare (3–14 a side).
+
+**Decisions.**
+- **D27 candidates:** every neuron that is not in a sensory input pool, plus the named outputs. Input-pool neurons
+  stay excluded: their rate is the stimulus, and the body layer must not read the stimulus (Principle VI). The scope
+  is recorded as `probe.candidates` in the decoder file, and the RG arm's C2 runs the same scope (Principle III).
+  D27's gates are unchanged.
+- **`alarm` read:** when `drive.odour-danger` exists, alarm's drive is that pool's drive; the union is the Part L
+  fallback. A union's rate is a member-weighted mean, so the 5-neuron danger pool was lost under 14 heat neurons whose
+  tail is burst noise (P(drive ≥ 0.4) per tick: union 0.028 at rest vs 0.025 at the danger edge; danger pool 0.001
+  vs 0.196). Heat is avoided through klinotaxis (W13), not escape.
+- **Units:** for v3, `feedThreshold`, `escape.threshold` and `backup.threshold` compare `r̄ − rest` in spikes per
+  neuron per tick, and are set from a recorded probe, not from v2's normalised outputs.
+
+**Consequence for the claim.** The brain still decides side (where a pool exists), strength, feeding and escape,
+but the strength signal is read from central-brain neurons, upstream of the descending pathway. The README and panel
+say "decoded readout"; they should not say "descending readout".
+
+## Amendment A2 (2026-10-17, spec 017 BUG-002): the eating area and the feed read
+
+- **Eating area.** "Stands on food" (D30) is the flower's eating area: every cell within Chebyshev distance
+  `flies.food.reach` of the flower's cell. The demo worlds set 1, the 3×3 core where the food odour field is 100 %
+  (`food-field.js`); 0 keeps the v1/v2 own-cell rule. Taste contact, eating and the find metric of every arm read
+  the same area (`fly-world.js` `flowerAt`). Before, taste and eating needed the flower's one centre cell, smaller
+  than its sprite, so a fly touching the flower neither tasted nor ate.
+- **Feed read.** When `drive.taste-mouth` exists, feed's drive is that pool's drive; the named feed pool (MN9) is
+  the fallback. MN9 barely follows taste in this cut (decoded drive 0.032 off food vs 0.051 starving on food), so
+  eating flickered for single ticks. The taste-mouth pool is hunger-gated in the brain by D32's taste gain:
+  P(drive ≥ 0.12) per tick is 0.10 sated, 0.41 at the hunger threshold, 0.76 hungry, 0.90 starving.
+  `feedThreshold` 0.12.
+- **No hunger-driven speed law.** A hungry fly in the area stops on most ticks because the brain feeds; a sated one
+  walks on. The body layer does not read energy (D30, Principle VI).
+
+## Amendment A3 (2026-10-17, spec 017 BUG-003): odour filters, flying over water, heat escapes like danger
+
+- **Odour filters (Part L's "declared stimulus contrast gain", now implemented).** `flies.stimuli[sense].interpolate`
+  reads a field bilinearly between cell centres; `flies.stimuli[sense].contrast: { common, gain }` maps each L/R pair
+  to `clamp(common·m ± gain·d)`, `m`, `d` the pair's mean and half-difference. Both off by default. The antennae sit 1
+  tile apart and the fields step once per tile, so read per cell L = R on 41 % of ticks; the demo worlds' food odour
+  (interpolate, common 0.5, gain 5) has a median L/R difference of 0.22–0.30, against 0.05–0.09.
+- **The filter does not steer by itself.** D27 needs 5 side-selective neurons a side; the brain has 3 left / 4 right
+  for food odour, so no `side.odour-food` pool exists and tropotaxis has nothing to read. Lowering the minimum to 3
+  was measured (find rate above the random walk on both maps) and **declined**: D27 keeps 5.
+- **Flying over water.** `flies.body.crossWater` (v3): water is walkable for the body, not solid objects; touch does
+  not fire on water; flies spawn on dry land. Every arm shares the world physics.
+- **Heat escapes like danger.** `alarm` is the larger of `drive.odour-danger` and `drive.heat` (A1 read danger
+  only). Heat's τ = 3 tail is network-burst noise (correlation 0.87 with whole-brain rate), so the escape reflex
+  integrates alarm over `escape.tau` ticks before the threshold (W14; default 1, none). Demo worlds: tau 20,
+  threshold 0.18: about one false escape per 18 s at rest, and escape within 5–13 ticks at danger rings 0–1 and
+  6–7 ticks on water (heat 1).
+
+## Amendment A4 (2026-10-17, spec 017 BUG-004): the motor stage
+
+**Problem.** The v3 body applied every command at once. An escape set the heading in one tick (a 180° flip with no
+danger side pool) and moved the fly `escape.distance` (1.5 tiles) in one tick; a walking step is about 0.03 tiles.
+The world's `flies.body.turnRate` was not read by v3.
+
+**Decision.** `flies.body.motor: { maxTurnRate, escapeTurnRate, maxAccel, sprintSpeed }` (v3, optional) adds a motor
+stage between the W12–W14 commands and the body. The reflex laws give a target heading and a signed target speed;
+the body turns towards the heading by at most the turn rate per second, the shorter way round, and changes speed by
+at most `maxAccel` per second. Forward speed is scaled by cos(heading error), so a fly turns before it runs.
+- **Escape** is a motor programme: the brain's alarm (trigger, threshold, cooldown unchanged) sets an escape heading;
+  the fly turns at `escapeTurnRate` and sprints at `sprintSpeed` until it has covered `escape.distance` (at most
+  100 ticks). No eating during a sprint.
+- **Backing up and feeding** ramp speed instead of switching it.
+- The stage reads only the body's own state. It never changes what the brain decided, only how fast the body carries
+  it out. It is identical for every arm. Absent, commands apply at once (the pre-A4 behaviour, kept for comparison).
+
+**Values.** Demo worlds: `maxTurnRate` 4 (the world's `turnRate`), `escapeTurnRate` 15 (fly body saccades reach
+about 17 rad/s), `maxAccel` 12, `sprintSpeed` 3 (`maxSpeed`). Largest turn 0.75 rad and largest step 0.17–0.24 tiles
+per tick, against 3.14 rad and 1.5 tiles before (above `sprintSpeed` only through W12's surge, which multiplies
+speed after the `maxSpeed` clamp; it ramps, so it is not a jump).
+
+**Cost.** A turn-and-sprint leaves a danger ring later than a teleport: K4 (exit within 20 ticks) falls from
+42 % / 63 % to 38 % / 48 % (sketch / tilemap, calibration seeds 6–8), while ticks in danger fall from 47 % / 28 % to
+40 % / 4 % (calibration.md).
+
+## Amendment A5 (2026-10-17, spec 017 BUG-005): fewer false escapes, a varied escape turn
+
+**Finding.** Every 180° turn was an escape (322 of 322 over both maps), and every escape reversed the fly: no
+danger side pool exists, and heat has only `side.heat.R`, so the side was always unknown (W14 Edge Case). About half
+of the escapes on the sketch map and a quarter on the tilemap fired with no danger or heat input at all, from
+whole-brain bursts.
+
+**Decisions.**
+- `escape.threshold` 0.18 → **0.22** (the integrated alarm, A3). Escapes with no danger or heat input fall from
+  77 / 40 to 7 / 9 (sketch / tilemap, 6 flies × 3,000 ticks); 0.25 also removes most real escapes.
+- **`escape.turn: { min, max }`** (radians, W14): when the side is unknown, the escape turns by an angle drawn
+  uniformly from [min, max], left or right at random, from the fly's seeded stream. Absent: reverse (π), as before.
+  Demo worlds: 90°–135°.
+
+**Effect** (calibration seeds 6–8; sketch / tilemap): find 50 % / 22 % → 83 % / 50 % (random walk 56 % / 39 %);
+ticks in danger 40 % / 4 % → 21 % / 10 % (random walk 62 % / 66 %); ticks in heat 15 % / 6 % → 19 % / 15 %
+(random walk 15 % / 7 %); K4 38 % / 48 % → 19 % / 28 %. **Heat avoidance is lost**: the smaller turn lets a fly at
+the shore turn along it. A 120°–180° range did not recover it (14 % / 10 %) and lost food and K4. Aiming escapes away
+from heat needs a heat side pool on both sides (D27).
 
 ## Implementation order
 

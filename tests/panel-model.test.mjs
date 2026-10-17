@@ -76,6 +76,36 @@ test('activeCount counts the neurons that spiked in the window', () => {
   assert.equal(buildStatusModel(record({ history }), 0).activeCount, 2);
 });
 
+// A "v3" (demo) fly's history entry (fly-host.js's applyForagerTick, r.demo branch): no left/right, `drives`
+// built from the decoded named pools' drive (forward/backward/feed), not msg.outputs' raw instantaneous value.
+// Regression guard: action.js's panel section reads `model.diagnostic.speed` unconditionally once `model.energy`
+// is set, so `diagnostic` must not be null for a v3 fly just because it has no v1/v2-style raw drives.
+function v3Tick(overrides = {}) {
+  return {
+    tick: 0, sensory: 0.4, energy: 0.6, hunger: 0.4, speed: 1.2, eating: false,
+    outputs: Float32Array.from([0.9, 0.2]), spikes: Uint32Array.from([1, 9]),
+    drives: { forward: 0.3, backward: 0, feed: 0 },
+    ...overrides,
+  };
+}
+
+test('a v3 fly (no left/right) still gets a non-null diagnostic, keyed off `drives`, not a crash', () => {
+  const model = buildStatusModel(record({ history: [v3Tick()] }), 0);
+  assert.ok(model.diagnostic, 'diagnostic must not be null once a fly has energy/drives');
+  assert.equal(model.diagnostic.speed, 1.2);
+  assert.equal(model.diagnostic.forward, 0.3);
+  assert.equal(model.diagnostic.backward, 0);
+  assert.equal(model.diagnostic.feed, 0);
+  assert.equal(model.diagnostic.eating, false);
+});
+
+test('a v3 fly\'s action label degrades to forward/backward/idle (no turnLeft/turnRight to read)', () => {
+  const forward = buildStatusModel(record({ history: [v3Tick({ drives: { forward: 0.3, backward: 0, feed: 0 } })] }), 0);
+  assert.equal(forward.action, 'Forward');
+  const eating = buildStatusModel(record({ history: [v3Tick({ eating: true })] }), 0);
+  assert.equal(eating.action, 'Eat');
+});
+
 test('a baseline record has no activity, no brightness and no positions', () => {
   const model = buildStatusModel(record({ activity: null, positions: null, neuronCount: 0 }), 0);
   assert.equal(model.brightness, null);

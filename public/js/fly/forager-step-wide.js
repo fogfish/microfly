@@ -5,22 +5,32 @@
 // body-physics side) are shared unchanged between v1 and v2; only the sensing/env side has a wide-I/O twin.
 
 import * as P3 from '../brain/protocol-v3.js';
-import { senseDeclared, sitePoint } from './stimulus.js';
-import { hazardPoints } from './fly-world.js';
+import { bilateralContrast, senseDeclared, sitePoint } from './stimulus.js';
+import { flowerAt, hazardPoints } from './fly-world.js';
 import { hunger as hungerOf } from './energy.js';
 import { foodFieldAt } from '../world/food-field.js';
+import { decodeTick } from './decoder.js';
+import { stepBodyLayer } from './body-layer.js';
 
 // The sampler for one declared sense (ADR 007 W8, contracts/world-config-wide-io.md, contracts/stimuli-field-
 // sources.md §4): "edibles" reads the shared flower table (field food odour, taste/contact alike); "dangers"
 // reads static hazard points, filtered by the sense's declared kinds; "blocked" (touch) reads world walkability
 // directly, with no point list; "water"/"forestEdge" read the heat/danger field at the site's own cell.
 // Out-of-bounds (cx, cy) reads 0, the same safe default contactAt already implies off-grid.
-function samplerFor(spec, world, flowers) {
+// reach: flies.food.reach, the eating area (fly-world.js flowerAt). Taste contact is read over the same area the
+// fly can eat in, so the mouth tastes a flower wherever it can feed on it (spec 017 BUG-002); 0 keeps v2's
+// own-cell contact.
+function samplerFor(spec, world, flowers, reach = 0) {
   if (spec.from === 'edibles') {
     return {
       points: () => flowers.points(),
-      contactAt: (cx, cy) => (world.isStimulusCell(cx, cy) ? flowers.fraction(cx, cy) : 0),
+      contactAt: (cx, cy) => {
+        const idx = flowerAt(world, cx, cy, reach);
+        return idx < 0 ? 0 : flowers.fraction(idx % world.width, Math.floor(idx / world.width));
+      },
       fieldAt: (cx, cy) => foodFieldAt(world.foodUnits ?? [], flowers, cx, cy),
+      width: world.width,
+      height: world.height,
     };
   }
   if (spec.from === 'dangers') {
@@ -35,6 +45,8 @@ function samplerFor(spec, world, flowers) {
       points: () => [],
       contactAt: () => 0,
       fieldAt: (cx, cy) => world.heatField?.intensity[cy * world.width + cx] ?? 0,
+      width: world.width,
+      height: world.height,
     };
   }
   if (spec.from === 'forestEdge') {
@@ -42,6 +54,8 @@ function samplerFor(spec, world, flowers) {
       points: () => [],
       contactAt: () => 0,
       fieldAt: (cx, cy) => world.dangerField?.intensity[cy * world.width + cx] ?? 0,
+      width: world.width,
+      height: world.height,
     };
   }
   throw new Error(`flies.stimuli source "${spec.from}" is not supported`);
@@ -72,7 +86,7 @@ export function forageEnvWide(f, world, flowers, capabilities) {
     if (Object.hasOwn(samplers, ch.sense)) continue;
     const spec = f.stimuli[ch.sense];
     if (!spec) throw new Error(`flies.stimuli is missing sense "${ch.sense}", declared by channel "${ch.id}"`);
-    samplers[ch.sense] = samplerFor(spec, world, flowers);
+    samplers[ch.sense] = samplerFor(spec, world, flowers, f.food?.reach ?? 0);
   }
   for (const ch of inputs) {
     if (!f.body.sites[ch.site]) {
@@ -111,6 +125,16 @@ export function senseForagerFlyWide(fly, env) {
     const at = sitePoint(fly.body, site, ch.side);
     values[k] = senseDeclared(spec, at, env.samplers[ch.sense]);
   });
+  // flies.stimuli[sense].contrast: applied to each L/R pair of one sense at one site, after both are sampled.
+  inputs.forEach((ch, k) => {
+    const contrast = env.stimuli[ch.sense].contrast;
+    if (!contrast || ch.side !== 'L') return;
+    const r = inputs.findIndex((o) => o.sense === ch.sense && o.site === ch.site && o.side === 'R');
+    if (r < 0) return;
+    const out = bilateralContrast(values[k], values[r], contrast);
+    values[k] = out.left;
+    values[r] = out.right;
+  });
   const hunger = hungerOf(fly.energy);
   return { inputs: values, hunger, message: P3.sense({ tick: fly.tick, inputs: values, state: { hunger } }) };
 }
@@ -122,4 +146,18 @@ export function stepForagerFlyWide(fly, env, brain, applyForagerMotor) {
   const motor = P3.motor({ tick: fly.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
   const entry = applyForagerMotor(fly, motor, env);
   return { sense, motor, entry };
+}
+
+// One whole "v3" tick with a synchronous brain: sense (the same wide-io generation as v2), brain step, decode
+// (decoder.js D29), body layer (body-layer.js W12–W14). Parallel to stepForagerFlyWide, for the calibration CLI
+// and forager-arms.mjs — fly-host.js's live worker path calls decodeTick/stepBodyLayer itself (research.md §2),
+// since it is driven by worker messages rather than a synchronous brain.step() call.
+export function stepForagerFlyV3(fly, env, brain, decoderState, decoderFile, bodyLayerCfg) {
+  const { inputs, hunger, message: sense } = senseForagerFlyWide(fly, env);
+  const out = brain.step({ inputs, hunger });
+  const motor = P3.motor({ tick: fly.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
+  const decoded = decodeTick(decoderState, { spikes: motor.spikes, inputs: motor.inputs }, decoderFile);
+  const { eating } = stepBodyLayer(fly, decoded, bodyLayerCfg, env);
+  fly.tick++;
+  return { sense, motor, decoded, entry: { tick: fly.tick - 1, inputs: motor.inputs, eating, spikes: motor.spikes, outputs: motor.outputs } };
 }

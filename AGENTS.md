@@ -61,7 +61,7 @@ These come from the constitution. Breaking one needs an amendment, not a workaro
 3. **Brains come from the dataset.** Weights come from synapse counts, signs from predicted transmitters, and neurons keep `bodyId`, `type`, `class` and `superclass`. Synthetic networks exist only as labelled test fixtures. Never hand-wire a connection to fix behaviour.
 4. **Extraction is config, not code.** A brain is a file in `extract/configs/`. The same config and dataset must give a byte-identical snapshot (apart from `provenance.createdAt`). The extractor fails with a named error code instead of guessing.
 5. **The LIF core stays pure.** `lif-*.js` has no DOM or worker code, every parameter is named in its defaults and validated, and the same seed gives the same spikes. New mechanisms are off by default, and with defaults `lif-v1.js` must match `lif-v0.js` bit for bit (`tests/lif-golden.test.mjs`).
-6. **Behaviour comes from the brain.** The world never steers, stops or feeds a fly. Stimulus → sensory and motor → action mappings are declared in data (snapshot channels, world config), not hidden in world code.
+6. **Behaviour comes from the brain.** Direction, strength, feeding and escape come from the brain. The body layer may walk, explore and apply declared reflex laws to decoded signals; it never reads the stimulus. A decoder rule is applied identically to null-arm brains. Stimulus → sensory and motor → action mappings are declared in data (snapshot channels, world config), not hidden in world code.
 7. **Keep it simple.** Prefer the browser platform and `pyarrow`/`numpy` over new dependencies.
 
 ## Working on brains

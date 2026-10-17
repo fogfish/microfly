@@ -1,5 +1,38 @@
 # Changelog
 
+# 2026-10-17
+
+/speckit-specify ADR 010-demo-forager.md defines a new process to extract and calibrate forager-brain-wide.brain . Expected outcome is demoable application fulfilling the requirements:
+
+| R1  | MUST   | A fly whose hunger is above a threshold moves towards food and reaches it | Find rate and approach, hungry vs sated           |
+| R2  | MUST   | A fly reacts to danger and escapes it                                     | Escape trigger and exit time per danger encounter |
+| R3  | SHOULD | A fly avoids heat                                                         | Time in heat rings against the random walk        |
+| R4  | SHOULD | Calibration takes 30 minutes or less, in one command                      | Wall clock of `calibrate.mjs --stage=all`         |
+| R5  | SHOULD | The world map can change without recalibration                            | R1–R3 hold on two maps with one calibration       |
+| R6  | MAY    | Real-time learning from world feedback is used where it removes a problem | Part G                                            |
+
+/speckit-plan Follow ADR 010-demo-forager.md to implement changes process to extract and calibrate forager-brain-wide.brain . See the ADR 010-demo-forager.md for details but it requires: 
+   1. L10;
+   2. decoder-v1 reader and the C2 writer;
+   3. decoder and body layer (W12–W14);
+   4. hunger threshold (D32);
+   5. homeostasis (D33);
+   6. world-config v3 and the demo world;
+   7. `profiles/demo-v3.mjs`;
+   8. panel (D31);
+   9. Part K run.
+
+Bugfix (specs/017-demo-forager/bugs/BUG-001.md): ADR 010 does not implement all requirements and calibration fails again. There are a few issues (1) fly does not recognize food odor; (2) fly does not consume food and recover enegry; (3) fly has sudden jumpt to random direction; (4) no visible action on danger. The simulation does not account a direction vector of fly, it always pointer from bottom to top, which might be one of the sever root cause. Fixes are required. Decision: widen ADR 010 D27's readout candidates to every non-input neuron (Amendment A1) and re-run C2.
+
+Bugfix (specs/017-demo-forager/bugs/BUG-002.md): Eating is almost resolve, there is only one hunger fly that eats when it fly over a flower again over again but it seems it eats during one tick only. Other fly does not eat even it it stall and touch the flower.  Let's make sure that fly eats when it stays in the area of 100% odor. Should the speed of fly become slower (below eating threshold after some energy level).
+
+Bugfix (specs/017-demo-forager/bugs/BUG-003.md): One more observation, there are no big difference on odor level regardless of the head vector due to the fly size. It makes wrong effect that target ahead. The artifical filtering is required to reduce the odor signals. Fly also prefer to seat at the water (heat edge). Fly should be able fly over water but heat has to make same effect as danger. Decision: keep D27's minimum of 5 side neurons (food side pools not adopted).
+
+Bugfix (specs/017-demo-forager/bugs/BUG-004.md): Fly make a "jump" immediate turns and jump to new position. Highly likely, it is not possible to fix within the brain but in the world streering should be smooth as real motors does. Decision: implement the motor stage (ADR 010 Amendment A4).
+
+Bugfix (specs/017-demo-forager/bugs/BUG-005.md): What make fly to turn 180 degree, is this escape signal? Implement both 1 (fewer false escapes: raise escape threshold) and 2 (a smaller, randomly signed escape turn when the side is unknown).
+
+
 # 2026-10-14
 
 /speckit-specify Create a new world map using my sketch world_map.jpg and existing assets library atlas (`public/assets/atlas`). Keep the shape of terrain and water exactly as my sketch draws. The atlas does not have any building use the tent and bones from atlas. The atlas does not have any bridge, just put the terrain there. Avoid setting any title, ledgend and animals. 

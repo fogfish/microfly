@@ -19,12 +19,14 @@ import { createBaselineMotor } from '../public/js/fly/baseline.js';
 import { stepBody } from '../public/js/fly/body.js';
 import { createFood } from '../public/js/fly/food.js';
 import { applyForagerMotor, forageEnv, initForagerFly, stepForagerFly } from '../public/js/fly/forager-step.js';
-import { forageEnvWide, senseForagerFlyWide } from '../public/js/fly/forager-step-wide.js';
+import { forageEnvWide, senseForagerFlyWide, stepForagerFlyV3 } from '../public/js/fly/forager-step-wide.js';
+import { createDecoderState } from '../public/js/fly/decoder.js';
+import { initBodyLayerFly } from '../public/js/fly/body-layer.js';
 import { senseAt } from '../public/js/fly/stimulus.js';
-import { hazardPoints, spawnFlies } from '../public/js/fly/fly-world.js';
+import { flowerAt, hazardPoints, spawnFlies } from '../public/js/fly/fly-world.js';
 import {
-  approachMedian, avoidFraction, bootstrapCI, brakeMedian, eatMedian, escapeMean, findInterval, findRate,
-  hungerDependence, stayMedian, touchTurn, walkedShare,
+  approachMedian, avoidFraction, bootstrapCI, brakeMedian, eatMedian, escapeMean, escapeOrTurnWithin,
+  feedArrivalWithin, findInterval, findRate, hungerDependence, stayMedian, touchTurn, walkedShare,
 } from '../public/js/fly/metrics.js';
 import { createPrng } from '../public/js/world/prng.js';
 
@@ -100,7 +102,8 @@ function runV0Fly(state, brainConfig, ctx) {
   for (let t = 0; t < ctx.ticks; t++) {
     const out = brain.step(senseAt(ctx.points, state.body.x, state.body.y, ctx.f.stimulus));
     stepBody(state.body, { left: out.left, right: out.right }, ctx.env);
-    if (firstContactTick === null && ctx.world.isStimulusCell(Math.floor(state.body.x), Math.floor(state.body.y))) {
+    // Found: inside a flower's eating area (flies.food.reach, spec 017 BUG-002), the same rule as every brain arm.
+    if (firstContactTick === null && flowerAt(ctx.world, Math.floor(state.body.x), Math.floor(state.body.y), ctx.foodReach) >= 0) {
       firstContactTick = t;
     }
   }
@@ -117,7 +120,8 @@ function runBaselineFly(state, ctx) {
   const heatRecords = ctx.heatAt ? [] : undefined;
   for (let t = 0; t < ctx.ticks; t++) {
     stepBody(state.body, motor.next(), ctx.env);
-    if (firstContactTick === null && ctx.world.isStimulusCell(Math.floor(state.body.x), Math.floor(state.body.y))) {
+    // Found: inside a flower's eating area (flies.food.reach, spec 017 BUG-002), the same rule as every brain arm.
+    if (firstContactTick === null && flowerAt(ctx.world, Math.floor(state.body.x), Math.floor(state.body.y), ctx.foodReach) >= 0) {
       firstContactTick = t;
     }
     dangerRecords?.push({ distance: ctx.dangerAt.distanceAt(state.body.x, state.body.y) });
@@ -179,6 +183,44 @@ function runWideCohort(seeded, cohortEnergy, brainConfig, ctx) {
   });
 }
 
+// v3 cohort (ADR 010 Part K): the decoder (D27–D29) and body layer (W12–W14) replace applyForagerMotor. The
+// same bodyLayerCfg object is passed to every arm that reaches here — Principle III/VI's "the body layer MUST
+// be identical across every arm" — and `decoderFile` is this arm's own C2-derived decoder (B uses the real
+// snapshot's; RG uses one computed by the identical C2 rule against the rewired snapshot, decoder-engine.mjs).
+function runV3Cohort(seeded, cohortEnergy, brainConfig, decoderFile, bodyLayerCfg, ctx) {
+  const flowers = createFood(ctx.world, ctx.f);
+  const capabilities = brainConfig.snapshot.capabilities ?? ctx.capabilities;
+  const env = { ...forageEnvWide(ctx.f, ctx.world, flowers, capabilities), flowers, foodConfig: ctx.f.food, energyConfig: ctx.f.body.energy };
+  const flies = spawnFlies(seeded, ctx.world, 'toy');
+  return flies.map((state) => {
+    const brain = createFlyBrain(brainConfig, state.brainSeed);
+    initForagerFly(state, cohortEnergy);
+    initBodyLayerFly(state, state.brainSeed);
+    const decoderState = createDecoderState(decoderFile, capabilities.channels.inputs);
+    const start = nearestFlower(ctx.points, state.body.x, state.body.y);
+    let firstContactTick = null;
+    const dangerRecords = ctx.dangerAt ? [] : undefined;
+    const heatRecords = ctx.heatAt ? [] : undefined;
+    const feedRecords = [];
+    for (let t = 0; t < ctx.ticks; t++) {
+      const cx = Math.floor(state.body.x);
+      const cy = Math.floor(state.body.y);
+      const flower = flowerAt(ctx.world, cx, cy, ctx.foodReach);
+      const onFlower = flower >= 0 && flowers.stockAt(flower % ctx.world.width, Math.floor(flower / ctx.world.width)) > 0;
+      stepForagerFlyV3(state, env, brain, decoderState, decoderFile, bodyLayerCfg);
+      const { x, y } = state.body;
+      dangerRecords?.push({ distance: ctx.dangerAt.distanceAt(x, y) });
+      heatRecords?.push({ distance: ctx.heatAt.distanceAt(x, y) });
+      feedRecords.push({ onFlower, eating: Boolean(state.eating) });
+      if (firstContactTick === null && onFlower) firstContactTick = t;
+    }
+    return {
+      found: firstContactTick !== null, startDistance: start, firstContactTick, bouts: state.bouts,
+      contacts: state.body.contacts, dangerRecords, heatRecords, feedRecords,
+    };
+  });
+}
+
 // The flies of one v1 cohort share one flower table, as the browser does. Each fly is run to the end of the run.
 function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
   const flowers = createFood(ctx.world, ctx.f);
@@ -208,7 +250,15 @@ function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
 // e.g. 'class-seed-11k', 'v1-selection-rules' — each its own container v4 snapshot, run with the unchanged v1
 // cohort logic below). 'v1' falls back to the primary `snapshot` when it is not in the map, so every existing
 // caller (which never passes `snapshots`) keeps running exactly as before.
-export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snapshots = {}, arms, seeds, ticks, capabilities }) {
+// decoders: { v3: decoderFile, 'random-matched-wide-v3': decoderFile } — each arm's own C2-derived decoder-v1
+// object (ADR 010 Part K: RG runs the IDENTICAL C2 rule against its own snapshot, decoder-engine.mjs's runC2).
+// rgSnapshot: the ONE matched random graph RG runs on throughout Part K, rewired once (not reseeded per
+// experiment seed, unlike v1/v2's older 'random-matched'/'random-matched-wide' arms) — the RG decoder's pools
+// are selected against this exact graph, so re-rewiring per seed would make them meaningless (research.md §8).
+export function runForagerArms({
+  f, world, expConfig, snapshot, v0Snapshot, snapshots = {}, arms, seeds, ticks, capabilities,
+  decoders = {}, rgSnapshot,
+}) {
   // The v0 arm runs the small snapshot (version 3) with the v0 runner, passed as v0Snapshot. It is not the forager one.
   if (arms.includes('v0') && (v0Snapshot === undefined || v0Snapshot.version !== 3)) {
     throw new Error('the v0 arm needs the small snapshot (version 3), brains/smallest-functional-brain.brain');
@@ -216,12 +266,19 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
   // "wide" and "random-matched-wide" (ADR 007 Acceptance) are their own dispatch, disjoint from the v1-style
   // named snapshots a caller may also pass in `snapshots`.
   const wideStyleArms = new Set(['wide', 'random-matched-wide']);
+  const v3StyleArms = new Set(['v3', 'random-matched-wide-v3']);
   const v1StyleArms = new Set(['v1', 'random-matched', ...Object.keys(snapshots).filter((k) => !wideStyleArms.has(k))]);
   const snapshotFor = (arm) => snapshots[arm] ?? snapshot;
+  const rgSnapshotOnce = arms.includes('random-matched-wide-v3') ? (rgSnapshot ?? rewire(snapshots.wide ?? snapshot, 0x52470001)) : null;
+  // Principle III/VI: "the body layer MUST be identical across every arm" — one object, reference-equal,
+  // passed unchanged to every v3-style cohort below (tests/forager-arms-v3.test.mjs checks this mechanically).
+  const bodyLayerCfg = { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor };
   const ctx = {
     f,
     world,
     ticks,
+    // flies.food.reach (spec 017 BUG-002): the eating area, shared by the find metric of every arm. 0 for v1/v2.
+    foodReach: f.food?.reach ?? 0,
     capabilities,
     points: [...world.stimulusCells.keys()].map((idx) => ({
       x: (idx % world.width) + 0.5,
@@ -261,6 +318,23 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
         }
         continue;
       }
+      if (v3StyleArms.has(arm)) {
+        const arm_snapshot = arm === 'random-matched-wide-v3' ? rgSnapshotOnce : snapshotFor(arm);
+        const decoderFile = decoders[arm];
+        if (!decoderFile) throw new Error(`arm "${arm}" needs its own decoder-v1 object in runForagerArms({ decoders })`);
+        // D32: the world's hunger threshold and gain overrides reach every v3-style arm's brain, as fly-host.js
+        // folds them into the worker's brain payload in the browser.
+        const brainConfig = { ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot, version: 'v3', modulators: f.modulators };
+        // Diagnostic only (tests/forager-arms-v3.test.mjs): the mechanical check that every v3-style arm receives
+        // the identical bodyLayerCfg reference, not a per-arm copy.
+        bucket.bodyLayerCfg = bodyLayerCfg;
+        for (const [cohort, energy] of [['main', f.body.energy.initial], ['hungry', COHORT_ENERGY.hungry], ['sated', COHORT_ENERGY.sated]]) {
+          const flies = runV3Cohort(seeded, energy, brainConfig, decoderFile, bodyLayerCfg, ctx);
+          (bucket.cohorts[cohort] ??= []).push(...flies);
+          if (cohort === 'main') bucket.flies.push(...flies);
+        }
+        continue;
+      }
       if (v1StyleArms.has(arm)) {
         const arm_snapshot = arm === 'random-matched' ? rewire(snapshot, seed + 1) : snapshotFor(arm);
         const brainConfig = { ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot };
@@ -283,6 +357,21 @@ export function runForagerArms({ f, world, expConfig, snapshot, v0Snapshot, snap
   return result;
 }
 
+// K2/K4 (Part K, v3-style arms): calls `fn` once per fly's own record array (never flatMap'd — a window must not
+// cross a fly boundary, same rule touchTurn already follows) and pools the two named counter fields across flies
+// into one rate. Null when no fly carries the record key, or the pooled denominator is 0.
+function poolPerFly(flies, recordKey, fn, [denomField, numField]) {
+  if (flies[0]?.[recordKey] === undefined) return null;
+  let denom = 0;
+  let num = 0;
+  for (const fly of flies) {
+    const r = fn(fly[recordKey]);
+    denom += r[denomField];
+    num += r[numField];
+  }
+  return { rate: denom ? num / denom : null, [denomField]: denom, [numField]: num };
+}
+
 // The metrics of each arm, from the flies of its main cohort and its hungry and sated cohorts.
 export function armMetrics(arms, result, radius, seed) {
   const out = {};
@@ -299,6 +388,12 @@ export function armMetrics(arms, result, radius, seed) {
     out[arm] = {
       find: findRate(flies),
       findCI: findInterval(flies, seed),
+      // K1 (SC-001): find-rate 95% CI per cohort — a hungry fly's lower bound must clear the random walk's; a
+      // sated one must not.
+      findHungry: cohorts.hungry ? findRate(hungry) : null,
+      findHungryCI: cohorts.hungry ? findInterval(hungry, seed) : null,
+      findSated: cohorts.sated ? findRate(sated) : null,
+      findSatedCI: cohorts.sated ? findInterval(sated, seed) : null,
       approach: approachMedian(flies, radius),
       eatHungry: eatMedian(hungry.flatMap((fly) => fly.bouts)),
       eatSated: eatMedian(sated.flatMap((fly) => fly.bouts)),
@@ -316,6 +411,10 @@ export function armMetrics(arms, result, radius, seed) {
         return perFly.length ? perFly.reduce((a, b) => a + b, 0) / perFly.length : null;
       })() : null,
       escape: hasEscape ? escapeMean(flies.flatMap((fly) => fly.escapeRecords)) : null,
+      // K2 (SC-002): hungry arrivals at food followed by feeding within 50 ticks.
+      feedWithin: poolPerFly(hungry, 'feedRecords', (r) => feedArrivalWithin(r, 50), ['arrivals', 'fed']),
+      // K4 (SC-003): danger-ring encounters followed by escape or turn-away within 20 ticks.
+      escapeWithin: poolPerFly(flies, 'dangerRecords', (r) => escapeOrTurnWithin(r, AVOID_RADIUS, 20), ['encounters', 'resolved']),
     };
   }
   return out;
@@ -404,6 +503,60 @@ function wideVerdicts(wide, randomMatchedWide, v1eleven, base) {
   return out;
 }
 
+// ADR 010 Part K, spec.md SC-001-SC-005: the demo forager's five gates (R1-R3) against the random walk (RW), plus
+// K9 — the random-matched-wide-v3 graph (RG)'s pass/fail on each gate, reported alongside and never hidden
+// (FR-024, constitution VI). Nothing here is adjusted to pass (AGENTS.md "Behaviour failures are findings").
+function v3Verdicts(v3, rg, base) {
+  const out = [];
+  const rgPass = (label, pass) => (rg ? ` (K9: random-matched-wide-v3 ${pass ? 'also passes' : 'does not pass'} ${label})` : '');
+
+  if (base && v3.findHungryCI && v3.findSatedCI) {
+    const hungryPass = v3.findHungryCI[0] > base.find.rate;
+    const satedPass = !(v3.findSatedCI[0] > base.find.rate);
+    const rgHungryPass = rg?.findHungryCI ? rg.findHungryCI[0] > base.find.rate : null;
+    out.push({
+      metric: 'K1 find (hungry)', expectation: 'SC-001: hungry find-rate 95% CI sits strictly above the random walk',
+      pass: hungryPass,
+      values: `hungry [${pct(v3.findHungryCI[0])}, ${pct(v3.findHungryCI[1])}], baseline ${pct(base.find.rate)}`
+        + (rg ? rgPass('K1', rgHungryPass) : ''),
+    });
+    out.push({
+      metric: 'K1 find (sated)', expectation: 'SC-001: the same fly started sated does not clear that bar',
+      pass: satedPass,
+      values: `sated [${pct(v3.findSatedCI[0])}, ${pct(v3.findSatedCI[1])}], baseline ${pct(base.find.rate)}`,
+    });
+  }
+  if (v3.feedWithin) {
+    const pass = v3.feedWithin.rate !== null && v3.feedWithin.rate >= 0.8;
+    out.push({
+      metric: 'K2 feed within 50 ticks', expectation: 'SC-002: at least 80% of hungry arrivals feed within 50 ticks',
+      pass, values: `${v3.feedWithin.fed}/${v3.feedWithin.arrivals} (${num(v3.feedWithin.rate)})${rgPass('K2', rg?.feedWithin?.rate >= 0.8)}`,
+    });
+  }
+  if (v3.escapeWithin) {
+    const pass = v3.escapeWithin.rate !== null && v3.escapeWithin.rate >= 0.9;
+    out.push({
+      metric: 'K4 escape or turn within 20 ticks', expectation: 'SC-003: at least 90% of danger-ring encounters resolve within 20 ticks',
+      pass, values: `${v3.escapeWithin.resolved}/${v3.escapeWithin.encounters} (${num(v3.escapeWithin.rate)})${rgPass('K4', rg?.escapeWithin?.rate >= 0.9)}`,
+    });
+  }
+  if (base && v3.avoidDanger !== null && base.avoidDanger !== null) {
+    const pass = v3.avoidDanger <= base.avoidDanger / 2;
+    out.push({
+      metric: 'K5 avoid danger', expectation: 'SC-004: time inside danger rings is at most half the random walk\'s',
+      pass, values: `v3 ${pct(v3.avoidDanger)}, baseline ${pct(base.avoidDanger)}${rgPass('K5', rg?.avoidDanger !== null && rg?.avoidDanger <= base.avoidDanger / 2)}`,
+    });
+  }
+  if (base && v3.avoidHeat !== null && base.avoidHeat !== null) {
+    const pass = v3.avoidHeat < base.avoidHeat;
+    out.push({
+      metric: 'K6 avoid heat', expectation: 'SC-005: time inside heat rings is lower than the random walk\'s (SHOULD, not MUST)',
+      pass, values: `v3 ${pct(v3.avoidHeat)}, baseline ${pct(base.avoidHeat)}${rgPass('K6', rg?.avoidHeat !== null && rg?.avoidHeat < base.avoidHeat)}`,
+    });
+  }
+  return out;
+}
+
 export function verdicts(metrics) {
   const base = metrics.baseline;
   const out = [];
@@ -412,6 +565,7 @@ export function verdicts(metrics) {
     out.push(...coreVerdicts('wide', metrics.wide, base));
     out.push(...wideVerdicts(metrics.wide, metrics['random-matched-wide'], metrics['v1-11k'], base));
   }
+  if (metrics.v3) out.push(...v3Verdicts(metrics.v3, metrics['random-matched-wide-v3'], base));
   return out;
 }
 

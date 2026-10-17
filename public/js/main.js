@@ -19,7 +19,7 @@ import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
 import { buildWorld, spawnFlies } from './fly/fly-world.js';
-import { loadSnapshot, startFlies } from './fly/fly-host.js';
+import { loadDecoderFile, loadSnapshot, startFlies } from './fly/fly-host.js';
 import { initialLayers, toggleLayer } from './world/layers.js';
 import { dangerField } from './world/danger-field.js';
 import { heatField } from './world/heat-field.js';
@@ -64,6 +64,7 @@ async function boot() {
 
   // A snapshot brain is read before anything starts. A bad file shows the error panel and no fly starts.
   let snapshot = null;
+  let decoder = null;
   const flies = loaded.config.flies;
   if (flies !== undefined && (flies.mode ?? 'toy') === 'toy' && flies.brain?.snapshot !== undefined) {
     try {
@@ -71,12 +72,20 @@ async function boot() {
     } catch (e) {
       return fail([{ path: 'flies.brain.snapshot', message: e.message }]);
     }
+    // decoder-v1 (ADR 010 D28), "v3" only: read and cross-checked against the snapshot before any fly starts.
+    if (flies.brain.version === 'v3') {
+      try {
+        decoder = await loadDecoderFile(flies.brain, APP_ROOT, snapshot);
+      } catch (e) {
+        return fail([{ path: 'flies.brain.decoder', message: e.message }]);
+      }
+    }
   }
 
-  startWorld({ config: loaded.config, catalog, sprites, snapshot });
+  startWorld({ config: loaded.config, catalog, sprites, snapshot, decoder });
 }
 
-function startWorld({ config, catalog, sprites, snapshot }) {
+function startWorld({ config, catalog, sprites, snapshot, decoder }) {
   hideErrors();
 
   const canvas = document.getElementById('world');
@@ -233,7 +242,7 @@ function startWorld({ config, catalog, sprites, snapshot }) {
     try {
       const flyWorld = buildWorld(config, logic);
       flies = spawnFlies(config, flyWorld);
-      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate, snapshot });
+      records = startFlies({ config, world: flyWorld, flies, onUpdate: onFlyUpdate, snapshot, decoder });
     } catch (e) {
       console.error(`flies: ${e.message}`);
       panel.textContent = `Flies could not start: ${e.message}`;

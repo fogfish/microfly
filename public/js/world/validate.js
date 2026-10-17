@@ -21,7 +21,10 @@ const GROVE_MIN = 4;
 const GROVE_MAX = 12;
 const MAX_SPRITE_SIDE = 32;
 const SEED_MAX = 4294967295;
-const BRAIN_VERSIONS = ['mock', 'v0', 'v1', 'v2'];
+const BRAIN_VERSIONS = ['mock', 'v0', 'v1', 'v2', 'v3'];
+// v2 and v3 both run the wide-I/O interface generation (flies.body.sites, flies.stimuli, flies.body.escape);
+// v3 additionally needs flies.brain.decoder, flies.body.locomotion/backup (contracts/world-config-v3.md).
+const WIDE_IO_VERSIONS = ['v2', 'v3'];
 // flies.stimuli[sense].from (contracts/world-config-wide-io.md, contracts/stimuli-field-sources.md): "edibles"/
 // "dangers" sample a world object list; "blocked" (touch) reads world walkability directly, with no object list;
 // "water"/"forestEdge" read the heat/danger field (contracts/world-format-sketch-map.md §3) at the channel's site.
@@ -584,10 +587,14 @@ function validateFlies(flies, config, err) {
 
   validateFlyBody(flies.body, err, brainVersionGuess);
   validateFlyFood(flies.food, err);
-  // v2 senses generically from flies.stimuli (contracts/world-config-wide-io.md), not the old singular
+  // v2/v3 sense generically from flies.stimuli (contracts/world-config-wide-io.md), not the old singular
   // flies.stimulus (v0/v1's antenna gain/max/resting/radius), so the two are mutually exclusive by version.
-  if (brainVersionGuess === 'v2') validateFlyStimuliWide(flies.stimuli, err);
+  if (WIDE_IO_VERSIONS.includes(brainVersionGuess)) validateFlyStimuliWide(flies.stimuli, err);
   else validateFlyStimulus(flies.stimulus, edible, err);
+
+  // flies.modulators.hunger.threshold (D32, contracts/world-config-v3.md): a world-config override, optional
+  // for every version (absent keeps today's linear gain curve, research.md §6).
+  validateModulatorsHunger(flies.modulators, err);
 
   // The brain is ignored in baseline mode, so it is only checked for toy flies
   if ((flies.mode ?? 'toy') === 'toy') validateFlyBrain(flies.brain, err);
@@ -638,14 +645,114 @@ function validateFlyBody(body, err, version) {
     }
   }
 
-  // flies.body.sites (v2 only, contracts/world-config-wide-io.md).
-  if (version === 'v2') validateBodySites(body.sites, err);
+  // flies.body.sites (v2/v3; contracts/world-config-wide-io.md).
+  if (WIDE_IO_VERSIONS.includes(version)) validateBodySites(body.sites, err);
 
-  // flies.body.escape (v2 only; contracts/world-config-wide-io.md). Present under any other version is refused.
-  if (body.escape !== undefined && version !== 'v2') {
-    err('flies.body.escape', 'is only for version "v2"');
-  } else if (version === 'v2') {
+  // flies.body.escape (v2/v3; contracts/world-config-wide-io.md). Present under any other version is refused.
+  if (body.escape !== undefined && !WIDE_IO_VERSIONS.includes(version)) {
+    err('flies.body.escape', 'is only for version "v2" or "v3"');
+  } else if (WIDE_IO_VERSIONS.includes(version)) {
     validateFlyEscape(body.escape, err);
+  }
+
+  // flies.body.locomotion/backup (v3 only, required; contracts/world-config-v3.md).
+  if (body.locomotion !== undefined && version !== 'v3') {
+    err('flies.body.locomotion', 'cannot be set for version "' + version + '"');
+  } else if (version === 'v3') {
+    if (body.locomotion === undefined) err('flies.body.locomotion', 'is required for version "v3"');
+    else validateBodyLocomotion(body.locomotion, err);
+  }
+  // flies.body.motor (v3 only, optional; contracts/world-config-v3.md, spec 017 BUG-004).
+  if (body.motor !== undefined && version !== 'v3') {
+    err('flies.body.motor', 'cannot be set for version "' + version + '"');
+  } else if (body.motor !== undefined) {
+    validateBodyMotor(body.motor, err);
+  }
+  // flies.body.crossWater (v3 only, optional; contracts/world-config-v3.md, spec 017 BUG-003).
+  if (body.crossWater !== undefined && version !== 'v3') {
+    err('flies.body.crossWater', 'cannot be set for version "' + version + '"');
+  } else if (body.crossWater !== undefined && typeof body.crossWater !== 'boolean') {
+    err('flies.body.crossWater', 'must be true or false');
+  }
+  if (body.backup !== undefined && version !== 'v3') {
+    err('flies.body.backup', 'cannot be set for version "' + version + '"');
+  } else if (version === 'v3') {
+    if (body.backup === undefined) err('flies.body.backup', 'is required for version "v3"');
+    else validateBodyBackup(body.backup, err);
+  }
+}
+
+// flies.body.locomotion (v3 only, required; contracts/world-config-v3.md, W12/W13).
+function validateBodyLocomotion(locomotion, err) {
+  if (!isObject(locomotion)) {
+    err('flies.body.locomotion', 'must be an object');
+    return;
+  }
+  const path = (key) => `flies.body.locomotion.${key}`;
+  if (!(isNum(locomotion.baseSpeed) && locomotion.baseSpeed > 0)) err(path('baseSpeed'), 'must be a number greater than 0');
+  if (!(isNum(locomotion.speedGain) && locomotion.speedGain >= 0)) err(path('speedGain'), 'must be a number of 0 or more');
+  if (!(isNum(locomotion.maxSpeed) && locomotion.maxSpeed > 0)) err(path('maxSpeed'), 'must be a number greater than 0');
+  if (!(isNum(locomotion.surgeGain) && locomotion.surgeGain >= 0)) err(path('surgeGain'), 'must be a number of 0 or more');
+  if (!(isNum(locomotion.wander) && locomotion.wander >= 0)) err(path('wander'), 'must be a number of 0 or more');
+  if (!(isNum(locomotion.turnGain) && locomotion.turnGain >= 0)) err(path('turnGain'), 'must be a number of 0 or more');
+  if (!(isNum(locomotion.castGain) && locomotion.castGain >= 0)) err(path('castGain'), 'must be a number of 0 or more');
+  const castMinOk = isNum(locomotion.castMin) && locomotion.castMin >= 0;
+  const castMaxOk = isNum(locomotion.castMax) && locomotion.castMax >= 0;
+  if (!castMinOk) err(path('castMin'), 'must be a number of 0 or more');
+  if (!castMaxOk) err(path('castMax'), 'must be a number of 0 or more');
+  if (castMinOk && castMaxOk && locomotion.castMin > locomotion.castMax) {
+    err(path('castMin'), 'must be at most castMax');
+  }
+}
+
+// flies.body.motor (v3 only, optional; spec 017 BUG-004): every key required, each a number greater than 0.
+function validateBodyMotor(motor, err) {
+  if (!isObject(motor)) {
+    err('flies.body.motor', 'must be an object');
+    return;
+  }
+  for (const key of ['maxTurnRate', 'escapeTurnRate', 'maxAccel', 'sprintSpeed']) {
+    if (!(isNum(motor[key]) && motor[key] > 0)) err(`flies.body.motor.${key}`, 'must be a number greater than 0');
+  }
+}
+
+// flies.body.backup (v3 only, required; contracts/world-config-v3.md, W14).
+function validateBodyBackup(backup, err) {
+  if (!isObject(backup)) {
+    err('flies.body.backup', 'must be an object');
+    return;
+  }
+  if (!(isNum(backup.threshold) && backup.threshold >= 0 && backup.threshold <= 1)) {
+    err('flies.body.backup.threshold', 'must be a number from 0 to 1');
+  }
+  if (!isInt(backup.ticks, 1, 100000)) err('flies.body.backup.ticks', 'must be a positive integer');
+}
+
+// flies.modulators.hunger.threshold (D32, contracts/world-config-v3.md): optional for every version.
+function validateModulatorsHunger(modulators, err) {
+  if (modulators === undefined) return;
+  if (!isObject(modulators)) {
+    err('flies.modulators', 'must be an object');
+    return;
+  }
+  // Each key is a snapshot modulator id ("hunger", "hunger-taste"). Whether the snapshot declares it is a runtime
+  // check (fly-brain-v1.js); the snapshot is not known here.
+  for (const [id, mod] of Object.entries(modulators)) {
+    if (!isObject(mod)) {
+      err(`flies.modulators.${id}`, 'must be an object');
+      continue;
+    }
+    if (mod.threshold !== undefined && id !== 'hunger') {
+      err(`flies.modulators.${id}.threshold`, 'is only for "hunger" (the hunger signal itself)');
+    } else if (mod.threshold !== undefined && !(isNum(mod.threshold) && mod.threshold >= 0 && mod.threshold < 1)) {
+      err('flies.modulators.hunger.threshold', 'must be a number from 0 to less than 1');
+    }
+    // D32: [gainMin, gainMax] replaces the snapshot's gain for this modulator, without re-extraction.
+    if (mod.gain !== undefined) {
+      const ok = Array.isArray(mod.gain) && mod.gain.length === 2 && mod.gain.every((g) => isNum(g) && g >= 0)
+        && mod.gain[0] <= mod.gain[1];
+      if (!ok) err(`flies.modulators.${id}.gain`, 'must be [gainMin, gainMax], numbers of 0 or more, gainMin ≤ gainMax');
+    }
   }
 }
 
@@ -674,6 +781,13 @@ function validateFlyStimuliWide(stimuli, err) {
       err(`${path}.radius`, 'must be a number greater than 0');
     }
     if (spec.contact !== undefined && typeof spec.contact !== 'boolean') err(`${path}.contact`, 'must be true or false');
+    // Sensory filters (spec 017 BUG-003; ADR 010 Part L "declared stimulus contrast gain, off by default").
+    if (spec.interpolate !== undefined && typeof spec.interpolate !== 'boolean') err(`${path}.interpolate`, 'must be true or false');
+    if (spec.contrast !== undefined) {
+      const c = spec.contrast;
+      const ok = isObject(c) && isNum(c.common) && c.common >= 0 && isNum(c.gain) && c.gain >= 0;
+      if (!ok) err(`${path}.contrast`, 'must be { common, gain }, numbers of 0 or more');
+    }
     // The field already fixes the falloff shape (contracts/stimuli-field-sources.md §2); per-world tuning is refused.
     if (FIELD_ONLY_SOURCES.includes(spec.from)) {
       for (const key of ['kinds', 'scaleBy', 'radius']) {
@@ -720,6 +834,16 @@ function validateFlyEscape(escape, err) {
   if (escape.cooldown !== undefined && !(isNum(escape.cooldown) && escape.cooldown > 0)) {
     err('flies.body.escape.cooldown', 'must be a number greater than 0');
   }
+  // escape.tau (spec 017 BUG-003): ticks the decoded alarm is integrated over before the threshold; 1 is none.
+  if (escape.tau !== undefined && !(isNum(escape.tau) && escape.tau >= 1)) {
+    err('flies.body.escape.tau', 'must be a number of 1 or more');
+  }
+  // escape.turn (spec 017 BUG-005): the escape turn range, radians, used when the side of the threat is unknown.
+  if (escape.turn !== undefined) {
+    const t = escape.turn;
+    const ok = isObject(t) && isNum(t.min) && isNum(t.max) && t.min >= 0 && t.min <= t.max && t.max <= Math.PI;
+    if (!ok) err('flies.body.escape.turn', 'must be { min, max } in radians, 0 ≤ min ≤ max ≤ π');
+  }
 }
 
 // Food (v1 only; contracts/world-config-forager.md, flies.food).
@@ -738,6 +862,8 @@ function validateFlyFood(food, err) {
   check('consumeRate', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
   check('regrowth', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
   check('sated', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
+  // Eating area (spec 017 BUG-002): Chebyshev radius, in cells, around a flower's cell.
+  check('reach', (v) => Number.isInteger(v) && v >= 0 && v <= 3, 'must be a whole number from 0 to 3');
 }
 
 function validateFlyStimulus(stimulus, edible, err) {
@@ -778,7 +904,7 @@ function validateFlyBrain(brain, err) {
   const snapshot = brain.snapshot;
   const isSnapshot = snapshot !== undefined;
   if (brain.version !== undefined && !BRAIN_VERSIONS.includes(brain.version)) {
-    err('flies.brain.version', 'must be "mock", "v0", "v1" or "v2"');
+    err('flies.brain.version', 'must be "mock", "v0", "v1", "v2" or "v3"');
   }
   const version = BRAIN_VERSIONS.includes(brain.version) ? brain.version : (isSnapshot ? 'v0' : 'mock');
   if (version === 'mock' && isSnapshot) {
@@ -786,6 +912,16 @@ function validateFlyBrain(brain, err) {
   }
   if (version !== 'mock' && !isSnapshot && BRAIN_VERSIONS.includes(brain.version)) {
     err('flies.brain.snapshot', `is required for version "${version}"`);
+  }
+
+  // flies.brain.decoder (v3 only, required; contracts/decoder-v1.md, contracts/world-config-v3.md).
+  if (brain.decoder !== undefined && version !== 'v3') {
+    err('flies.brain.decoder', `cannot be set for version "${version}"`);
+  } else if (version === 'v3') {
+    if (brain.decoder === undefined) err('flies.brain.decoder', 'is required for version "v3"');
+    else if (typeof brain.decoder !== 'string' || brain.decoder === '') {
+      err('flies.brain.decoder', 'must be a non-empty path to a decoder-v1 file');
+    }
   }
 
   // A snapshot brain takes its size from the file, so toy-only settings are a conflict (contracts/integration.md §1).
@@ -835,7 +971,7 @@ function validateFlyBrain(brain, err) {
   // The LIF keys are those of the brain's version: LIF_DEFAULTS for mock and v0, LIF_V1_DEFAULTS for v1 and v2
   // (ADR 007, "Decisions: LIF core and runner" -- v2 runs the identical lif-v1.js/fly-brain-v1.js path).
   if (brain.stepsPerTick !== undefined) {
-    if (version !== 'v1' && version !== 'v2') err('flies.brain.stepsPerTick', 'is only for version "v1" or "v2"');
+    if (!['v1', 'v2', 'v3'].includes(version)) err('flies.brain.stepsPerTick', 'is only for version "v1", "v2" or "v3"');
     else if (!isInt(brain.stepsPerTick, 1, 20)) err('flies.brain.stepsPerTick', 'must be an integer from 1 to 20');
   }
 
@@ -844,7 +980,7 @@ function validateFlyBrain(brain, err) {
       err('flies.brain.lif', 'must be an object of LIF parameters');
       return;
     }
-    const defaults = (version === 'v1' || version === 'v2') ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
+    const defaults = ['v1', 'v2', 'v3'].includes(version) ? LIF_V1_DEFAULTS : LIF_DEFAULTS;
     const entries = Object.entries(brain.lif);
     const unknown = entries.filter(([key]) => !Object.hasOwn(defaults, key));
     for (const [key] of unknown) err('flies.brain.lif', `unknown LIF parameter "${key}"`);
@@ -869,7 +1005,7 @@ function validateFlyBrain(brain, err) {
     // Range checks (dt > 0, vThreshold > vReset, ...) live in the engine (lif-v0.js, lif-v1.js), so they match it
     if (unknown.length === 0 && notNumbers.length === 0 && !outputScaleShapeInvalid) {
       try {
-        if (version === 'v1' || version === 'v2') resolveParamsV1(brain.lif);
+        if (['v1', 'v2', 'v3'].includes(version)) resolveParamsV1(brain.lif);
         else resolveParams(brain.lif);
       } catch (e) {
         err('flies.brain.lif', e.message);

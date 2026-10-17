@@ -8,7 +8,7 @@
 //   isStimulusCell(cx, cy),  true when the cell holds a fruit (contact is counted on entry)
 // }
 
-const cellKey = (cx, cy) => `${cx},${cy}`;
+export const cellKey = (cx, cy) => `${cx},${cy}`;
 
 export function createBody({ x, y, heading }) {
   return { x, y, heading, cell: cellKey(Math.floor(x), Math.floor(y)), contacts: 0 };
@@ -57,15 +57,16 @@ export function applyEscape(body, drives, env) {
   return body;
 }
 
-// Returns the first candidate position that is free: full, then x only, then y only, else stay.
-function pick(x, y, dx, dy, env) {
+// Returns the first candidate position that is free: full, then x only, then y only, else stay. Shared with
+// body-layer.js (W12/W13, v3 only) so every brain version resolves collisions the same way.
+export function pick(x, y, dx, dy, env) {
   if (free(x + dx, y + dy, env)) return { x: x + dx, y: y + dy };
   if (free(x + dx, y, env)) return { x: x + dx, y };
   if (free(x, y + dy, env)) return { x, y: y + dy };
   return { x, y };
 }
 
-function free(x, y, env) {
+export function free(x, y, env) {
   if (x < 0 || y < 0 || x >= env.width || y >= env.height) return false;
   return env.isWalkable(Math.floor(x), Math.floor(y));
 }

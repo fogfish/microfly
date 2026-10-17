@@ -42,8 +42,8 @@ export function sectionTable(headerLength, neuronCount, edgeCount) {
 // v1/v2, the snapshot's declared kind (channel-declaration-v5.md "Brain-version / kind cross-check"). v0 reads
 // version 3, with no kind to check; v1 reads version 4, kind "forager"; v2 reads version 4, kind "forager-wide".
 // mock has no snapshot, so it is not checked.
-const EXPECTED_CONTAINER_VERSION = { v0: 3, v1: 4, v2: 4 };
-const EXPECTED_KIND = { v1: 'forager', v2: 'forager-wide' };
+const EXPECTED_CONTAINER_VERSION = { v0: 3, v1: 4, v2: 4, v3: 4 };
+const EXPECTED_KIND = { v1: 'forager', v2: 'forager-wide', v3: 'forager-wide' };
 
 export function checkBrainVersion(brainVersion, containerVersion, kind, path = 'snapshot') {
   const expected = EXPECTED_CONTAINER_VERSION[brainVersion];

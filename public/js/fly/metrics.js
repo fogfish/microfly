@@ -122,3 +122,44 @@ export function escapeMean(records) {
     outside: mean(records.filter((r) => !r.inDanger).map((r) => r.escape)),
   };
 }
+
+// Part K, v3-style arms (ADR 010, spec.md SC-002/SC-003). These reuse only the per-tick records every v3-style
+// cohort already collects (dangerRecords/heatRecords: [{ distance }]; onFlower/eating pairs) — no new instrumentation.
+
+// K2. The fraction of arrivals at food (a tick where onFlower goes false -> true) followed by an eating tick
+// within `window` ticks (SC-002: "at least 80% ... within 50 ticks"). records: one fly's [{ onFlower, eating }],
+// one per tick, in tick order — call once per fly (never flatMap across flies: a window must not cross a fly
+// boundary, the same rule touchTurn (metric 9) already follows) and pool the returned { arrivals, fed } counts.
+export function feedArrivalWithin(records, window = 50) {
+  let arrivals = 0;
+  let fed = 0;
+  for (let i = 0; i < records.length; i++) {
+    const prevOnFlower = i > 0 ? records[i - 1].onFlower : false;
+    if (prevOnFlower || !records[i].onFlower) continue;
+    arrivals++;
+    for (let k = i; k <= Math.min(i + window, records.length - 1); k++) {
+      if (records[k].eating) { fed++; break; }
+    }
+  }
+  return { rate: arrivals ? fed / arrivals : null, arrivals, fed };
+}
+
+// K4. The fraction of hazard-ring encounters (a tick where distance goes from > radius to <= radius) followed,
+// within `window` ticks, by the fly leaving the ring again (distance > radius) — "escape or turn away" (SC-003:
+// "at least 90% ... within 20 ticks"), read off the same distance trace avoidFraction (K5/K6) already uses: both
+// an escape jump and a steering turn-away show up as the fly leaving the ring, so no separate escape flag is
+// needed. records: one fly's [{ distance }], one per tick, in tick order — call once per fly (never flatMap
+// across flies, same boundary rule as feedArrivalWithin above) and pool the returned { encounters, resolved } counts.
+export function escapeOrTurnWithin(records, radius, window = 20) {
+  let encounters = 0;
+  let resolved = 0;
+  for (let i = 0; i < records.length; i++) {
+    const prevIn = i > 0 ? records[i - 1].distance <= radius : false;
+    if (prevIn || records[i].distance > radius) continue;
+    encounters++;
+    for (let k = i + 1; k <= Math.min(i + window, records.length - 1); k++) {
+      if (records[k].distance > radius) { resolved++; break; }
+    }
+  }
+  return { rate: encounters ? resolved / encounters : null, encounters, resolved };
+}

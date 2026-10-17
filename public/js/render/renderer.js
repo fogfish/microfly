@@ -49,11 +49,18 @@ export function createRenderer(canvas, sprites) {
     const toDeviceX = (wx) => Math.round((wx * CELL_PX - camera.x) * scale);
     const toDeviceY = (wy) => Math.round((wy * CELL_PX - camera.y) * scale);
 
+    // A fly is drawn facing its heading (spec 017 BUG-001). The pixel art faces up (−y, screen north) and the body's
+    // heading is 0 east, increasing clockwise on screen (y points down; body.js, stimulus.js), so the sprite turns by
+    // heading + π/2. The world physics and the sensing sites already use the heading; only the drawing ignored it.
     for (const f of flies) {
       const s = sprites.get(f.sprite);
-      const x0 = toDeviceX(f.body.x) - Math.round((s.sw * scale) / 2);
-      const y0 = toDeviceY(f.body.y) - Math.round((s.sh * scale) / 2);
-      ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, x0, y0, Math.round(s.sw * scale), Math.round(s.sh * scale));
+      const w = Math.round(s.sw * scale);
+      const h = Math.round(s.sh * scale);
+      ctx.save();
+      ctx.translate(toDeviceX(f.body.x), toDeviceY(f.body.y));
+      ctx.rotate((f.body.heading ?? 0) + Math.PI / 2);
+      ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, -Math.round(w / 2), -Math.round(h / 2), w, h);
+      ctx.restore();
     }
   }
 

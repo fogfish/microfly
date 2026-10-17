@@ -53,15 +53,25 @@ settings it was tuned with (`?world=world/world-antennal-lobe.json`).
 | `v0` | small connectome brain (ADR 002) | version 3 | `lif-v0.js` | 2 |
 | `v1` | forager brain (ADR 003), kind `"forager"` | version 4 | `lif-v1.js` | 3 |
 | `v2` | wide-I/O forager brain (ADR 007), kind `"forager-wide"` | version 4 | `lif-v1.js` (unchanged) | 3 |
+| `v3` | demo forager brain (ADR 010): decoded readout + body layer, same `"forager-wide"` snapshot as `v2` | version 4 | `lif-v1.js` (+ `baselineCurrent`, off by default) | 3 |
 
 The version is optional. Without it, a world with no `snapshot` is `mock`, and a world with one is `v0`, so every existing
-world keeps its meaning. A `v1` world needs a version 4 snapshot of kind `"forager"`, and `v2` needs kind
+world keeps its meaning. A `v1` world needs a version 4 snapshot of kind `"forager"`, and `v2`/`v3` need kind
 `"forager-wide"`; a version or kind mismatch stops the app before any fly starts, and names both sides.
 `world-forager-bad.json` is a test fixture that names a version 3 file under `v1`, so it must refuse to start.
 `"v2"` runs the identical `lif-v1.js`/`fly-brain-v1.js` path as `"v1"` (ADR 007: "v2" names the wider interface
 generation, not a new LIF core) — it only senses generically from each channel's declared `sense`/`site`
 (`forager-step-wide.js`) instead of `v1`'s four hard-coded inputs, and gains `flies.stimuli`, `flies.body.sites`
 and `flies.body.escape` in place of `v1`'s singular `flies.stimulus`.
+
+`"v3"` (ADR 010, contracts/world-config-v3.md in `specs/017-demo-forager/`) keeps `v2`'s sensing unchanged but
+replaces its hard-wired motor path with a decoded readout: `flies.brain.decoder` names a `decoder-v1` sidecar
+file (`<snapshot-basename>.decoder.json`, next to the `.brain` file) that declares which pools of neurons carry
+each sense's side/drive signal and its approach/avoid/none valence — produced by a calibration run
+(`.claude/skills/microfly-calibrate`), never hand-wired. A `v3` world additionally requires
+`flies.body.locomotion` and `flies.body.backup` (the declared nerve-cord stand-in's walking/steering/backing-up
+parameters, `public/js/fly/body-layer.js`), and may set `flies.modulators.hunger.threshold` to reshape the hunger
+gain curve (default: today's linear curve, unchanged).
 
 ## The forager world: `world-forager.json`
 

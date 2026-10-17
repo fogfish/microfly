@@ -46,9 +46,29 @@ export function createFlyBrain(brainConfig, seed) {
   const seen = new Uint8Array(neuronCount);
   let ticks = 0;
 
+  // D32 (ADR 010, world-config-v3.md): an optional runtime override on the hunger ramp, read from world config
+  // (flies.modulators.hunger.threshold), never from the snapshot (research.md §6) — absent keeps today's linear
+  // curve unchanged for v0/v1/v2.
+  const hungerThreshold = brainConfig.modulators?.hunger?.threshold;
+  // D32: flies.modulators.<id>.gain replaces a snapshot modulator's [gainMin, gainMax] at runtime, so ADR 010's
+  // targets (odour-food gainMin 0: a sated brain receives no food odour) need no re-extraction. Absent: the
+  // snapshot's own gain, unchanged for v0/v1/v2. A key naming no snapshot modulator is refused.
+  const gainOverride = brainConfig.modulators ?? {};
+  for (const id of Object.keys(gainOverride)) {
+    if (gainOverride[id]?.gain !== undefined && !modulators.some((m) => m.id === id)) {
+      throw new Error(`flies.modulators.${id}: the snapshot declares no modulator "${id}"`);
+    }
+  }
+  const gainOf = (mod) => gainOverride[mod.id]?.gain ?? mod.gain;
+
   // The value of a modulator at hunger h: the signal itself for a range modulator, else its source's value.
+  // D32's ramp (m' = 0 below threshold, else the linear ramp from threshold to 1) replaces the bare hunger value
+  // at the base case, so every modulator deriving from "hunger" (by source chain) inherits the same ramp.
   function modulatorValue(mod, hunger) {
-    if (mod.range !== undefined) return hunger;
+    if (mod.range !== undefined) {
+      if (hungerThreshold === undefined) return hunger;
+      return hunger < hungerThreshold ? 0 : (hunger - hungerThreshold) / (1 - hungerThreshold);
+    }
     return modulatorValue(modulators.find((m) => m.id === mod.source), hunger);
   }
 
@@ -58,7 +78,7 @@ export function createFlyBrain(brainConfig, seed) {
       let gain = 1;
       for (const mod of modulators) {
         if (!mod.targets.includes(ch.id)) continue;
-        const [g0, g1] = mod.gain;
+        const [g0, g1] = gainOf(mod);
         gain *= g0 + (g1 - g0) * modulatorValue(mod, hunger);
       }
       return gain;

@@ -44,6 +44,11 @@ export function buildStatusModel(record, nowMs) {
     // Gated on the derived signal, not on whether the header happens to have the key (panel-provenance-signals.md).
     provenance: record.capabilities.signals?.includes('provenance') ? record.provenance : undefined,
     fidelity: record.capabilities.signals?.includes('fidelity') ? record.fidelity : undefined,
+    // D31: the decoded readout (decoder.js's per-tick decode) plus each declared sense's pool size, from the
+    // decoder-v1 file itself (contracts/decoder-v1.md) — gated on the 'decoder' signal fly-host.js adds for a
+    // v3 fly, same convention as provenance/fidelity above.
+    decoded: record.capabilities.signals?.includes('decoder') ? last?.decoded : undefined,
+    decoderPools: record.capabilities.signals?.includes('decoder') ? record.decoderFile?.pools : undefined,
     activeCount: counts ? activeCount(counts) : 0,
     // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,

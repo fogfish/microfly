@@ -24,7 +24,7 @@ test('an explicit v1 is kept, and the resolved brain carries its version', () =>
 
 test('an unknown version is refused with the contract message', () => {
   assert.ok(messages({ version: 'v9', snapshot: 'brains/f.brain' })
-    .includes('flies.brain.version must be "mock", "v0", "v1" or "v2"'));
+    .includes('flies.brain.version must be "mock", "v0", "v1", "v2" or "v3"'));
 });
 
 test('a snapshot with version "mock" is refused, and v1 needs a snapshot', () => {

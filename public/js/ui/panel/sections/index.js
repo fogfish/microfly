@@ -5,5 +5,6 @@ import { neuronMapSection } from './neuron-map.js';
 import { inputsSection } from './inputs.js';
 import { outputsSection } from './outputs.js';
 import { provenanceSection } from './provenance.js';
+import { decoderSection } from './decoder.js';
 
-export const SECTIONS = [actionSection, neuronMapSection, inputsSection, outputsSection, provenanceSection];
+export const SECTIONS = [actionSection, neuronMapSection, inputsSection, outputsSection, provenanceSection, decoderSection];

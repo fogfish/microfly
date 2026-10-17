@@ -272,6 +272,20 @@ body {
   white-space: pre-wrap;
 }
 
+/* Decoded-readout section (D31, ADR 010 Part E/K) */
+.decoder-label {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+  margin: 2px 0;
+}
+
+.decoder-row {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin: 2px 0;
+}
+
 /* Tabs (BUG-001): World (fly list) and Fly (status) */
 .tabs {
   display: flex;
