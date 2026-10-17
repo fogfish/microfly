@@ -353,8 +353,8 @@ The skill, its engine and `scripts/compare-connectivity.mjs` exist only on branc
 - **LHN as a seed at 11–12K.** Measured worse (D8, Annex A4).
 - **Flow × output pair selection (withdrawn ADR 006 D11).** It failed (Context 2).
 - **`synapseCount` weights.** They failed (Context 1).
-- **smallfly's controller** (speed floor, wander noise, hand-coded cast and surge, forced eating, steering read from the
-  ORNs). Rejected by Principle VI. It is the reason smallfly's brain does not need to converge.
+- **fly's controller** (speed floor, wander noise, hand-coded cast and surge, forced eating, steering read from the
+  ORNs). Rejected by Principle VI. It is the reason fly's brain does not need to converge.
 
 ## Open questions
 
@@ -369,7 +369,7 @@ The skill, its engine and `scripts/compare-connectivity.mjs` exist only on branc
   from sensory classes not yet in the brain (danger ORNs, heat, JO) and new outputs. Each adds its pool neurons as
   whole classes and leaves the central seed classes as they are. The probe's taste → forward sign is the first number
   to check after fixing the pool.
-- **Q5. Tonic baseline and noise** (`FLY-NOTE-v2.md` §3.5). This is the regime smallfly runs in. It is a LIF and runner
+- **Q5. Tonic baseline and noise** (`FLY-NOTE-v2.md` §3.5). This is the regime fly runs in. It is a LIF and runner
   change, kept out so that this experiment isolates topology.
 - **Q6. Larger output pools from data** (§3.6). A functionally decoded set of side-selective DNs, chosen by a declared
   rule. This is an output change, so it belongs with Q4.
@@ -383,7 +383,6 @@ The skill, its engine and `scripts/compare-connectivity.mjs` exist only on branc
 - `FLY-NOTE-v2.md`: root causes of the 15K failure.
 - Branch `013-forager-brain-15k-lif-v2`: the withdrawn ADR 006 and 007, `calibration.md`, BUG-001 to BUG-004, the
   calibration skill.
-- smallfly, `scripts/select_subgraph.py` and `export_graph.py`: the seed-and-fill rule and the sign rule this ADR adopts.
 - Shiu, P.K. et al. (2024) A Drosophila computational brain model reveals sensorimotor processing. *Nature* 634, 210–219.
 
 ## Annex A: measurements
@@ -406,7 +405,7 @@ self-loops dropped.
 
 ### A2. Class counts (traced)
 
-| Class (smallfly mask)            | Bodies             |     | Class                                 | Bodies     |
+| Class (fly smask)                | Bodies             |     | Class                                 | Bodies     |
 | -------------------------------- | ------------------ | --- | ------------------------------------- | ---------- |
 | ORN (`olfactory`)                | 2,639              |     | DN (`descending_neuron*`)             | 1,314      |
 | ALPN                             | 686                |     | `vnc_motor`                           | 708        |
