@@ -1,9 +1,11 @@
-<h1 align="center">microfly</h1>
-
-<p align="center">
-  <strong>Real fruit fly connectomes in a tiny arcade world.</strong><br/>
+<div style="text-align:center">
+  <img src="doc/microfly.png" alt="microfly logo, robotic fly" height="180"/>
+  <h1 align="center">microfly</h1>
+  <strong>Real fruit fly connectomes in a tiny arcade world.</strong>
   Spiking brains cut from the male <em>Drosophila</em> CNS, each fly running its own brain in your browser.
-</p>
+</div>
+<br/>
+<br/>
 
 <table>
   <tr>
@@ -29,20 +31,21 @@ cd public
 python3 -m http.server 8000
 ```
 
-Open <http://localhost:8000/?world=world/world-forager.json>.
+Open <http://localhost:8000/>.
 
 Six flies start hungry, smell flowers, walk to them, eat, and leave. Pick a fly in the **world** tab to see its action, energy, neuron activity and left/right input and output channels in the **fly** tab. The odour layer toggle in the world tab draws the smell field as a heatmap.
 
 Other worlds on the same server:
 
-| URL                                      | Brain                                        |
-| ---------------------------------------- | -------------------------------------------- |
-| `/`                                      | `mock`: random toy network                   |
-| `/?world=world/world-connectome.json`    | `v0`: smallest functional brain (11 neurons) |
-| `/?world=world/world-antennal-lobe.json` | `v0`: antennal-lobe brain (35 neurons)       |
-| `/?world=world/world-forager.json`       | `v1`: hungry forager brain (~3,400 neurons)  |
-| `/?world=world/world-forager-11k.json`   | `v1`: class-seeded forager brain (11,000 neurons) |
-| `/?world=world/world-forager-wide.json`  | `v2`: wide-I/O forager brain (14,500 neurons, twelve senses) |
+| URL                                      | Brain                                                                |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| `/`                                      | `v2`: default wide-I/O forager brain (14,500 neurons, twelve senses) |
+| `/?world=world/world.json`               | `mock`: random toy network                                           |
+| `/?world=world/world-connectome.json`    | `v0`: smallest functional brain (11 neurons)                         |
+| `/?world=world/world-antennal-lobe.json` | `v0`: antennal-lobe brain (35 neurons)                               |
+| `/?world=world/world-forager.json`       | `v1`: hungry forager brain (~3,400 neurons)                          |
+| `/?world=world/world-forager-11k.json`   | `v1`: class-seeded forager brain (11,000 neurons)                    |
+| `/?world=world/world-forager-wide.json`  | `v2`: wide-I/O forager brain (14,500 neurons, twelve senses)         |
 
 ### (b) Simulated brain inspector
 
@@ -112,13 +115,13 @@ All neural computation is off the main thread, and every run is reproducible fro
 
 Select a brain with `flies.brain` in the world config (see [public/world/README.md](public/world/README.md)).
 
-| Brain                         | Version | Size                              | What it is                                                                                                                                                                                                                                                                                  |
-| ----------------------------- | ------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Mock**                      | `mock`  | 40 neurons                        | A seeded random graph with excitatory and inhibitory neurons. One odour input, left and right motor outputs. A test fixture that checks the LIF core and the worker plumbing before real data is involved ([ADR 001](adrs/001-lif-toy-network-and-fly-integration.md)).                     |
-| **Smallest functional brain** | `v0`    | 11 neurons                        | The smallest real subgraph that can drive a fly: one olfactory projection neuron (ALPN) → interneurons → a left and a right descending neuron. Every neuron is a traced body from the dataset ([ADR 002](adrs/002-smallest-functional-brain.md)).                                           |
-| **Antennal-lobe brain**       | `v0`    | 35 neurons                        | Same idea with olfactory receptor neurons (ORN) as the entry point, tuned as the best single-input brain. It finds flowers by looping, not by following the odour. Kept as a comparison arm.                                                                                                |
-| **Hungry forager**            | `v1`    | ~3,400 neurons, ~205K connections | Bilateral smell and taste pools feed about 2,600 interneurons ranked by information flow. Outputs are the real steering (DNa01, DNa02), forward (DNp09), backward (MDN) and feeding (MN9) neurons. Hunger raises the gain of smell and taste ([ADR 003](adrs/003-hungry-forager-brain.md)). |
-| **Class-seeded forager**      | `v1`    | 11,000 neurons, ~448K connections | The same six channels as the hungry forager, but the interneurons are whole functional classes (every antennal-lobe PN/LN, every Kenyon cell, MBON, DAN, every descending neuron) plus ~2,900 more by shared connectivity — not ranked by flow. Every traced body is admitted; an extraction-fidelity probe checks the brain still carries the connectome's steering and feeding routes before it ships ([ADR 006](adrs/006-class-seeded-forager-brain.md)). |
+| Brain                         | Version | Size                              | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | ------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Mock**                      | `mock`  | 40 neurons                        | A seeded random graph with excitatory and inhibitory neurons. One odour input, left and right motor outputs. A test fixture that checks the LIF core and the worker plumbing before real data is involved ([ADR 001](adrs/001-lif-toy-network-and-fly-integration.md)).                                                                                                                                                                                                                                                                                                                    |
+| **Smallest functional brain** | `v0`    | 11 neurons                        | The smallest real subgraph that can drive a fly: one olfactory projection neuron (ALPN) → interneurons → a left and a right descending neuron. Every neuron is a traced body from the dataset ([ADR 002](adrs/002-smallest-functional-brain.md)).                                                                                                                                                                                                                                                                                                                                          |
+| **Antennal-lobe brain**       | `v0`    | 35 neurons                        | Same idea with olfactory receptor neurons (ORN) as the entry point, tuned as the best single-input brain. It finds flowers by looping, not by following the odour. Kept as a comparison arm.                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Hungry forager**            | `v1`    | ~3,400 neurons, ~205K connections | Bilateral smell and taste pools feed about 2,600 interneurons ranked by information flow. Outputs are the real steering (DNa01, DNa02), forward (DNp09), backward (MDN) and feeding (MN9) neurons. Hunger raises the gain of smell and taste ([ADR 003](adrs/003-hungry-forager-brain.md)).                                                                                                                                                                                                                                                                                                |
+| **Class-seeded forager**      | `v1`    | 11,000 neurons, ~448K connections | The same six channels as the hungry forager, but the interneurons are whole functional classes (every antennal-lobe PN/LN, every Kenyon cell, MBON, DAN, every descending neuron) plus ~2,900 more by shared connectivity — not ranked by flow. Every traced body is admitted; an extraction-fidelity probe checks the brain still carries the connectome's steering and feeding routes before it ships ([ADR 006](adrs/006-class-seeded-forager-brain.md)).                                                                                                                               |
 | **Wide-I/O forager**          | `v2`    | 14,500 neurons, ~731K connections | The class-seeded brain's own topology rule plus every presynaptic partner of the output pools as a seed, so the readout keeps all its premotor input ([ADR 009](adrs/009-output-partner-seeds.md)), re-extracted with twelve bilateral senses (food odour, danger odour, heat, mouth taste, leg taste, touch) and six outputs (turn L/R, forward, backward, feed, escape). The host senses generically from each channel's declared `sense`/`site` instead of four hard-coded inputs. Escape is read out but its physics is off by default ([ADR 007](adrs/007-wide-io-forager-brain.md)). |
 
 On held-out seeds the forager finds a flower in 42% of runs, against 27% for a random walk and 4% for a random network with the same size and weights. Hungry flies find food more often than sated ones. Eating bouts are still short: see [gate-c.md](specs/008-hungry-forager-brain/gate-c.md). The class-seeded brain's own comparison is in [specs/012-class-seeded-forager-brain/results.md](specs/012-class-seeded-forager-brain/results.md); the wide-I/O brain's is in [specs/013-wide-io-forager-brain/results.md](specs/013-wide-io-forager-brain/results.md).
