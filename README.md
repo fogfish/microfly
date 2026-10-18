@@ -1,7 +1,7 @@
 <p align="center">
   <img src="doc/microfly.png" alt="microfly logo, robotic fly" height="180"/>
   <h1 align="center">microfly</h1>
-  <p align="center"><strong>Real fruit fly connectomes in a tiny arcade world.</strong>
+  <p align="center"><strong>Real fruit fly connectomes in a tiny arcade world.</strong><br/>
   Spiking brains cut from the male <em>Drosophila</em> CNS, each fly running its own brain in your browser.</p>
 </p>
 
