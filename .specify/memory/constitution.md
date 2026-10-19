@@ -1,30 +1,26 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 2.0.0
-Bump rationale: MAJOR — Principle VI is redefined (incompatible with the previous text: scripted
-  behaviour was bounded only by "brain output"; it is now bounded by a declared decoder and body
-  layer, with the brain's decision scope made explicit). Driven by ADR 010 ("Demo forager"),
-  Part A.
+Version change: 2.0.0 → 2.1.0
+Bump rationale: MINOR — Principle VI gains a new rule for adding senses. The rule extends the
+  existing "brain decides" and "mappings declared in data" rules to every future sense; no
+  principle is removed or redefined.
 
 Principles modified:
-  - III. Connectome-Grounded Brain Snapshots → one bullet added (declared readout-pool selection
-    rule, applied identically to null-arm brains)
-  - V. Faithful, Inspectable LIF Simulation → one bullet added (bounded, off-by-default online
-    plasticity)
-  - VI. Living World, Embodied Flies → redefined: brain vs. body-layer decision boundary made
-    explicit; decoder and body layer MUST be declared in data; valence MAY be declared
+  - VI. Living World, Embodied Flies → one bullet added: every new sense MUST be declared in
+    data (snapshot sensory channel + world stimulus mapping) and MUST reach behaviour only
+    through simulated neurons; a sense with no matching neurons fails with a named error
 
-Added sections:
-  - Demo Acceptance (new top-level section, after Core Principles)
+Added sections: none
 
 Removed sections: none
 
 Dependent artifacts:
-  - AGENTS.md hard rule 6 is a follow-on from this amendment (ADR 010, "AGENTS.md hard rules").
-    Not modified by this command per its scope guard; tracked as a Next Action.
-  - specs/*/plan.md Constitution Check sections for any in-flight feature should be re-checked
-    against the new Principle VI text; no in-flight plan found to update at amendment time.
+  - AGENTS.md hard rule 6 summarises Principle VI and could mention the new-sense rule. Not
+    modified by this command per its scope guard.
+  - Plans that add a sense (for example specs/018-hunger-sensitivity-feeding, if hunger is
+    treated as a sense rather than an internal state) MUST re-run their Constitution Check
+    against the new bullet.
 
 Deferred TODOs: none
 -->
@@ -152,6 +148,13 @@ Flies MUST live and interact in an interactive environment rendered by the same 
   the panel and in the README as declared, not learned.
 - The mapping from world stimuli to sensory neurons, from neurons to decoded signals, and
   from decoded signals to body commands MUST be declared in data, not hidden in world code.
+- **Every new sense MUST be declared in data and read from simulated neurons.** Adding a
+  sense means declaring a sensory channel in the snapshot, naming its dataset sensory neurons
+  (by `bodyId`, `type` or `class`), and declaring its stimulus mapping in the world config.
+  The stimulus MUST drive only those neurons, and the sense MUST affect behaviour only through
+  decoded activity of simulated neurons. A sense MUST NOT feed the decoder, body layer or
+  action code directly. A sense whose declared neurons are missing from the snapshot MUST fail
+  with a named error instead of falling back to a scripted signal.
 - Scripted behaviour MUST NOT override decoded brain signals, except in labelled debug or
   baseline modes.
 
@@ -225,4 +228,4 @@ conflicts with it, the constitution wins unless it is amended first.
 - **Compliance:** every plan's Constitution Check and every review MUST verify compliance.
   Deviations MUST be justified in the plan's complexity tracking, or the constitution amended.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-17
+**Version**: 2.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-19
