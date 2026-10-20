@@ -149,3 +149,16 @@ block is a placeholder (a copy of the 11K world's own calibrated block) until th
 `results.md` records which run, if any, that value came from. `world-forager-wide-bad.json` is a test fixture
 that names this brain's snapshot (kind `"forager-wide"`) under `v1`, so it must refuse to start on the kind
 mismatch, the same mechanism `world-forager-11k-bad.json` exercises for a version mismatch.
+
+## The mushroom-body learning worlds (ADR 011): do not currently load a fly
+
+`world-forager-learning.json` (sketch map) and `world-forager-learning-tilemap.json` (a second, structurally
+distinct tile-section map) name the two-food-odour brain (`brains/forager-brain-mb.brain`, from
+`extract/configs/forager-brain-mb.json`) and its learning sidecar (`brains/forager-brain-mb.learning.json`,
+contracts/learning-v1.md), with flowers tagged `scent: "fruit"`/`"floral"` and `flies.stimuli["odour:food-a"]`/
+`["odour:food-b"]` reading them. **They name no `flies.brain.decoder` file that exists** —
+`brains/forager-brain-mb.decoder.json` was never produced, because ADR 011's regime gate (FR-008's hard stop on
+this feature) rejected the brain before decoder calibration was attempted: the KC population is in an up-state
+(fires for almost any input) even after the one allowed remedy. Opening either world in the app will fail to
+start a fly (404 on the decoder fetch). See `adrs/011-mb-valence-learning.md` and
+`specs/019-mb-valence-learning/regime-gate.md` for the measured finding.

@@ -265,6 +265,64 @@ class PartnerSeedTest(unittest.TestCase):
         self.assertEqual(brain["seedCount"], base["seedCount"] + 1)  # 720 only; 701 was a seed already
 
 
+def with_class_seeded_input_pool(data):
+    """ADR 011 (specs/019-mb-valence-learning §6 open risk): two labelled SYNTHETIC bodies of the already-seeded
+    class SEEDCLS (720 L, 721 R), also declared as a new `reinforcement` input pair. This mirrors a PAM/PPL1 DAN
+    body that is both named by seeds[].class and a declared reinforcement-* input pool. fill.neuronCount is
+    raised by 2 to keep room for them beside the fixture's existing 20-body selection."""
+    data = copy.deepcopy(data)
+    template = next(a for a in data["annotations"] if a["bodyId"] == 701)
+    for body, side in ((720, "L"), (721, "R")):
+        data["annotations"].append({**template, "bodyId": body, "rootSide": side, "type": "SC_B"})
+        data["transmitters"].append({"body": body, "consensus_nt": "acetylcholine"})
+    config = data["config"]
+    config["inputs"] = {
+        **config["inputs"],
+        "reinforcement-left": {"class": "SEEDCLS", "pair": "reinforcement", "types": ["SC_B"], "rootSide": "L"},
+        "reinforcement-right": {"class": "SEEDCLS", "pair": "reinforcement", "types": ["SC_B"], "rootSide": "R"},
+    }
+    config["sideMatch"] = {**config["sideMatch"], "reinforcement": True}
+    config["fill"] = {**config["fill"], "neuronCount": config["fill"]["neuronCount"] + 2}
+    # resolve_pools walks _input_order, which reads capabilities.channels.inputs, not config["inputs"] directly.
+    config["capabilities"] = copy.deepcopy(config["capabilities"])
+    config["capabilities"]["channels"]["inputs"] += [
+        {"id": "reinforcement-left", "label": "Reinforcement left", "range": [0, 1],
+         "sense": "reinforcement", "side": "L", "site": "central"},
+        {"id": "reinforcement-right", "label": "Reinforcement right", "range": [0, 1],
+         "sense": "reinforcement", "side": "R", "site": "central"},
+    ]
+    return data
+
+
+class ClassSeededInputPoolTest(unittest.TestCase):
+    """A body matching both a seeds[].class filter and a declared input pool (ADR 011 §6 open risk: a DAN named
+    by seeds[].class: DAN and by a declared reinforcement-* pool) must move to the input section, must not raise
+    the existing "a body is a member of two pools" E-CONFIG rule, and must not be double-counted in seedCount."""
+
+    def setUp(self):
+        self.data = with_class_seeded_input_pool(load())
+
+    def test_no_member_of_two_pools_error(self):
+        run(self.data)  # raises E-CONFIG on failure
+
+    def test_moves_to_the_input_section_not_interneuron(self):
+        brain = run(self.data)
+        by_body = {n["bodyId"]: n for n in brain["neurons"]}
+        self.assertEqual(by_body[720]["role"], "input")
+        self.assertEqual(by_body[720]["channel"], "reinforcement-left")
+        self.assertEqual(by_body[721]["role"], "input")
+        self.assertEqual(by_body[721]["channel"], "reinforcement-right")
+
+    def test_not_double_counted_against_seed_count_or_fill(self):
+        base = run(load())
+        brain = run(self.data)
+        # 720 and 721 are new: +2 to seedCount (pool membership), never +4 (which double-counting via both the
+        # class seed and the pool would give), and fillCount is unaffected since neither needed fill.
+        self.assertEqual(brain["seedCount"], base["seedCount"] + 2)
+        self.assertEqual(brain["fillCount"], base["fillCount"])
+        self.assertEqual(len(brain["neurons"]), len(base["neurons"]) + 2)
+
+
 class DeterminismTest(unittest.TestCase):
     def test_same_config_and_fixture_give_byte_identical_output(self):
         data = load()

@@ -13,22 +13,26 @@ import { decodeTick } from './decoder.js';
 import { stepBodyLayer } from './body-layer.js';
 
 // The sampler for one declared sense (ADR 007 W8, contracts/world-config-wide-io.md, contracts/stimuli-field-
-// sources.md §4): "edibles" reads the shared flower table (field food odour, taste/contact alike); "dangers"
-// reads static hazard points, filtered by the sense's declared kinds; "blocked" (touch) reads world walkability
-// directly, with no point list; "water"/"forestEdge" read the heat/danger field at the site's own cell.
+// sources.md §4): "edibles" reads the shared flower table (field food odour, taste/contact alike), filtered by
+// the sense's declared `scents` if any (contracts/world-config-v3-learning.md, ADR 011); "dangers" reads static
+// hazard points, filtered by the sense's declared kinds; "blocked" (touch) reads world walkability directly,
+// with no point list; "water"/"forestEdge" read the heat/danger field at the site's own cell.
 // Out-of-bounds (cx, cy) reads 0, the same safe default contactAt already implies off-grid.
 // reach: flies.food.reach, the eating area (fly-world.js flowerAt). Taste contact is read over the same area the
 // fly can eat in, so the mouth tastes a flower wherever it can feed on it (spec 017 BUG-002); 0 keeps v2's
 // own-cell contact.
 function samplerFor(spec, world, flowers, reach = 0) {
   if (spec.from === 'edibles') {
+    // scents (contracts/world-config-v3-learning.md, ADR 011): restricts the odour field to flowers of the
+    // listed scent(s); taste/contact senses read every flower regardless (no scents key on a taste channel).
+    const units = spec.scents ? (world.foodUnits ?? []).filter((u) => spec.scents.includes(u.scent)) : (world.foodUnits ?? []);
     return {
-      points: () => flowers.points(),
+      points: () => (spec.scents ? flowers.points().filter((p) => spec.scents.includes(p.scent)) : flowers.points()),
       contactAt: (cx, cy) => {
         const idx = flowerAt(world, cx, cy, reach);
         return idx < 0 ? 0 : flowers.fraction(idx % world.width, Math.floor(idx / world.width));
       },
-      fieldAt: (cx, cy) => foodFieldAt(world.foodUnits ?? [], flowers, cx, cy),
+      fieldAt: (cx, cy) => foodFieldAt(units, flowers, cx, cy),
       width: world.width,
       height: world.height,
     };
@@ -68,10 +72,13 @@ function samplerFor(spec, world, flowers, reach = 0) {
 // supported"). `spec.field` is not a world-config key (research.md R3); it is derived here, per call, so the
 // shared `f.stimuli` object itself (env.stimuli) is never mutated.
 const FIELD_SOURCES = new Set(['water', 'forestEdge']);
+// odour:food-a/food-b (ADR 011): the per-scent senses the field-mode fast path also applies to; samplerFor's
+// fieldAt already filters world.foodUnits by spec.scents, so field mode stays correct per scent.
+const FOOD_FIELD_SENSES = new Set(['odour:food', 'odour:food-a', 'odour:food-b']);
 function declaredSpec(sense, spec) {
   if (spec.contact || spec.field) return spec;
   if (FIELD_SOURCES.has(spec.from)) return { ...spec, field: true };
-  if (spec.from === 'edibles' && sense === 'odour:food' && spec.radius === undefined) return { ...spec, field: true };
+  if (spec.from === 'edibles' && FOOD_FIELD_SENSES.has(sense) && spec.radius === undefined) return { ...spec, field: true };
   return spec;
 }
 

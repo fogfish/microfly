@@ -34,7 +34,9 @@ export function buildWorld(config, logic) {
   for (let idx = 0; idx < logic.edible.length; idx++) {
     const kind = logic.edible[idx];
     if (kind !== null && wanted.has(kind)) {
-      stimulusCells.set(idx, { kind, reach: foodRadius * logic.edibleSize[idx] });
+      // scent (contracts/world-config-v3-learning.md, ADR 011): orthogonal to kind; null for a world that
+      // declares none, so every pre-existing world's flowers carry no scent (unchanged behaviour).
+      stimulusCells.set(idx, { kind, reach: foodRadius * logic.edibleSize[idx], scent: logic.edibleScent?.[idx] ?? null });
     }
   }
   // Danger cells (ADR 007 W8, contracts/world-config-wide-io.md: odour:danger and heat read from here by
@@ -61,13 +63,15 @@ export function buildWorld(config, logic) {
   // One cached kernel per food unit (research.md R4): the shape is static (units never move), so it is built
   // once here; the stock fraction that scales it is read live at sense time (fly/food.js createFood), via
   // world/food-field.js's foodFieldAt, by whoever has the fly's live flowers table (forager-step.js/-wide.js).
-  const foodUnits = [...stimulusCells].map(([idx]) => {
+  const foodUnits = [...stimulusCells].map(([idx, cell]) => {
     const cellX = idx % width;
     const cellY = Math.floor(idx / width);
     const unitX = cellX + 0.5;
     const unitY = cellY + 0.5;
     const seed = (Math.imul(idx + 1, 0x9e3779b1) ^ (config.seed ?? 0)) >>> 0;
-    return { cellX, cellY, kernel: foodKernel({ unitX, unitY, seed }) };
+    // scent (ADR 011): carried alongside the kernel so a scent-filtered field (flies.stimuli[s].scents) can
+    // exclude this unit without re-deriving it from stimulusCells on every sample.
+    return { cellX, cellY, kernel: foodKernel({ unitX, unitY, seed }), scent: cell.scent };
   });
 
   return {

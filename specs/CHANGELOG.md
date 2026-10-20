@@ -1,5 +1,82 @@
 # Changelog
 
+# 2026-10-20
+
+Root-cause analysis of the failed MB regime gate, and a retry (ADR 011 D40, D41). The gate now **passes** and
+Phase 4 is unblocked.
+* **Root cause.** The probe built the brain without `inputNeurons`, so it measured a noise-free network the fly never
+  runs. With `postFractionAbsolute` × `synapticScale` 15, one PN spike fires 92.5% of KCs, ORN input spreads to ~90%
+  of PNs, KC→KC edges spread the code further, and `baselineCurrent` 0.03 drives KCs at rest. The D38 remedy's gains
+  came from smallfly's raw-count weights, so on normalised weights they amplified instead of correcting.
+* **Fixes.**
+  - `mb-regime-probe.mjs` builds the graph as `fly-brain-v1.js` does and takes `--lif` overrides.
+  - L11 `pathwayGain` routes may select by `fromType`/`toType`, which reaches APL; the first declared match wins.
+  - The world validator accepts a `pathwayGain` object.
+  - The learning world runs at `synapticScale` 5, `tauSyn` 3, `baselineCurrent` 0, with KC→KC 0, ALPN→KC 2.1 and
+    other excitation into ALPN/KC at 0.3.
+* **Finding.** A working (spiking) APL lowered reliability at every gain tried.
+* **Target relaxed by user decision (D41).** FR-006's same-odour reliability target went from 0.9 to 0.85, after the
+  retry missed 0.9 by 0.005.
+* **Result** (calibration seeds 6-10): 13.8%/12.0% active, reliability 0.896/0.894, A-B overlap 0.144. **PASS.**
+* **Next.** Calibrate the learning world's sensorimotor regime at the new settings (T016), then the teaching-signal
+  probe (T026).
+
+# 2026-10-19
+
+/speckit-specify Learning (mushroom-body valence learning). ADR 010-demo-forager.md defines the learning criterias at **D34**: KC→MBON rule, PAM (reward) while eating, PPL1 (punishment) on escape or heat contact, and learned valence scaling `v_p` within [0.5, 1.5]. The whole MB is already in the 14.5K brain (ADR 006: 4,064 KCs, 316 PAM, 97 MBONs). 
+* Relax Principle V of constitution to enable plasticity in the LIF core.
+* Give the world more than one odour, these two glomerulus do not overlap.
+* Gate on the regime before writing any learning code as a calibration gate.
+* Plasticity in the LIF core 
+* Experiments and acceptance
+* Existing Klinotaxis-only steering limits how much a learned gain can change paths. Learning will show up more in stay/leave and eat/not-eat decisions than in turning. Enforce stay/leave and eat/not-eat decisions. 
+
+/speckit-plan Implement precondition for learning, learning process and evidence of it effectivness.
+* Add a second food odour whose glomeruli do not overlap the first: a "fruit/ferment" set DM1, DM2, DM4 vs a "floral/sweet" set VA2, DP1m, VM5d.
+* Give each its own flower kind and its own input pair (`odour-food-a`, `odour-food-b`). 
+* The calibration gate. On the 14.5K brain, measure:
+  - the fraction of KCs active per odour (target 5–15%)
+  - the correlation of KC codes for the same odour across trials (target > 0.9)
+  - the correlation of KC codes between odour A and odour B (target < 0.7)
+  - If the brain sits in an up-state (at 0.99), add a **declared feedforward pathway gain**: a named LIF parameter scaling excitatory edges onto `ALPN` and `Kenyon_Cell` from their canonical sources (ORN→PN, PN→KC) up and other excitatory inputs down. It is configured like `outputScale`, so weights still come from the dataset. Record the result in an ADR. Without a sparse, distinct KC code, learning will generalise to everything.
+* Classify the neurons in config, not code.
+  - KC `class = Kenyon_Cell`
+  - DAN reward `class = DAN`, PAM types
+  - DAN punishment `class = DAN`, PPL1 types 
+  - MBON approach / avoid | Declared per MBON **type** with a literature citation (e.g. Aso et al. 2014: glutamatergic MBONs mostly promote avoidance, cholinergic/GABAergic ones approach). Do not infer this from transmitter alone
+* Plasticity in the LIF core** (Principle V, off by default).
+  - Per-edge multiplier `wmod ∈ [wMin, 1]` on KC→MBON edges only. Weights in the snapshot never change.
+  - KC eligibility trace (τ ≈ 400 steps).
+  - Dopamine drive = DAN pool rate **above a running baseline, minus a threshold**. smallfly found that tonic DAN activity, and the PPL1 activity that odour and taste evoke on their own, otherwise teach the fly to avoid
+  everything.
+  - Reward depresses KC→avoid-MBON edges; punishment depresses KC→approach-MBON edges; slow recovery toward 1.
+  - Use only the seeded PRNG and integer step counters, so runs stay deterministic. Add a golden test showing that plasticity off gives bit-identical results to `lif-v1`.
+  - Telemetry: mean `wmod` per MBON group, dopamine drive, per-odour learned valence.
+* Teaching signals, measured first and injected only if needed.
+  - First run a brain-only probe: does mouth taste plus hunger drive PAM through the connectome, and do heat or touch drive PPL1? If they do, use them as they are.
+  - Only where the cut does not carry the signal, add a declared input channel `reinforcement-reward` / `reinforcement-punish` that targets the DAN pools. Label it in the panel as injected, the same way hunger is.
+* Readout: prefer the network path over a decoder multiplier.
+  - MBON output reaches DNs and drive pools through the connectome, so learning changes behaviour through the brain. Measure the effect with a probe. Accept 
+  - **This is the one constitution amendment (Acceptable):** Principle VI says valence is "declared, not learned". A learned multiplier needs that bullet amended. The declared sign stays; learning only modulates gain.
+* Experiments and acceptance (Node harness, calibration and held-out seeds).
+- **Conditioning probe** (port `learn_test.mjs`): pair odour A with PAM or PPL1, then read MBON valence for A and B.
+  Accept if the shift for A is larger than for B, in both directions.
+- **Behaviour test:** a world with both flower kinds where kind B is "bitter" (eating it triggers punishment).
+  Compare choice ratios before and after one simulated day.
+- **Arms:** plastic, frozen, DAN-shuffled (randomised teaching signal) and random-graph null. Report all four.
+- **Check that it decays:** the effect should fade over the configured forgetting time.
+
+/speckit-implement Built the precondition (constitution v2.2.0, ADR 011, the two-odour `forager-brain-mb` brain,
+its learning sidecar, scent support, both demo worlds) and the regime gate itself, through `scripts/mb-regime-
+probe.mjs`. **The gate failed and stops the feature here (FR-008):** the KC population is in an up-state
+(98.9%/99.7% active against a 5-15% target) and the one allowed remedy (`pathwayGain`, a 7-point grid from the
+user-specified starting routes) only gets it to 55.6%/63.7% — a real effect, but nowhere near the target.
+Plasticity, the readout, the behaviour experiments and the panel (everything from the teaching-signal probe
+onward) were not built, per the project's own rule that a failed gate stops the feature rather than shipping a
+partial version. ADR 011 is "Rejected — gate failed"; `specs/019-mb-valence-learning/regime-gate.md` has the
+full numbers and what the next attempt would need to try that this one grid's budget did not cover.
+
+
 # 2026-10-17
 
 /speckit-specify ADR 010-demo-forager.md defines a new process to extract and calibrate forager-brain-wide.brain . Expected outcome is demoable application fulfilling the requirements:

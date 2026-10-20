@@ -10,7 +10,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from malecns_brain.config import format_of, validate_forager_wide  # noqa: E402
+from malecns_brain.config import _check_pool_overlap, format_of, validate_forager_wide  # noqa: E402
 from malecns_brain.errors import ExtractError  # noqa: E402
 
 CONFIG_PATH = os.path.join(HERE, "..", "configs", "forager-brain-wide.json")
@@ -141,6 +141,37 @@ class ValidateForagerWideTest(unittest.TestCase):
         with self.assertRaises(ExtractError) as ctx:
             validate_forager_wide(config)
         self.assertEqual(ctx.exception.code, "E-CONFIG")
+
+    def test_the_shipped_non_overlapping_pairs_pass(self):
+        # ADR 011, specs/019-mb-valence-learning §1: no shipped pair declares an ORN type another pair declares.
+        validate_forager_wide(shipped_config())  # raises on failure
+
+    def test_two_input_pairs_sharing_a_type_is_e_pool_overlap(self):
+        # ADR 011: a second olfactory pair reusing odour-food's DM1 type must fail, naming both pairs.
+        config = copy.deepcopy(shipped_config())
+        config["inputs"]["odour-food2-left"] = {
+            "pair": "odour-food2", "class": "olfactory", "types": ["ORN_DM1"], "rootSide": "L",
+        }
+        config["inputs"]["odour-food2-right"] = {
+            "pair": "odour-food2", "class": "olfactory", "types": ["ORN_DM1"], "rootSide": "R",
+        }
+        config["sideMatch"]["odour-food2"] = True
+        with self.assertRaises(ExtractError) as ctx:
+            validate_forager_wide(config)
+        self.assertEqual(ctx.exception.code, "E-POOL-OVERLAP")
+        self.assertIn("odour-food", str(ctx.exception))
+        self.assertIn("odour-food2", str(ctx.exception))
+
+    def test_overlapping_pairs_of_different_classes_do_not_collide(self):
+        # Different classes can never match the same body (selection_forager._matches_input checks class first),
+        # so a shared type name across classes must not raise E-POOL-OVERLAP.
+        inputs = {
+            "odour-food-left": {"pair": "odour-food", "class": "olfactory", "types": ["ORN_DM1"], "rootSide": "L"},
+            "odour-food-right": {"pair": "odour-food", "class": "olfactory", "types": ["ORN_DM1"], "rootSide": "R"},
+            "taste-food-left": {"pair": "taste-food", "class": "gustatory", "types": ["ORN_DM1"], "rootSide": "L"},
+            "taste-food-right": {"pair": "taste-food", "class": "gustatory", "types": ["ORN_DM1"], "rootSide": "R"},
+        }
+        _check_pool_overlap(inputs)  # raises on failure
 
 
 if __name__ == "__main__":

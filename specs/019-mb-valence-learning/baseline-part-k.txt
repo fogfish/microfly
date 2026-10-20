@@ -1,0 +1,25 @@
+T017 (specs/019-mb-valence-learning): pre-feature ADR 010 Part K baseline, held-out seeds, world-forager-demo.json.
+Captured 2026-10-19, before any code in this feature touches the wide brain or its decoder (FR-027).
+
+Deviation (recorded): scripts/forager-arms.mjs has no CLI entry point of its own, and scripts/compare-baseline.mjs
+does not support "v3" worlds (its runForagerArms branch only fires for flies.brain.version "v1"/"v2"). This run
+calls runForagerArms/armMetrics/printForagerTable/verdicts directly (the same primitives compare-baseline.mjs and
+calibrate.mjs's own --stage=c3 both use), against the shipped forager-brain-wide.decoder.json, on
+experiment.heldOut, matching what compare-baseline.mjs does for v1/v2 worlds.
+
+world world/world-forager-demo.json, seeds held-out (30), 6 flies per cohort, 3000 ticks per fly
+
+arm              find [95 % CI]              approach  eat hungry/sated  walked   hunger-dep  contacts  seeds   brake  stay   avoid(danger/heat)      touch   escape(in/out)
+v3               91.1 %   [86.1 %, 95.0 %]      671       2/2               93.9 %   2.2 %       125       30   n/a    n/a    16.5 %/11.4 %           n/a     n/a
+baseline         70.6 %   [63.9 %, 77.2 %]      817       n/a/n/a           0.0 %    n/a         0         30   n/a    n/a    70.6 %/7.1 %            n/a     n/a
+
+PASS      K1 find (hungry)   SC-001: hungry find-rate 95% CI sits strictly above the random walk: hungry [87.2 %, 95.6 %], baseline 70.6 %
+FAIL      K1 find (sated)    SC-001: the same fly started sated does not clear that bar: sated [85.0 %, 93.3 %], baseline 70.6 %
+PASS      K2 feed within 50 ticks SC-002: at least 80% of hungry arrivals feed within 50 ticks: 538/541 (0.99)
+FAIL      K4 escape or turn within 20 ticks SC-003: at least 90% of danger-ring encounters resolve within 20 ticks: 121/627 (0.19)
+PASS      K5 avoid danger    SC-004: time inside danger rings is at most half the random walk's: v3 16.5 %, baseline 70.6 %
+FAIL      K6 avoid heat      SC-005: time inside heat rings is lower than the random walk's (SHOULD, not MUST): v3 11.4 %, baseline 7.1 %
+
+Note: these PASS/FAIL marks are forager-brain-wide's own existing held-out-seed behaviour (ADR 010 Part K),
+unrelated to this feature's gate — captured only so Phase 5 (User Story 6, now blocked by the Phase 3 regime
+gate's rejection, see ADR 011 D36/D38) has a baseline to diff against if this feature is retried later.

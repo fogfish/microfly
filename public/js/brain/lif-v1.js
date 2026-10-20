@@ -23,6 +23,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   noiseBulkScale: 1,      // noise multiplier for neurons outside the declared input pools; 1 is uniform noise (L7′)
   inhibitoryScale: 1,     // multiplier of every negative edge weight; 1 is a no-op (L8)
   baselineCurrent: 0,     // constant input current added to every neuron every step; 0 is a no-op (L10)
+  pathwayGain: null,      // gain on excitatory edges chosen by pre/post class; null is a no-op (L11, ADR 011)
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -68,7 +69,45 @@ export function resolveParams(overrides = {}) {
   if (!(Number.isFinite(p.baselineCurrent) && p.baselineCurrent >= 0)) {
     throw new Error('LIF parameter "baselineCurrent" must be 0 or more');
   }
+  if (p.pathwayGain !== null) {
+    const pg = p.pathwayGain;
+    if (!(pg !== null && typeof pg === 'object' && Array.isArray(pg.routes))) {
+      throw new Error('LIF parameter "pathwayGain" must be null or an object with routes');
+    }
+    const seenRoutes = new Set();
+    for (const route of pg.routes) {
+      // Each end names exactly one selector: a `class` (from/to) or, for neurons the dataset leaves without a
+      // class such as APL, a `type` (fromType/toType). ADR 011 D40.
+      if (!(route && typeof route === 'object' && oneSelector(route.from, route.fromType)
+            && oneSelector(route.to, route.toType))) {
+        throw new Error('LIF parameter "pathwayGain" must be null or an object with routes');
+      }
+      if (!(Number.isFinite(route.gain) && route.gain >= 0)) {
+        throw new Error('LIF parameter "pathwayGain.routes[i].gain" must be a number of 0 or more');
+      }
+      const key = `${routeEnd(route.from, route.fromType)}→${routeEnd(route.to, route.toType)}`;
+      if (seenRoutes.has(key)) throw new Error(`LIF parameter "pathwayGain" repeats route ${key}`);
+      seenRoutes.add(key);
+    }
+    if (pg.otherExcitatoryInto !== undefined && !Array.isArray(pg.otherExcitatoryInto)) {
+      throw new Error('LIF parameter "pathwayGain" must be null or an object with routes');
+    }
+    if (pg.otherGain !== undefined && !(Number.isFinite(pg.otherGain) && pg.otherGain >= 0)) {
+      throw new Error('LIF parameter "pathwayGain.routes[i].gain" must be a number of 0 or more');
+    }
+  }
   return Object.freeze(p);
+}
+
+// L11: a route end is a class name or a type name, never both and never neither.
+function oneSelector(byClass, byType) {
+  return (typeof byClass === 'string') !== (typeof byType === 'string') && byClass !== '' && byType !== '';
+}
+
+// L11: how a route end is printed in messages and repeat checks; a type end is marked so it cannot collide with a
+// class of the same name.
+function routeEnd(byClass, byType) {
+  return byClass !== undefined ? byClass : `type:${byType}`;
 }
 
 // Accepts the toy form { neuronCount, edges } or the CSR form { neuronCount, offsets, targets, weights }.
@@ -131,6 +170,55 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
   let weights = csr.weights;
   if (params.inhibitoryScale !== 1) {
     weights = Float64Array.from(csr.weights, (w) => (w < 0 ? w * params.inhibitoryScale : w));
+  }
+  // L11 (ADR 011, contracts/lif-v1-plasticity.md): a gain on every positive (excitatory) edge chosen by
+  // declared pre/post class or type, applied once to a copy of the weights, after L8 and before L12 takes its own
+  // base copy. A route edge is multiplied by the `gain` of the first declared route it matches; any other positive
+  // edge whose post class is in `otherExcitatoryInto` is multiplied by `otherGain`. A no-op when null (G1 holds).
+  if (params.pathwayGain !== null) {
+    const classes = graph.neuronClass ?? [];
+    const types = graph.neuronType ?? [];
+    const declared = (names) => new Set(names.filter((c) => c !== null && c !== undefined));
+    const declaredClasses = declared(classes);
+    const declaredTypes = declared(types);
+    const checkClass = (name) => {
+      if (!declaredClasses.has(name)) throw new Error(`E-LIF-PATHWAY: class "${name}" is not in the snapshot`);
+    };
+    const checkType = (name) => {
+      if (!declaredTypes.has(name)) throw new Error(`E-LIF-PATHWAY: type "${name}" is not in the snapshot`);
+    };
+    const checkEnd = (byClass, byType) => (byClass !== undefined ? checkClass(byClass) : checkType(byType));
+    for (const route of params.pathwayGain.routes) {
+      checkEnd(route.from, route.fromType);
+      checkEnd(route.to, route.toType);
+    }
+    const otherInto = params.pathwayGain.otherExcitatoryInto ?? [];
+    for (const name of otherInto) checkClass(name);
+
+    // Per route, the neurons at each end, built once so the edge pass is a lookup per route.
+    const memberOf = (byClass, byType) => {
+      const member = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        if (byClass !== undefined ? classes[i] === byClass : types[i] === byType) member[i] = 1;
+      }
+      return member;
+    };
+    const routes = params.pathwayGain.routes.map((r) => ({
+      pre: memberOf(r.from, r.fromType), post: memberOf(r.to, r.toType), gain: r.gain,
+    }));
+    const otherSet = new Set(otherInto);
+    const otherGain = params.pathwayGain.otherGain ?? 1;
+    const gained = Float64Array.from(weights);
+    for (let i = 0; i < n; i++) {
+      for (let k = csr.offsets[i]; k < csr.offsets[i + 1]; k++) {
+        if (gained[k] <= 0) continue;
+        const post = csr.targets[k];
+        const route = routes.find((r) => r.pre[i] === 1 && r.post[post] === 1);
+        if (route !== undefined) gained[k] *= route.gain;
+        else if (otherSet.has(classes[post])) gained[k] *= otherGain;
+      }
+    }
+    weights = gained;
   }
   return {
     params, n,

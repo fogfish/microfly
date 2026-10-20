@@ -160,7 +160,7 @@ export function buildScene(config, catalog) {
 // where there is no edible. The odour reach of a unit is flies.stimulus.radius × this size (contracts/odour-reach §1).
 // forestEdge: 1 where the cell's centre falls inside an edgeForest ground area, else 0 (contracts/world-format-
 // sketch-map.md §2); a fly may walk through it — only the danger odour is special about it, not walkability.
-// Returns { cols, rows, cellPx, water, blocked, edible, edibleSize, danger, forestEdge, objects }.
+// Returns { cols, rows, cellPx, water, blocked, edible, edibleSize, edibleScent, danger, forestEdge, objects }.
 export function buildLogic(config, catalog) {
   if (config.map !== undefined) return buildMapLogic(config, catalog);
   const scene = buildScene(config, catalog);
@@ -171,7 +171,7 @@ export function buildLogic(config, catalog) {
   for (const o of objects) {
     if (o.solid) blocked[cellIndex(o.x, o.y, cols)] = 1;
   }
-  const { edible, edibleSize, danger } = foodAndDanger(config, catalog, count, cols);
+  const { edible, edibleSize, edibleScent, danger } = foodAndDanger(config, catalog, count, cols);
 
   const forestEdge = new Uint8Array(count);
   for (const area of config.ground ?? []) {
@@ -180,7 +180,7 @@ export function buildLogic(config, catalog) {
     for (let i = 0; i < count; i++) if (mask[i]) forestEdge[i] = 1;
   }
 
-  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, danger, forestEdge, objects };
+  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, edibleScent, danger, forestEdge, objects };
 }
 
 // A world with a `map` section (contracts/world-format-sketch-map.md §7, BUG-002): water, blocked cells and the
@@ -201,9 +201,9 @@ function buildMapLogic(config, catalog) {
   for (const d of config.dangers ?? []) {
     objects.push({ sprite: DANGER_SPRITES[d.kind], x: d.x, y: d.y, solid: false, kind: d.kind });
   }
-  const { edible, edibleSize, danger } = foodAndDanger(config, catalog, count, cols);
+  const { edible, edibleSize, edibleScent, danger } = foodAndDanger(config, catalog, count, cols);
   const heatQuiet = heatQuietMask(config, plan, cols, rows);
-  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, danger, forestEdge, objects, heatQuiet };
+  return { cols, rows, cellPx: CELL_PX, water, blocked, edible, edibleSize, edibleScent, danger, forestEdge, objects, heatQuiet };
 }
 
 // flies.heatQuiet (optional): the cells whose centre lies inside a named ground area take no heat (heat-field.js).
@@ -230,16 +230,19 @@ function heatQuietMask(config, plan, cols, rows) {
 }
 
 // edibleSize holds, per cell, the food unit's sprite size in tiles: max(w, h) / CELL_PX (spec 009 research R1).
+// edibleScent (contracts/world-config-v3-learning.md, ADR 011): the flower's declared scent, or null when absent.
 function foodAndDanger(config, catalog, count, cols) {
   const edible = new Array(count).fill(null);
   const edibleSize = new Float32Array(count);
+  const edibleScent = new Array(count).fill(null);
   for (const e of config.edibles ?? []) {
     const idx = cellIndex(e.x, e.y, cols);
     edible[idx] = e.kind;
     const { w, h } = catalog.lookup(e.sprite).sprite;
     edibleSize[idx] = Math.max(w, h) / CELL_PX;
+    edibleScent[idx] = e.scent ?? null;
   }
   const danger = new Array(count).fill(null);
   for (const d of config.dangers ?? []) danger[cellIndex(d.x, d.y, cols)] = d.kind;
-  return { edible, edibleSize, danger };
+  return { edible, edibleSize, edibleScent, danger };
 }

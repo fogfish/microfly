@@ -1,0 +1,95 @@
+{
+  "snapshot": {
+    "file": "forager-brain-mb.brain",
+    "sha256": "b381ba8281bfe20a0d70b14f381c24762d4209e312eb1adf099599d70c5f7466"
+  },
+  "lif": {
+    "synapticScale": 15,
+    "inhibitoryScale": 1.5,
+    "noiseAmplitude": 0.2,
+    "noiseBulkScale": 0,
+    "tauSyn": 0,
+    "tauAdapt": 100,
+    "adaptStep": 0.1,
+    "thresholdJitter": 0.1,
+    "baselineCurrent": 0.03,
+    "outputScale": null,
+    "pathwayGain": null
+  },
+  "seeds": [
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "perOdour": {
+    "A": {
+      "activeFraction": {
+        "mean": 0.988533464566929,
+        "min": 0.9815452755905512,
+        "max": 0.9933562992125984
+      },
+      "reliability": 0.4535905625295406
+    },
+    "B": {
+      "activeFraction": {
+        "mean": 0.997391732283465,
+        "min": 0.9968011811023622,
+        "max": 0.9980314960629921
+      },
+      "reliability": 0.49215881988578847
+    }
+  },
+  "overlapAB": 0.47027273074629206,
+  "rateCorrelationAB": 0.5770170852557642,
+  "verdict": "fail",
+  "remedy": {
+    "gridTried": [
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 3 }], "otherGain": 0.3, "activeFractionMean": { "A": 0.6728, "B": 0.7698 }, "reliability": { "A": 0.852, "B": 0.841 }, "overlapAB": 0.794 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 3 }], "otherGain": 0.2, "activeFractionMean": { "A": 0.6052, "B": 0.6939 }, "reliability": { "A": 0.852, "B": 0.903 }, "overlapAB": 0.803 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 3 }], "otherGain": 0.15, "activeFractionMean": { "A": 0.5948, "B": 0.6803 }, "reliability": { "A": 0.873, "B": 0.903 }, "overlapAB": 0.823 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 3 }], "otherGain": 0.1, "activeFractionMean": { "A": 0.5989, "B": 0.6641 }, "reliability": { "A": 0.876, "B": 0.924 }, "overlapAB": 0.869 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 3 }], "otherGain": 0.05, "activeFractionMean": { "A": 0.6027, "B": 0.6513 }, "reliability": { "A": 0.881, "B": 0.934 }, "overlapAB": 0.901 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 2 }], "otherGain": 0.1, "activeFractionMean": { "A": 0.5776, "B": 0.6578 }, "reliability": { "A": 0.885, "B": 0.935 }, "overlapAB": 0.850 },
+      { "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 2 }], "otherGain": 0.05, "activeFractionMean": { "A": 0.5562, "B": 0.6370 }, "reliability": { "A": 0.859, "B": 0.931 }, "overlapAB": 0.830 }
+    ],
+    "best": {
+      "pathwayGain": {
+        "routes": [{ "from": "olfactory", "to": "ALPN", "gain": 5 }, { "from": "ALPN", "to": "Kenyon_Cell", "gain": 2 }],
+        "otherExcitatoryInto": ["ALPN", "Kenyon_Cell"],
+        "otherGain": 0.05
+      },
+      "perOdour": {
+        "A": { "activeFraction": { "mean": 0.5561515748031496, "min": 0.4943405511811024, "max": 0.6259842519685039 }, "reliability": 0.8592893762502222 },
+        "B": { "activeFraction": { "mean": 0.6369586614173229, "min": 0.6230314960629921, "max": 0.656003937007874 }, "reliability": 0.9311951135949657 }
+      },
+      "overlapAB": 0.8296967617483737,
+      "rateCorrelationAB": 0.4855276619992945,
+      "verdict": "fail"
+    },
+    "finding": "The remedy moves active fraction from ~99% (no pathwayGain) to ~56-77% across every grid point tried, a real and large effect, but every point stays 4-10x over the 15% target, and overlapAB moves the WRONG way (0.47 -> 0.8-0.9) as otherGain drops, because the brain's excess excitability is not concentrated in edges whose target class is ALPN/Kenyon_Cell: baselineCurrent (0.03, added to every neuron every step regardless of any edge) and the amplified primary route itself (gain 5/2-3, i.e. 10-15x on the real odour signal) are enough on their own to recruit most KCs once real (non-noise) input arrives, and pathwayGain has no lever over baselineCurrent. Lowering otherGain below 0.3 buys little further reduction (a floor around 55-60%) while costing reliability/overlap. No grid point in this one search reaches the 5-15% active-fraction target; the gate's final verdict is FAIL. Per FR-008 and tasks.md's 'the gate decides the project', no Phase 4+ task may be started. See ADR 011 D36 (Rejected)."
+  },
+  "randomGraph": {
+    "perOdour": {
+      "A": {
+        "activeFraction": {
+          "mean": 0.9375492125984246,
+          "min": 0.9119094488188977,
+          "max": 0.9520177165354331
+        },
+        "reliability": 0.6556397038060682
+      },
+      "B": {
+        "activeFraction": {
+          "mean": 0.9550688976377961,
+          "min": 0.9473425196850394,
+          "max": 0.9623523622047244
+        },
+        "reliability": 0.6251955030456061
+      }
+    },
+    "overlapAB": 0.6410219384563244,
+    "rateCorrelationAB": 0.9357420619610449
+  }
+}

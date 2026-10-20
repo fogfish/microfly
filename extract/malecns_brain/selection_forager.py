@@ -40,8 +40,14 @@ def _matches_input(body, spec):
     `entryNerves` (a list): a body matches only if its entryNerve is in the list. `excludeReceptorTypes` (a list):
     a body is excluded if its receptorType is in the list. Both default to "no filter" when absent, so every
     existing config (format 2-4, with neither key) behaves exactly as before.
+
+    ADR 011 (specs/019-mb-valence-learning §1): `sideBy` (optional, "rootSide" or "somaSide") picks which body
+    column carries the L/R split against `spec["rootSide"]`. malecns.md: `rootSide` is populated for about 8% of
+    bodies (sensory neurons with a clear primary neurite); central neurons such as DAN carry side in `somaSide`
+    instead. Absent `sideBy` means "rootSide", so every existing config behaves exactly as before.
     """
-    if body.get("class") != spec["class"] or body.get("rootSide") != spec["rootSide"]:
+    side_field = spec.get("sideBy", "rootSide")
+    if body.get("class") != spec["class"] or body.get(side_field) != spec["rootSide"]:
         return False
     if "entryNerves" in spec and body.get("entryNerve") not in spec["entryNerves"]:
         return False

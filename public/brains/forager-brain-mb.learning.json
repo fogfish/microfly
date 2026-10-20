@@ -1,0 +1,37 @@
+{
+  "format": "learning",
+  "version": 1,
+  "snapshot": {
+    "file": "forager-brain-mb.brain",
+    "sha256": "b381ba8281bfe20a0d70b14f381c24762d4209e312eb1adf099599d70c5f7466"
+  },
+  "groups": {
+    "kc": { "class": "Kenyon_Cell" },
+    "reward": { "class": "DAN", "typePrefixes": ["PAM"] },
+    "punish": { "class": "DAN", "typePrefixes": ["PPL1"] }
+  },
+  "mbon": [
+    {
+      "type": "MBON01",
+      "role": "avoid",
+      "cite": "Owald et al. 2015 Neuron 86(2):417-427 (the glutamatergic 'M4/6' cluster, MBON-gamma5beta'2a among them, built on Aso et al. 2014 eLife 3:e04580/e04577's naming); activating this cluster drives avoidance and blocking it turns odour avoidance into approach"
+    },
+    {
+      "type": "MBON11",
+      "role": "approach",
+      "cite": "Aso et al. 2014 eLife 3:e04580, Fig. 5-6 (MBON-gamma1pedc>alpha/beta, 'MVP2', GABAergic); its optogenetic activation drives approach, corroborated by Perisse et al. 2016 Neuron 90(5):1086-1099"
+    }
+  ],
+  "unverified": [
+    "MBON02", "MBON03", "MBON04", "MBON05", "MBON06", "MBON07", "MBON09", "MBON10", "MBON12", "MBON13",
+    "MBON14", "MBON15", "MBON15-like", "MBON16", "MBON17", "MBON17-like", "MBON18", "MBON19", "MBON20",
+    "MBON21", "MBON22", "MBON23", "MBON24", "MBON25", "MBON25-like", "MBON26", "MBON27", "MBON28", "MBON29",
+    "MBON30", "MBON31", "MBON32", "MBON33", "MBON34", "MBON35"
+  ],
+  "references": {
+    "Owald2015": "Owald D, Felsenberg J, Talbot CB, Das G, Perisse E, Huetteroth W, Waddell S. (2015) Activity of defined mushroom body output neurons underlies learned olfactory behavior in Drosophila. Neuron 86(2):417-427",
+    "Aso2014b": "Aso Y, et al. (2014) Mushroom body output neurons encode valence and guide memory-based action selection in Drosophila. eLife 3:e04580",
+    "Perisse2016": "Perisse E, Owald D, Barnstedt O, Talbot CB, Huetteroth W, Waddell S. (2016) Aversive Learning and Appetitive Motivation Toggle Feed-Forward Inhibition in the Drosophila Mushroom Body. Neuron 90(5):1086-1099"
+  },
+  "note": "Only MBON01 and MBON11 carry a role the writer could independently verify against a primary or secondary citation in this environment (web access to Aso et al. 2014's Figure 5-6 itself was not retrievable: elifesciences.org and its PMC mirror both returned bot-check/loading-error pages instead of content). The other 35 types are listed under 'unverified', not because the paper showed no effect for them, but because this session could not check them against the source. ADR 011 D37 records this as an open item for a reviewer with primary-source access; resolveLearningGroups treats every 'unverified' type the same as any other type absent from mbon[] (left out of approach/avoid, reported in 'unlisted')."
+}

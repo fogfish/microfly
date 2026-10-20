@@ -25,6 +25,8 @@ reference for the bit-exact check below.
 | `noiseAmplitude` | 0 | Half-width of a per-neuron, per-step uniform noise term added to the membrane update (L7). `0` is a no-op: no draw is made, every potential is identical to `noiseAmplitude` absent entirely. |
 | `noiseBulkScale` | 1 | Multiplier of `noiseAmplitude` for neurons **not** in `graph.inputNeurons` (L7′, ADR 005 Annex B). `1` is a no-op (uniform noise, as L7); `0` confines noise to the declared input pools. Ignored when `noiseAmplitude` is 0. |
 | `inhibitoryScale` | 1 | Multiplier of every negative edge weight (L8, ADR 005 Annex B). `1` is a no-op: the graph's own weight array is used unchanged. Applied before `synapticScale`/`outputScale`, so it composes with both. |
+| `baselineCurrent` | 0 | Constant input current added to every neuron every step (L10). `0` is a no-op. |
+| `pathwayGain` | `null` | Gains on excitatory edges chosen by pre/post `class` or `type` (L11, ADR 011 D40). `null` is a no-op. Applied once to a copy of the weights, after L8. Full rules: `specs/019-mb-valence-learning/contracts/lif-v1-plasticity.md`. |
 
 `resolveParams(overrides)` throws naming the parameter for: an unknown key, `dt ≤ 0`, `tau ≤ 0`, `refractorySteps`
 not a non-negative integer, `vThreshold ≤ vReset`, `tauSyn < 0`, `tauAdapt < 0`, `adaptStep < 0`, `thresholdJitter`

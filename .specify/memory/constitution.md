@@ -1,26 +1,29 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.0.0 → 2.1.0
-Bump rationale: MINOR — Principle VI gains a new rule for adding senses. The rule extends the
-  existing "brain decides" and "mappings declared in data" rules to every future sense; no
-  principle is removed or redefined.
+Version change: 2.1.0 → 2.2.0
+Bump rationale: MINOR — Principle VI's valence bullet is loosened: the declared sign of a
+  sense's valence stays fixed, but a decision record MAY let online learning scale its
+  strength within stated bounds. No principle is removed or redefined; this extends the
+  existing "online plasticity by decision record" allowance in Principle V to the valence
+  bullet specifically.
 
 Principles modified:
-  - VI. Living World, Embodied Flies → one bullet added: every new sense MUST be declared in
-    data (snapshot sensory channel + world stimulus mapping) and MUST reach behaviour only
-    through simulated neurons; a sense with no matching neurons fails with a named error
+  - VI. Living World, Embodied Flies → the "Each sense's valence" bullet replaced: the sign
+    stays declared and fixed; strength MAY be scaled by learning within bounds a decision
+    record sets; the panel and README MUST show it as "declared, learned gain" when learning
+    is on, and as declared only when it is off.
 
 Added sections: none
 
 Removed sections: none
 
 Dependent artifacts:
-  - AGENTS.md hard rule 6 summarises Principle VI and could mention the new-sense rule. Not
-    modified by this command per its scope guard.
-  - Plans that add a sense (for example specs/018-hunger-sensitivity-feeding, if hunger is
-    treated as a sense rather than an internal state) MUST re-run their Constitution Check
-    against the new bullet.
+  - AGENTS.md hard rule 6 ("Behaviour comes from the brain... Stimulus → sensory and motor →
+    action mappings are declared in data") checked against this change; still accurate, no
+    edit needed beyond what the feature's own task records.
+  - specs/019-mb-valence-learning/plan.md Constitution Check depends on this bullet; its gate
+    for Principle VI closes once this amendment lands.
 
 Deferred TODOs: none
 -->
@@ -144,8 +147,10 @@ Flies MUST live and interact in an interactive environment rendered by the same 
   reflex laws (tropotaxis, klinotaxis, escape, backing up) applied to decoded brain signals.
   The body layer MUST be declared in data, MUST NOT read the stimulus or the world state
   other than the body's own physics, and MUST be identical across every arm of an experiment.
-- **Each sense's valence** (approach or avoid) MAY be declared in data. It MUST be shown on
-  the panel and in the README as declared, not learned.
+- **Each sense's valence** (approach or avoid) MAY be declared in data. Its declared sign MUST
+  stay fixed. A decision record MAY let online learning scale its strength within bounds the
+  record sets; it MUST still be shown on the panel and in the README — as declared when
+  learning is off, and as "declared, learned gain" when learning is on.
 - The mapping from world stimuli to sensory neurons, from neurons to decoded signals, and
   from decoded signals to body commands MUST be declared in data, not hidden in world code.
 - **Every new sense MUST be declared in data and read from simulated neurons.** Adding a
@@ -228,4 +233,4 @@ conflicts with it, the constitution wins unless it is amended first.
 - **Compliance:** every plan's Constitution Check and every review MUST verify compliance.
   Deviations MUST be justified in the plan's complexity tracking, or the constitution amended.
 
-**Version**: 2.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-19
+**Version**: 2.2.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-19

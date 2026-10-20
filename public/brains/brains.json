@@ -22,6 +22,10 @@
     {
       "file": "forager-brain-wide.brain",
       "label": "Wide-I/O forager brain (ADR 007/009, v2, 14.5K)"
+    },
+    {
+      "file": "forager-brain-mb.brain",
+      "label": "Mushroom-body valence-learning forager brain (ADR 011, v2, 14.5K)"
     }
   ]
 }

@@ -30,6 +30,8 @@ const WIDE_IO_VERSIONS = ['v2', 'v3'];
 // "dangers" sample a world object list; "blocked" (touch) reads world walkability directly, with no object list;
 // "water"/"forestEdge" read the heat/danger field (contracts/world-format-sketch-map.md §3) at the channel's site.
 const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked', 'water', 'forestEdge'];
+// edibles[i].scent (contracts/world-config-v3-learning.md, ADR 011): orthogonal to kind (size/capacity).
+const SCENTS = ['fruit', 'floral'];
 // kinds/scaleBy/radius are meaningless once the field itself fixes the falloff shape (contracts/stimuli-field-sources.md §2).
 const FIELD_ONLY_SOURCES = ['water', 'forestEdge'];
 
@@ -86,6 +88,9 @@ export function validateConfig(config) {
   edibles.forEach((e, i) => {
     validateSpot(e, `edibles[${i}]`, EDIBLE_KINDS, 'edible', inGrid, water, cols, err);
     if (!isText(e?.sprite)) err(`edibles[${i}].sprite`, 'is required: the food sprite for this kind');
+    if (e?.scent !== undefined && !SCENTS.includes(e.scent)) {
+      err(`edibles[${i}].scent`, 'must be "fruit" or "floral"');
+    }
   });
   if (!EDIBLE_KINDS.every((k) => edibles.some((e) => e?.kind === k))) {
     err('edibles', `must hold at least one unit of each kind: ${EDIBLE_KINDS.join(', ')}`);
@@ -824,6 +829,11 @@ function validateFlyStimuliWide(stimuli, err) {
     if (spec.kinds !== undefined && !(Array.isArray(spec.kinds) && spec.kinds.length > 0 && spec.kinds.every(isText))) {
       err(`${path}.kinds`, 'must be a non-empty list of strings');
     }
+    // scents (contracts/world-config-v3-learning.md, ADR 011): with from:"edibles", restricts the field to
+    // flowers of the listed scent(s) (W15 normalisation unchanged).
+    if (spec.scents !== undefined && !(Array.isArray(spec.scents) && spec.scents.length > 0 && spec.scents.every((s) => SCENTS.includes(s)))) {
+      err(`${path}.scents`, `must be a non-empty list of ${SCENTS.map((s) => `"${s}"`).join(', ')}`);
+    }
     if (spec.scaleBy !== undefined && spec.scaleBy !== 'stock') err(`${path}.scaleBy`, 'must be "stock"');
     if (spec.radius !== undefined && !(isNum(spec.radius) && spec.radius > 0)) {
       err(`${path}.radius`, 'must be a number greater than 0');
@@ -1083,6 +1093,8 @@ function validateFlyBrain(brain, err) {
     const notNumbers = entries.filter(([key, value]) => {
       if (!Object.hasOwn(defaults, key)) return false;
       if (key === 'outputScale' && isObject(value)) return false; // handled above
+      // pathwayGain (L11, ADR 011 D40) is an object of routes or null; resolveParamsV1 below checks its shape.
+      if (key === 'pathwayGain' && (value === null || isObject(value))) return false;
       return !isNum(value);
     });
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');

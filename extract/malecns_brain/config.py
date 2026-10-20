@@ -453,7 +453,35 @@ def _check_forager_wide_capabilities(decl, inputs, outputs):
         _fail(str(error))
 
 
-WIDE_INPUT_KEYS = INPUT_KEYS | {"pair", "entryNerves", "excludeReceptorTypes"}
+def _check_pool_overlap(inputs):
+    """E-POOL-OVERLAP (ADR 011, specs/019-mb-valence-learning): two declared input pairs of the same `class`
+    whose `types`/`subclasses`/`typePrefixes` sets share an entry. Applies to any config with `pair`-keyed inputs
+    (format 5); a config without `pair` has no pairs to compare and always passes. Checked after sideMatch so
+    every pair already resolved to exactly one left/right channel (E-PAIR)."""
+    pool = {}
+    pair_class = {}
+    for spec in inputs.values():
+        pair = spec.get("pair")
+        if pair is None:
+            continue
+        pair_class[pair] = spec["class"]
+        bucket = pool.setdefault(pair, set())
+        for key in ("types", "subclasses", "typePrefixes"):
+            bucket.update(spec.get(key, []))
+    pair_ids = sorted(pool)
+    for i, first in enumerate(pair_ids):
+        for second in pair_ids[i + 1:]:
+            if pair_class[first] != pair_class[second]:
+                continue
+            shared = pool[first] & pool[second]
+            if shared:
+                raise ExtractError(
+                    "E-POOL-OVERLAP", f"pairs {first} and {second} both declare {sorted(shared)[0]}"
+                )
+
+
+WIDE_INPUT_KEYS = INPUT_KEYS | {"pair", "entryNerves", "excludeReceptorTypes", "sideBy"}
+SIDE_BY_VALUES = {"rootSide", "somaSide"}
 WIDE_FIDELITY_KEYS = {"require", "steps", "checks"}
 WIDE_CHECK_KEYS = {"contrast": {"kind", "pair", "minFraction"}, "sign": {"kind", "from", "to"}}
 
@@ -555,10 +583,14 @@ def validate_forager_wide(config):
             _fail(f"inputs.{name}.entryNerves must be a non-empty list of strings")
         if "excludeReceptorTypes" in spec and not _is_str_list(spec["excludeReceptorTypes"]):
             _fail(f"inputs.{name}.excludeReceptorTypes must be a non-empty list of strings")
+        if "sideBy" in spec and spec["sideBy"] not in SIDE_BY_VALUES:
+            _fail(f'inputs.{name}.sideBy must be "rootSide" or "somaSide"')
 
     side = config["sideMatch"]
     if not (isinstance(side, dict) and set(side) == pairs and all(isinstance(v, bool) for v in side.values())):
         _fail("sideMatch must be an object keyed by every declared pair, with boolean values")
+
+    _check_pool_overlap(inputs)
 
     outputs = config["outputs"]
     if not isinstance(outputs, dict) or not outputs:

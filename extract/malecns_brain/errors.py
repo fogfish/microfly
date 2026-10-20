@@ -11,6 +11,9 @@ both compared values).
 
 Wide-I/O codes (ADR 007 D19/D20, contracts/extract-config-forager-wide.md): E-PAIR (a side-matched or
 probe-checked `pair` does not resolve to exactly one left and one right channel id).
+
+ADR 011 codes (specs/019-mb-valence-learning): E-POOL-OVERLAP (two declared input pairs of the same class share a
+`types`/`subclasses`/`typePrefixes` entry; names both pairs and the shared identifier).
 """
 
 

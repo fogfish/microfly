@@ -31,6 +31,12 @@ export function createFlyBrain(brainConfig, seed) {
       outputChannels: capabilities.channels.outputs.map((ch) => ({ id: ch.id, neurons: ch.neurons })),
       // L7′ (ADR 005 Annex B): the sensory pools, so noise can be confined to them (noiseBulkScale).
       inputNeurons: capabilities.channels.inputs.flatMap((ch) => ch.neurons),
+      // L11 (ADR 011): one declared `class` per neuron, in index order, for pathwayGain's route matching.
+      // Absent (a snapshot-less toy graph passed directly, as some arm-comparison tests do) means no classes
+      // known, harmless unless pathwayGain is also set.
+      neuronClass: snap.manifest?.neurons?.map((nr) => nr.class ?? null) ?? [],
+      // L11 (ADR 011 D40): one `type` per neuron, for routes that select a classless neuron such as APL.
+      neuronType: snap.manifest?.neurons?.map((nr) => nr.type ?? null) ?? [],
     },
     brainConfig.lif ?? {},
     seed,

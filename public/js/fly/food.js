@@ -93,6 +93,7 @@ export function createFood(world, config, { sharers = 1 } = {}) {
         y: Math.floor(idx / world.width) + 0.5,
         reach: world.stimulusCells.get(idx)?.reach,
         fraction: levelOf(idx),
+        scent: world.stimulusCells.get(idx)?.scent ?? null,
       }));
     },
     // Cell index of a tile, for the eating cell of the bout and regrowth.
