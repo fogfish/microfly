@@ -18,7 +18,7 @@ const units = [
   { cellX: 3, cellY: 3, kernel: foodKernel({ unitX: 3.5, unitY: 3.5, seed: 11 }) },
   { cellX: 8, cellY: 7, kernel: foodKernel({ unitX: 8.5, unitY: 7.5, seed: 29 }) },
 ];
-const CONFIG = { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 } };
+const CONFIG = { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true } };
 
 function assertMatchesSensing(field, flowers) {
   for (let cy = 0; cy < H; cy++) {

@@ -207,7 +207,9 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
       fidelity: snapshot && state.mode === 'toy' ? snapshot.fidelity : null,
       // ADR 011 (contracts/world-config-v3-learning.md "events"): the senses this world drives from a world
       // event rather than the connectome carrying the signal itself, for the panel's "injected" tag (Phase 8).
-      injectedSenses: Object.entries(f.stimuli ?? {}).filter(([, spec]) => spec.from === 'events').map(([sense]) => sense),
+      injectedSenses: Object.entries(f.stimuli ?? {})
+        .filter(([, spec]) => spec.from === 'events')
+        .map(([sense, spec]) => ({ sense, events: spec.events })),
       // The latest motor.learning (contracts/worker-protocol-v3-learning.md), kept for Phase 8's panel. null
       // until the first motor reply; absent again (not zeros) whenever plasticity is off, so "learning off" is
       // distinguishable from a real zero reading.

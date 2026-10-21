@@ -11,7 +11,7 @@ const CONFIG = {
   tickHz: 20,
   body: { maxSpeed: 3, turnRate: 4, energy: { initial: 0.1, metabolism: 0.01, intake: 0.2 } },
   stimulus: { radius: 8, gain: 1, max: 1, resting: 0.2, antennaOffset: 0.5 },
-  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
 };
 const CAPABILITIES = {
   channels: {

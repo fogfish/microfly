@@ -49,6 +49,13 @@ export function buildStatusModel(record, nowMs) {
     // v3 fly, same convention as provenance/fidelity above.
     decoded: record.capabilities.signals?.includes('decoder') ? last?.decoded : undefined,
     decoderPools: record.capabilities.signals?.includes('decoder') ? record.decoderFile?.pools : undefined,
+    // ADR 011 (Phase 8, contracts/worker-protocol-v3-learning.md): the latest motor.learning, kept by
+    // fly-host.js. null (not undefined) when plasticity is off, so the learning section can show "learning
+    // off" rather than stale or zero numbers; undefined (section does not mount) for a non-decoder fly.
+    learning: record.capabilities.signals?.includes('decoder') ? (record.learning ?? null) : undefined,
+    // ADR 011 (contracts/world-config-v3-learning.md "events"): senses this world drives from a world event
+    // rather than the connectome, for the "injected" tag.
+    injectedSenses: record.injectedSenses ?? [],
     activeCount: counts ? activeCount(counts) : 0,
     // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,

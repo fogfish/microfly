@@ -235,6 +235,15 @@ const withFood = (food) => {
   return validateConfig(c);
 };
 
+// ADR 011: flies.food.consumption, off by default (eating never lowers stock — unlimited resources).
+test('flies.food.consumption accepts true/false and rejects a non-boolean', () => {
+  assert.deepEqual(withFood({ consumption: true }), []);
+  assert.deepEqual(withFood({ consumption: false }), []);
+  const errors = withFood({ consumption: 'yes' });
+  assert.deepEqual(paths(errors), ['flies.food.consumption']);
+  assert.equal(errors[0].message, 'must be true or false');
+});
+
 test('a valid flies.food.hungerSensitivity loads with no error; it is absent on every existing world', () => {
   assert.deepEqual(withFood({ hungerSensitivity: { threshold: 0.4, gain: 1.8 } }), []);
   assert.deepEqual(validateConfig(loadForager()), []);

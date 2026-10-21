@@ -39,7 +39,7 @@ function flyConfig(escapeEnabled) {
       sites: { antenna: { forward: 0, lateral: 0.5 }, mouth: { forward: 0, lateral: 0 }, 'front-leg': { forward: 0.5, lateral: 0.25 } },
       escape: { enabled: escapeEnabled, threshold: 0.5, distance: 1.5, cooldown: 2 },
     },
-    food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+    food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
     stimuli: {
       'odour:food': { from: 'edibles', scaleBy: 'stock', radius: 6 },
     },

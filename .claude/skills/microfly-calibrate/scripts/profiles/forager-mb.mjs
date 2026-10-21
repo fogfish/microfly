@@ -51,6 +51,12 @@ export const profile = {
       sideMinRiseHz: 0.00005, driveRiseHz: 0.00005,
       noSidePairs: ['odour-food-a', 'odour-food-b', 'taste-leg'],
     },
+    // touch (ADR 011 D49/D50): originally near-zero everywhere (its `drive`/`trend` were noise, not signal,
+    // which with valence 'avoid' produced a spurious steering artifact — set to 'none' as a stopgap). D50 found
+    // the real pathway (mechanosensory_tactile -> AN03A008, one hop, weight up to 0.032 into turnLeft/turnRight
+    // -- though turnLeft/turnRight themselves are never read by the v3 decoder; what matters is that AN03A008
+    // is a "non-input" C2 candidate) and added `pathwayGain`'s touch route (world config) to amplify it. With
+    // that route, C2 now builds side.touch.L/.R (12/14 members) -- touch is back to 'avoid', the real signal.
     valence: {
       'odour-food-a': 'approach', 'odour-food-b': 'approach', 'odour-danger': 'avoid', heat: 'avoid',
       touch: 'avoid', 'taste-leg': 'approach', 'taste-mouth': 'none',

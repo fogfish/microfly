@@ -10,6 +10,9 @@ export const FOOD_DEFAULTS = Object.freeze({
   // Hunger-sensitive feeding (spec 018, contracts/world-config-food-feeding.md): pause while feeding by default,
   // and 30 s recovery for a depleted resource (read only when flies.food.capacity is set).
   feedMotion: 'pause', recovery: 30,
+  // flies.food.consumption (ADR 011): off by default — eating never lowers a flower's stock, so resources are
+  // effectively unlimited. On: food.js's consume() applies consumeRate/regrowth/capacity as before.
+  consumption: false,
 });
 export const ANTENNA_OFFSET_DEFAULT = 0.5;
 // flies.body.escape defaults (contracts/world-config-wide-io.md, ADR 007 W10): off by default.

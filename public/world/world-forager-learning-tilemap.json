@@ -127,7 +127,8 @@
       "backup": {"threshold": 0.5, "ticks": 10}
     },
     "food": {"eatSpeed": 0.5, "feedThreshold": 0.12, "reach": 1, "stock": 1, "consumeRate": 0.2, "regrowth": 0.02, "sated": 0.9,
-      "capacity": {"small": 1, "medium": 2, "large": 3}, "recovery": 30},
+      "capacity": {"small": 1, "medium": 2, "large": 3}, "recovery": 30,
+      "outcome": {"fruit": "punish"}},
     "stimuli": {
       "odour:food-a": {"from": "edibles", "scents": ["fruit"], "scaleBy": "stock", "interpolate": true, "contrast": {"common": 0.5, "gain": 5}},
       "odour:food-b": {"from": "edibles", "scents": ["floral"], "scaleBy": "stock", "interpolate": true, "contrast": {"common": 0.5, "gain": 5}},
@@ -168,11 +169,13 @@
           "routes": [
             {"from": "Kenyon_Cell", "to": "Kenyon_Cell", "gain": 0},
             {"from": "ALPN", "to": "Kenyon_Cell", "gain": 2.1},
-            {"from": "Kenyon_Cell", "to": "MBON", "gain": 40}
+            {"from": "Kenyon_Cell", "to": "MBON", "gain": 40},
+            {"from": "mechanosensory_tactile", "toType": "AN03A008", "gain": 50}
           ],
           "otherExcitatoryInto": ["ALPN", "Kenyon_Cell"],
           "otherGain": 0.3
-        }
+        },
+        "plasticity": {}
       }
     },
     "experiment": {

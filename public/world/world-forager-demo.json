@@ -273,7 +273,7 @@
       "backup": {"threshold": 0.5, "ticks": 10}
     },
     "food": {"eatSpeed": 0.5, "feedThreshold": 0.12, "reach": 1, "stock": 1, "consumeRate": 0.2, "regrowth": 0.02, "sated": 0.9,
-      "capacity": {"small": 1, "medium": 2, "large": 3}, "recovery": 30},
+      "capacity": {"small": 1, "medium": 2, "large": 3}, "recovery": 30, "consumption": true},
     "heatQuiet": ["swamp"],
     "stimuli": {
       "odour:food": {"from": "edibles", "scaleBy": "stock", "interpolate": true, "contrast": {"common": 0.5, "gain": 5}},

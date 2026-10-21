@@ -6,5 +6,8 @@ import { inputsSection } from './inputs.js';
 import { outputsSection } from './outputs.js';
 import { provenanceSection } from './provenance.js';
 import { decoderSection } from './decoder.js';
+import { learningSection } from './learning.js';
 
-export const SECTIONS = [actionSection, neuronMapSection, inputsSection, outputsSection, provenanceSection, decoderSection];
+export const SECTIONS = [
+  actionSection, neuronMapSection, inputsSection, outputsSection, provenanceSection, decoderSection, learningSection,
+];

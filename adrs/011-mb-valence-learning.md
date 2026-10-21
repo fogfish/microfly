@@ -473,6 +473,124 @@ escape/wander turns it away" behaviour; not measured separately from the escape 
 decoder's measured drive scale the way `escape` was — they may have the same inherited-threshold problem,
 unconfirmed.
 
+## D49. `touch`'s valence set to `none`: a confirmed artifact fixed, a separate stuck-at-wall case left open
+
+**User-reported, 2026-10-21**: touch causes the fly to pause/slow down.
+
+**Confirmed and fixed**: touch's decoded `drive` sits at the noise floor (essentially never above rest at this
+brain's activity level), which makes D29's `trend` metric — `(drive−slow)/(slow+ε)` — swing to a near-extreme
+value (−0.9954, measured directly) from pure numerical instability, not a real signal. With `valence: 'avoid'`,
+that artifact got a large, spurious weight in `sumByValence`'s `signedTrend`, which clamps `cast` toward its
+floor (less wander) and distorts the surge term — genuine steering noise from nothing. Set `touch`'s valence to
+`'none'` in `forager-brain-mb.decoder.json` (and the `forager-mb` profile, for future regeneration) — the same
+treatment `taste-mouth` already has: sensed, decoded, contributes zero steering weight. Constitution-clean (the
+sense is still read and decoded; only its behavioural weight changes, declared in data).
+
+**Tested further, and found NOT sufficient for the literal stuck-at-a-wall case.** A direct test — a fly placed
+flush against a wall, touch driven exactly as real wall contact would drive it, 1,000 ticks, 3 seeds — showed
+**no difference between `valence: 'avoid'` and `valence: 'none'`: the fly stays pinned at the wall either way.**
+Root cause: `touch` has no `side` pool at all (too few reproducible candidates — Part L's existing "too few
+members" fallback, not `noSidePairs`, which doesn't name `touch`), so there is no directed turn-away signal;
+only weak, symmetric random wander, whose per-tick heading change is small enough that escaping a wall by pure
+chance can take arbitrarily long regardless of valence.
+
+**Decision (user, 2026-10-21): ship the valence fix alone; do not add a new escape-trigger or wander-amplitude
+mechanism for touch specifically.** Real map edges carry `forestEdge` danger odour, which D48 now makes reliably
+trigger escape — the literal stuck-at-a-wall scenario this test reproduces (touch with *no* co-occurring danger
+odour) may not occur much in practice. Revisit if a fly gets stuck at a wall with no escape-triggering danger
+nearby after this session's fixes.
+
+**Superseded by D50**: the user reported the freeze persisted after reload, so the deeper fix was done anyway.
+
+## D50. Touch's real pathway found and boosted: `mechanosensory_tactile -> AN03A008`, one hop, `side.touch` now exists
+
+**User confirmed the freeze persisted** after D49 (expected — D49's own wall-test had already shown `valence`
+alone makes no difference; the user asked to pursue the deeper fix).
+
+**First attempt failed informatively.** Traced touch's downstream connectivity by BFS: output is reachable in
+just 2 excitatory hops (not a long diffuse chain as initially feared), and the first hop is not weak at all —
+725-fold more boosting of the top-10-by-edge-count first-hop types produced zero change in output-neuron firing.
+That was the wrong target: those types don't connect to outputs at all. The CORRECT finding, from checking each
+first-hop target's own direct edges: `mechanosensory_tactile` neurons connect **directly** (one hop) to
+`turnLeft`/`turnRight`/`backward` output neurons through a handful of named ascending/descending-neuron types,
+and one of them — `AN03A008` — carries the dominant weight (0.032, roughly 10-60x every other route found, into
+both `turnLeft` and `turnRight`). (`turnLeft`/`turnRight` output-channel spikes themselves turned out to be a
+red herring to optimize for — `grep` confirmed `decoder.js`/`body-layer.js` never read them; what matters is
+that `AN03A008` sits in C2's broad "non-input candidate" pool, so boosting signal into it can make *it* (or
+whatever a rebuilt C2 picks) show reliable, reproducible touch selectivity.)
+
+**Fix**: `pathwayGain` gained one more route — `{ "from": "mechanosensory_tactile", "toType": "AN03A008", "gain":
+50 }` — in both world files. Re-verified against Phase 3's regime gate first (same discipline as D44): numbers
+match D40/41/44 exactly (13.7%/12.0% active, 0.89/0.90 reliability, 0.143 overlap) — a separate sensory modality
+from olfactory, confirmed non-interacting.
+
+**C1/C2 rebuilt with the new route.** C1 still passes. C2 now builds `side.touch.L` (12 members) and
+`side.touch.R` (14 members) — these did not exist before. `touch`'s valence restored to `'avoid'` (real signal
+now exists to act on; D49's `'none'` stopgap no longer applies). `learning.naive` reattached
+(`mb-decoder-add-naive.mjs`).
+
+**Verified, the real wall-stuck scenario, through the actual production pipeline**: same test as D49 (fly flush
+against a wall, no danger odour present), 5 seeds. **All 5 now escape** (570-841 ticks) — versus 0/5 with either
+touch valence setting, and 0/5-1/3 even at 8x wander amplitude, before this fix. C3 smoke (3 seeds, 1,500 ticks):
+find rate 83.3% (up from 77.8%), walked 95.0% (up from 92.7%), danger/heat avoidance stable at 11.3%/10.9%.
+`npm test`: 785/22 unchanged.
+
+**Open**: escape still takes 570-841 ticks to resolve a dead-on wall encounter with zero other signal present —
+slower than D48's danger-triggered sprint (immediate). Not addressed further this session; acceptable for now
+since real stuck-at-a-wall-with-no-danger-nearby is the narrow case this test isolates, not the common one.
+
+## D51. `flies.food.consumption`: a world-config toggle for unlimited resources, off by default
+
+**User-requested, 2026-10-21**: a world-config toggle to disable resource consumption (unlimited food), off by
+default, to simplify reviewing learning behaviour without flower depletion as a confound.
+
+**Decision**: a new optional key, `flies.food.consumption` (boolean, default `false`). `food.js`'s `consume()`
+becomes a no-op when it is not explicitly `true` — a flower (continuous-stock or capacity model alike) simply
+never drains, so every flower reads as permanently full. Regrowth/recovery code paths need no change, since
+they only ever raise stock and are harmless no-ops when stock never drops.
+
+**Regression risk, handled explicitly**: defaulting a brand-new toggle to "off" changes behaviour for every
+world that does not mention it — including every existing shipped world, which has always behaved as if
+consumption were on. Added `"consumption": true` to every shipped world with a `flies.food` block except the
+two learning worlds (`world-forager-demo.json`, `-11k.json`, `-food-feeding-demo.json`, `world-forager.json`,
+`-wide.json`, `-wide-bad.json`) and to every test's inline food config that exercises depletion directly
+(bypassing `resolveFlies`, so it gets no default at all) — `food-energy`, `food-capacity`, `food-field-live`,
+`forager-behaviour`, `forager-step{,-v3,-wide}`, `forager-arms-v3`, `escape-integration`, `taste-timing`,
+`fly-host-wide`, `body-layer` test files. `world-forager-learning.json`/`-tilemap.json` declare nothing, so they
+get the new default (unlimited) as the user asked.
+
+**Verified**: `npm test` back to the exact pre-existing baseline (789 pass / 22 pre-existing unrelated fails,
+4 new tests added and green); `public/tests/*.test.js` unchanged (90/94, same 4 pre-existing ENOENT failures);
+full pipeline smoke run on `world-forager-learning.json` unaffected (eating still works — it is gated on
+decoded hunger/feed signals, never on stock availability).
+
+## D52. Plasticity was never actually turned on, and the panel never shows it (T055/T062-64, done here)
+
+**User asked, 2026-10-21, "how do I know if the fly has learned anything?"** — the honest answer at that point
+was "it can't, yet": `flies.brain.lif.plasticity` was absent in both shipped learning worlds. Every other D-entry
+this session (D37, D42-D47) verified the *mechanism* works, in isolated probes or via the decoder/body-layer
+pipeline driven directly — none of it had been wired into the actual world a browser session loads. Phase 6's
+own T055/T056 (which would have done this) was never reached this session.
+
+**Fix**: `lif.plasticity: {}` (the exact defaults D46's SC-002 verification used) added to both
+`world-forager-learning.json` and `world-forager-learning-tilemap.json`; `flies.food.outcome` added too
+(`floral`/`fruit` respectively — documentation-only, but completes what T055/56 specified). This surfaced a
+real, separate bug: `validate.js`'s generic LIF-key check had an exemption for `pathwayGain` (object or null)
+but never one for `plasticity` (also object or null) — no shipped world had ever set it, so the gap was
+invisible until now. Fixed; 3 new tests in `tests/world-learning.test.mjs`.
+
+**Phase 8 (T062-64, the panel) built in the same turn**, since seeing it needs both pieces. New `learning`
+section (`public/js/ui/panel/sections/learning.js`): dopamine drive and mean synapse weight per MBON group,
+per-food-pair learned gain next to its declared valence, "learning off" when `motor.learning` is `null`
+(absent, not zero), and an "injected" tag per world-event-driven reinforcement channel. Reuses `decoder.js`'s
+already-computed `learnedGain` (T042) and `fly-host.js`'s already-tracked `r.learning` (T041) and
+`injectedSenses` (T029, reshaped from bare strings to `{sense, events}` to show what drives each one) — no new
+brain-side plumbing. 6 tests in `tests/panel-learning-section.test.mjs`.
+
+**Not verified in-browser** (no automation tooling in this environment, established earlier) — verified instead
+via the section's own unit tests and a full `stepForagerFlyV3`/`decodeTick` pipeline run with no exceptions.
+`npm test`: 798 pass / 22 pre-existing unrelated fails, 9 new tests (3 + 6) added and green.
+
 ## Rationale
 
 See research.md §1-§10 for the decision-by-decision rationale and rejected alternatives. This ADR records only

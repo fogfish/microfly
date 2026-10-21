@@ -58,7 +58,7 @@ const F = {
   body: { maxSpeed: 3, turnRate: 4, energy: { initial: 0.3, metabolism: 0.005, intake: 0.2 },
     sites: { antenna: { forward: 0, lateral: 0.5 }, mouth: { forward: 0, lateral: 0 }, 'front-leg': { forward: 0.5, lateral: 0.25 } },
     escape: { enabled: false, threshold: 0.5, distance: 1.5, cooldown: 2 } },
-  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
   stimuli: {
     'odour:food': { from: 'edibles', scaleBy: 'stock', radius: 6 },
     'odour:danger': { from: 'dangers', kinds: ['spider'], radius: 4 },

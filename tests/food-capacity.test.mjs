@@ -17,7 +17,15 @@ const world = () => ({
 });
 const CAPACITY = { small: 1, medium: 2, large: 3 };
 const config = (extra = {}) => ({
-  food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, capacity: CAPACITY, ...extra },
+  food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, capacity: CAPACITY, consumption: true, ...extra },
+});
+
+// flies.food.consumption (ADR 011): off by default, including for the capacity model.
+test('flies.food.consumption off: a capacity-model flower also never drains', () => {
+  const food = createFood(world(), config({ consumption: false }));
+  food.consume(5, 5, 5);
+  assert.equal(food.stockAt(5, 5), 2, 'medium flower must stay at its full capacity');
+  assert.equal(food.fraction(5, 5), 1);
 });
 
 test('each kind starts with its declared capacity, at full fraction', () => {
@@ -104,7 +112,7 @@ test('with 3 sharing flies, an empty flower recovers after 30 s of world time, n
 });
 
 test('with 3 sharing flies, a legacy flower regrows at its regrowth rate per second of world time', () => {
-  const food = createFood(world(), { food: { stock: 1, regrowth: 0.02, consumeRate: 0.2, sated: 0.9 } }, { sharers: 3 });
+  const food = createFood(world(), { food: { stock: 1, regrowth: 0.02, consumeRate: 0.2, sated: 0.9, consumption: true } }, { sharers: 3 });
   food.consume(5, 5, 0.5);
   for (let tick = 0; tick < 20; tick++) for (let fly = 0; fly < 3; fly++) food.regrow(0.05);
   assert.ok(Math.abs(food.stockAt(5, 5) - (0.5 + 0.02)) < 1e-9, `got ${food.stockAt(5, 5)}`);

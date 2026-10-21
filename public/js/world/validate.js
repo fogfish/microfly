@@ -946,6 +946,9 @@ function validateFlyFood(food, err) {
   check('sated', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
   // Eating area (spec 017 BUG-002): Chebyshev radius, in cells, around a flower's cell.
   check('reach', (v) => Number.isInteger(v) && v >= 0 && v <= 3, 'must be a whole number from 0 to 3');
+  // ADR 011: off by default (unlimited resources — eating never lowers a flower's stock). On: the existing
+  // consumeRate/regrowth/capacity mechanics apply unchanged.
+  check('consumption', (v) => typeof v === 'boolean', 'must be true or false');
   // Spec 018 (contracts/world-config-food-feeding.md): hunger-sensitive feeding and food depletion, all optional.
   validateHungerSensitivity(food.hungerSensitivity, err);
   check('feedMotion', (v) => v === 'pause' || v === 'slow', 'must be "pause" or "slow"');
@@ -1117,8 +1120,9 @@ function validateFlyBrain(brain, err) {
     const notNumbers = entries.filter(([key, value]) => {
       if (!Object.hasOwn(defaults, key)) return false;
       if (key === 'outputScale' && isObject(value)) return false; // handled above
-      // pathwayGain (L11, ADR 011 D40) is an object of routes or null; resolveParamsV1 below checks its shape.
-      if (key === 'pathwayGain' && (value === null || isObject(value))) return false;
+      // pathwayGain (L11, ADR 011 D40) and plasticity (L12, ADR 011) are each an object or null; resolveParamsV1
+      // below checks their shape.
+      if ((key === 'pathwayGain' || key === 'plasticity') && (value === null || isObject(value))) return false;
       return !isNum(value);
     });
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');

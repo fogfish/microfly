@@ -1022,7 +1022,8 @@
         "medium": 2,
         "large": 3
       },
-      "recovery": 30
+      "recovery": 30,
+      "consumption": true
     },
     "stimulus": {
       "objects": [

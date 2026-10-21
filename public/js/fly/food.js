@@ -16,6 +16,10 @@ export function createFood(world, config, { sharers = 1 } = {}) {
   const full = config.food.stock;
   const { regrowth } = config.food;
   const { capacity: capacityOf } = config.food;
+  // flies.food.consumption (ADR 011): off by default — eating never lowers stock, so every flower reads as
+  // always full (resources are effectively unlimited). consume() below becomes a no-op; regrow()/stockAt()/
+  // fraction() need no change, since stock/units are simply never touched.
+  const consumptionOn = config.food.consumption === true;
   const capacityModel = capacityOf !== undefined;
   // Legacy continuous model: one stock per flower. Empty in a capacity-model world.
   const stock = new Map(capacityModel ? [] : [...world.stimulusCells.keys()].map((idx) => [idx, full]));
@@ -51,6 +55,7 @@ export function createFood(world, config, { sharers = 1 } = {}) {
     // Lowers the stock of a flower by amount, never below 0. A capacity-model flower that reaches 0 starts its
     // recovery countdown (flies.food.recovery, default 30 s).
     consume(cx, cy, amount) {
+      if (!consumptionOn) return;
       const idx = indexOf(cx, cy);
       if (capacityModel) {
         const u = units.get(idx);

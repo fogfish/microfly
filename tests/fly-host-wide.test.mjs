@@ -110,7 +110,7 @@ test('a "v2" world dispatches senseForagerFlyWide (12 inputs), not senseForagerF
       count: 1, mode: 'toy', tickHz: 20, sprite: 'fly-female',
       body: { maxSpeed: 3, turnRate: 4, energy: { initial: 0.3, metabolism: 0.005, intake: 0.2 },
         sites: { antenna: { forward: 0, lateral: 0.5 } }, escape: { enabled: false, threshold: 0.5, distance: 1.5, cooldown: 2 } },
-      food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+      food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
       stimuli: { 'odour:food': { from: 'edibles', scaleBy: 'stock', radius: 6 } },
       brain: { version: 'v2', snapshot: 'brains/forager-brain-wide.brain' },
     },
@@ -126,7 +126,7 @@ test('a "v1" world is unaffected: it still dispatches senseForagerFly (regressio
     flies: {
       count: 1, mode: 'toy', tickHz: 20, sprite: 'fly-female',
       body: { maxSpeed: 3, turnRate: 4, energy: { initial: 0.3, metabolism: 0.005, intake: 0.2 } },
-      food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+      food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
       stimulus: { radius: 6, gain: 1, max: 1, resting: 0, antennaOffset: 0.5, objects: ['small'] },
       brain: { version: 'v1', snapshot: 'brains/forager-brain.brain' },
     },

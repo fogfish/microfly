@@ -7,7 +7,7 @@ import { createFood } from '../public/js/fly/food.js';
 import { senseBilateral } from '../public/js/fly/stimulus.js';
 
 const CFG = { eatSpeed: 0.5, feedThreshold: 0.5, sated: 0.9 };
-const CONFIG = { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02 } };
+const CONFIG = { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, consumption: true } };
 const world = () => ({ width: 10, height: 10, stimulusCells: new Map([[5 * 10 + 5, 'flower']]) });
 
 test('metabolise and eat keep energy in [0, 1]', () => {
@@ -31,6 +31,20 @@ test('the flower stock stays in [0, full] when consumed and regrown', () => {
   assert.equal(food.stockAt(5, 5), 0);
   food.regrow(1000);
   assert.equal(food.stockAt(5, 5), 1, 'regrowth stops at full');
+});
+
+// flies.food.consumption (ADR 011): off by default -- eating never lowers stock, so resources are unlimited.
+test('flies.food.consumption off (the default): consume() is a no-op, stock stays full forever', () => {
+  const food = createFood(world(), { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02 } }); // no consumption key
+  food.consume(5, 5, 5);
+  assert.equal(food.stockAt(5, 5), 1, 'eating must not lower stock when consumption is off');
+  assert.equal(food.fraction(5, 5), 1);
+});
+
+test('flies.food.consumption: true restores the eating-depletes-stock behaviour', () => {
+  const food = createFood(world(), { food: { stock: 1, consumeRate: 0.2, regrowth: 0.02, consumption: true } });
+  food.consume(5, 5, 0.3);
+  assert.equal(food.stockAt(5, 5), 0.7);
 });
 
 test('regrowth skips the flower that is being eaten', () => {

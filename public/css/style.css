@@ -286,6 +286,25 @@ body {
   margin: 2px 0;
 }
 
+/* Learning section (ADR 011, Phase 8) */
+.learning-rows p,
+.learning-injected p {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin: 2px 0;
+}
+
+.learning-label {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+  margin: 6px 0 2px;
+}
+
+.learning-injected-row {
+  opacity: 0.85;
+}
+
 /* Tabs (BUG-001): World (fly list) and Fly (status) */
 .tabs {
   display: flex;

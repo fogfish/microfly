@@ -157,7 +157,7 @@ test('W14: backing up reverses for backup.ticks ticks', () => {
 const FLOWER = 10 * 1000 + 10;
 function feedingEnv(food = {}) {
   const w = { width: 1000, height: 1000, stimulusCells: new Map([[FLOWER, { kind: 'small', reach: 0 }]]) };
-  const foodConfig = { eatSpeed: 0.5, feedThreshold: 0.5, sated: 0.9, consumeRate: 0.2, regrowth: 0.02, stock: 1, ...food };
+  const foodConfig = { eatSpeed: 0.5, feedThreshold: 0.5, sated: 0.9, consumeRate: 0.2, regrowth: 0.02, stock: 1, consumption: true, ...food };
   return fakeEnv({
     isStimulusCell: (cx, cy) => cy * 1000 + cx === FLOWER,
     flowers: createFood(w, { food: foodConfig }),

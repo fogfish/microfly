@@ -69,7 +69,7 @@ const F = {
     locomotion: { baseSpeed: 0.3, speedGain: 0, maxSpeed: 3, surgeGain: 0, wander: 0, turnGain: 0, castGain: 0, castMin: 1, castMax: 1 },
     backup: { threshold: 2, ticks: 5 },
   },
-  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9 },
+  food: { eatSpeed: 0.5, feedThreshold: 0.5, stock: 1, consumeRate: 0.2, regrowth: 0.02, sated: 0.9, consumption: true },
   stimuli: {
     'odour:food': { from: 'edibles', scaleBy: 'stock' },
     'odour:danger': { from: 'dangers', kinds: ['spider'] },

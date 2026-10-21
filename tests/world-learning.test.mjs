@@ -118,6 +118,30 @@ test('rejects a world pathwayGain that is neither an object nor null', () => {
   assert.equal(hit.message, 'LIF parameter "pathwayGain" must be null or an object with routes');
 });
 
+// flies.brain.lif.plasticity (L12, ADR 011): an object (or null) in a world config, shape checked by lif-v1.js.
+// Found 2026-10-21: the validator's generic "every LIF key but outputScale/pathwayGain must be a number" check
+// had never been updated for plasticity, since no shipped world set it until now.
+test('the learning world validates with its declared plasticity block', () => {
+  assert.deepEqual(validateConfig(load('world-forager-learning.json')), []);
+  assert.deepEqual(validateConfig(load('world-forager-learning-tilemap.json')), []);
+});
+
+test('rejects a world plasticity that is neither an object nor null', () => {
+  const c = load('world-forager-learning.json');
+  c.flies.brain.lif.plasticity = 3;
+  const hit = validateConfig(c).find((e) => e.path === 'flies.brain.lif');
+  assert.ok(hit, 'no error on flies.brain.lif');
+  assert.equal(hit.message, 'LIF parameter "plasticity" must be null or an object');
+});
+
+test('rejects an unknown key inside a world plasticity block', () => {
+  const c = load('world-forager-learning.json');
+  c.flies.brain.lif.plasticity = { notAKey: 1 };
+  const hit = validateConfig(c).find((e) => e.path === 'flies.brain.lif');
+  assert.ok(hit, 'no error on flies.brain.lif');
+  assert.equal(hit.message, 'unknown LIF parameter "plasticity.notAKey"');
+});
+
 // ---- flies.stimuli[s].events (contracts/world-config-v3-learning.md, ADR 011) ----
 
 test('rejects an unknown flies.stimuli[s].events value', () => {

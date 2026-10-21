@@ -518,15 +518,33 @@ off" when plasticity is off.
 
 ### Implementation for User Story 5
 
-- [ ] T062 [US5] Add a "Learning" block to the fly panel (`public/js/ui/`): per-odour learned gain next to the
+- [X] T062 [US5] Add a "Learning" block to the fly panel (`public/js/ui/`): per-odour learned gain next to the
   declared valence (e.g. "approach × 0.72, learned"), dopamine drive per teaching pool (from `motor.learning` /
   T041), mean `wmod` per MBON group; when `motor.learning` is absent for a fly, show "learning off" rather than
   numbers that look learned.
-- [ ] T063 [P] [US5] Add an **injected** tag next to any `from: "events"` stimulus channel in the panel, the same
+  - New `public/js/ui/panel/sections/learning.js`, registered in `sections/index.js`, gated on the same
+    `'decoder'` signal as the existing decoder section. `model.js` exposes `learning` (the latest
+    `motor.learning`, `null` when plasticity is off — distinct from `undefined`, which hides the section
+    entirely for a non-decoder fly) and `injectedSenses`. Per-food-pair rows reuse `decoded.senses[pair]
+    .learnedGain` (T042), already computed; no new brain-side plumbing needed. 6 tests in
+    `tests/panel-learning-section.test.mjs`.
+- [X] T063 [P] [US5] Add an **injected** tag next to any `from: "events"` stimulus channel in the panel, the same
   way the existing `hunger` modulator is already shown as declared (`contracts/world-config-v3-learning.md`).
-- [ ] T064 [US5] Manually verify in the browser: load `world-forager-learning.json`, feed a fly at a floral
+  - Same section: an "Injected channels" block lists each `from:"events"` sense with its event list (e.g.
+    `reinforcement:punish: injected on escape, heatContact, eat:floral`). `fly-host.js`'s `injectedSenses`
+    (T029) changed shape from bare sense-id strings to `{sense, events}` to carry the event list through.
+- [~] T064 [US5] Manually verify in the browser: load `world-forager-learning.json`, feed a fly at a floral
   (punished) flower, confirm the panel's learned valence for floral odour moves and injected tags are shown
   (**SC-008**); load `world-forager-demo.json` and confirm its panel shows "learning off".
+  - **Not verified in-browser**: no browser automation tooling available in this environment (established
+    earlier this session). Verified instead via unit tests (above) and the full pipeline smoke test
+    (`stepForagerFlyV3`/`decodeTick` end to end, no exceptions, `npm test`: 798/22 unchanged).
+  - **Also found and fixed along the way**: `flies.brain.lif.plasticity` was never actually turned on in either
+    shipped learning world (Phase 6, T055/56's own wiring, never done this session) — a fly in the browser could
+    not learn anything at all until now. Enabled `lif.plasticity: {}` (the verified SC-002 defaults) and
+    `food.outcome` in both worlds. This also exposed a real validator gap: `plasticity` had never been exempted
+    from `validate.js`'s generic "every LIF key but outputScale/pathwayGain must be a number" check (no shipped
+    world had set it until now) — fixed, with 3 new tests in `tests/world-learning.test.mjs`.
 
 **Checkpoint**: All five implemented stories (US1–US5) plus the regression story (US6) together deliver the full
 feature.
