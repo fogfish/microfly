@@ -12,6 +12,7 @@
 
 import { createNetwork, step as lifStep } from './lif-v1.js';
 import { checkBrainVersion } from './snapshot.js';
+import { resolveLearningGroups } from './learning.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -23,6 +24,16 @@ export function createFlyBrain(brainConfig, seed) {
   checkBrainVersion(brainConfig.version ?? 'v1', snap.version, snap.kind, 'snapshot');
 
   const { neuronCount, offsets, targets, weights, capabilities } = snap;
+  // L12 (ADR 011, contracts/worker-protocol-v3-learning.md): brainConfig.learning is the parsed learning-v1
+  // sidecar (host-loaded, host-validated); resolved here against this snapshot's own manifest, so the worker
+  // never re-fetches it. Absent when the world sets no flies.brain.learning. A caller that passes the raw world-
+  // config path string (not yet loaded/parsed) gets a clear error instead of a TypeError deep in learning.js.
+  if (typeof brainConfig.learning === 'string') {
+    throw new Error('the v1 brain needs a parsed learning-v1 object, not a path string, in brainConfig.learning');
+  }
+  const learningGroups = brainConfig.learning
+    ? resolveLearningGroups(brainConfig.learning, snap.manifest.neurons)
+    : undefined;
   const net = createNetwork(
     {
       neuronCount, offsets, targets, weights,
@@ -37,6 +48,8 @@ export function createFlyBrain(brainConfig, seed) {
       neuronClass: snap.manifest?.neurons?.map((nr) => nr.class ?? null) ?? [],
       // L11 (ADR 011 D40): one `type` per neuron, for routes that select a classless neuron such as APL.
       neuronType: snap.manifest?.neurons?.map((nr) => nr.type ?? null) ?? [],
+      // L12: resolved kc/reward/punish/approach/avoid index arrays, for the plasticity update.
+      learning: learningGroups,
     },
     brainConfig.lif ?? {},
     seed,
@@ -131,6 +144,9 @@ export function createFlyBrain(brainConfig, seed) {
       outputs: Float32Array.from(drives),
       spikes,
       steps: stepsPerTick,
+      // L12: the plasticity telemetry after this tick's last LIF step; undefined when plasticity is off
+      // (contracts/worker-protocol-v3-learning.md "motor.learning").
+      learning: net.learning,
     };
   }
 

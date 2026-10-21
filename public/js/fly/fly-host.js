@@ -15,8 +15,9 @@ import { resolveFlies } from './fly-config.js';
 import { stimulusPoints } from './fly-world.js';
 import { createFood } from './food.js';
 import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
-import { forageEnvWide, senseForagerFlyWide } from './forager-step-wide.js';
+import { forageEnvWide, senseForagerFlyWide, updateEventPulses } from './forager-step-wide.js';
 import { createDecoderState, decodeTick, loadDecoder, pairOf } from './decoder.js';
+import { loadLearning } from '../brain/learning.js';
 import { initBodyLayerFly, stepBodyLayer } from './body-layer.js';
 import { hunger as hungerOf } from './energy.js';
 
@@ -89,6 +90,14 @@ export async function loadDecoderFile(brain, root, snapshot) {
   return loadDecoder(brain.decoder, root, { sha256: snapshot.sha256, neuronCount: snapshot.neuronCount, senses });
 }
 
+// Fetches and parses the learning-v1 sidecar named by flies.brain.learning (contracts/worker-protocol-v3-
+// learning.md), before any fly starts. null when the world declares none (plasticity then stays off). The
+// worker resolves this parsed object's groups itself, against its own copy of the snapshot manifest.
+export async function loadLearningFile(brain, root, snapshot) {
+  if (brain.learning === undefined) return null;
+  return loadLearning(brain.learning, root, { sha256: snapshot.sha256 });
+}
+
 // The declaration a fly's brain makes (channel-declaration.md): the snapshot's for connectome flies,
 // the toy declaration or its override for toy flies, and the baseline one for random-walk flies.
 function declarationOf(state, f, snapshot) {
@@ -101,7 +110,7 @@ function declarationOf(state, f, snapshot) {
 // Returns one FlyRecord per fly.
 // FlyRecord: { state, worker, status, error, pending, history, motorSource, brainLabel, capabilities,
 //              checks, neuronCount, activity, positions, drawn }
-export function startFlies({ config, world, flies, onUpdate, snapshot = null, decoder = null, onFlowers = null }) {
+export function startFlies({ config, world, flies, onUpdate, snapshot = null, decoder = null, learning = null, mbon = null, onFlowers = null }) {
   const f = resolveFlies(config);
   // The forager brain (version v1, v2 or v3) runs on protocol 3. Its toy flies are the only ones that use the
   // brain. v2 (ADR 007) and v3 (ADR 010) are both the wide-I/O interface generation, same v1 runner and sense
@@ -172,7 +181,9 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
       pending: false,
       forager: isForager,
       demo: isDemoFly,
-      decoderState: isDemoFly ? createDecoderState(decoder, capabilities.channels.inputs) : null,
+      // mbon (ADR 011, data-model.md "Learned valence"): null keeps every food pair's learned gain undefined
+      // (sumByValence's default of 1), so learning off is bit-for-bit today's behaviour.
+      decoderState: isDemoFly ? createDecoderState(decoder, capabilities.channels.inputs, mbon) : null,
       // The decoder-v1 file itself (contracts/decoder-v1.md), not just the per-tick decode: the panel's decoder
       // section (D31) reports each sense's pool size, which decodeTick's per-tick return does not carry.
       decoderFile: isDemoFly ? decoder : null,
@@ -194,6 +205,13 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
       neurons: snapshot && state.mode === 'toy' ? snapshot.neurons : null,
       provenance: snapshot && state.mode === 'toy' ? snapshot.provenance : null,
       fidelity: snapshot && state.mode === 'toy' ? snapshot.fidelity : null,
+      // ADR 011 (contracts/world-config-v3-learning.md "events"): the senses this world drives from a world
+      // event rather than the connectome carrying the signal itself, for the panel's "injected" tag (Phase 8).
+      injectedSenses: Object.entries(f.stimuli ?? {}).filter(([, spec]) => spec.from === 'events').map(([sense]) => sense),
+      // The latest motor.learning (contracts/worker-protocol-v3-learning.md), kept for Phase 8's panel. null
+      // until the first motor reply; absent again (not zeros) whenever plasticity is off, so "learning off" is
+      // distinguishable from a real zero reading.
+      learning: null,
     };
   });
 
@@ -205,7 +223,14 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
   function applyForagerTick(r, msg) {
     if (r.demo) {
       const decoded = decodeTick(r.decoderState, { spikes: msg.spikes, inputs: msg.inputs }, decoder);
-      const { eating } = stepBodyLayer(r.state, decoded, { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor }, forageEnvironment);
+      const { eating, ateScent, escapeStarted } = stepBodyLayer(r.state, decoded, { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor }, forageEnvironment);
+      // ADR 011 (contracts/world-config-v3-learning.md "events"): this tick's own outcome drives next tick's
+      // reinforcement:reward/punish pulses (the sense for tick t+1 is built before tick t+1's body layer runs,
+      // so an event can only be read one tick after it happens).
+      updateEventPulses(r.state, forageEnvironment, { eating, ateScent, escapeStarted, inputs: msg.inputs });
+      // contracts/worker-protocol-v3-learning.md: present only when plasticity is on; r.learning mirrors that
+      // (undefined/absent reads as "learning off" on the panel, never a stale value from a previous tick).
+      r.learning = msg.learning ?? null;
       r.activity?.recordTick(msg.spikes, performance.now());
       r.history.push({
         tick: r.state.tick, inputs: msg.inputs, sensory: msg.inputs[0], hunger: hungerOf(r.state.energy),
@@ -297,8 +322,10 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
     // A snapshot is fetched by each worker from its absolute URL (R7); toy brains are built in place.
     // D32: the runtime hunger-threshold override is a world-config key, not a brain-section one (research.md
     // §6), so it is folded into the worker's brain payload here rather than carried on f.brain itself.
+    // init.brain.learning (contracts/worker-protocol-v3-learning.md): the parsed object replaces the world's
+    // own path string, mirroring how snapshot.url replaces flies.brain.snapshot above.
     const brain = snapshot && r.state.mode === 'toy'
-      ? { ...f.brain, snapshot: snapshot.url, ...(isDemo ? { modulators: f.modulators } : {}) }
+      ? { ...f.brain, snapshot: snapshot.url, ...(learning ? { learning } : {}), ...(isDemo ? { modulators: f.modulators } : {}) }
       : f.brain;
     if (r.forager) {
       worker.postMessage(P3.init({ flyId: r.state.id, seed: r.state.brainSeed, brain }));

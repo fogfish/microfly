@@ -170,6 +170,13 @@ export function runC2(ctx, lifBlock, gates) {
   const driveRiseHz = gates.driveRiseHz ?? 3;
   const driveSelectivityRatio = gates.driveSelectivityRatio ?? 2;
   const reproductionFraction = gates.reproductionFraction ?? 0.7;
+  // ADR 011 (forager-mb profile, found 2026-10-21): at this brain's activity level some pairs' side candidates
+  // are single-spike-level events over the whole probe window (shot noise, not signal — confirmed directly:
+  // more ticks does not fix it, since scaling a mean count of ~1 spike up by the same factor leaves the
+  // relative Poisson-like noise just as large). Declaring a pair here skips side-pool *selection* for it
+  // entirely, the same outcome Part L already gives when too few candidates clear the bar (klinotaxis alone) —
+  // this just names the different, measured reason. Empty by default; no other profile sets it.
+  const noSidePairs = new Set(gates.noSidePairs ?? []);
 
   // measurements.get(seed).get(pairId) -> { rest, left, right, bilateral: number[] } (per-candidate union
   // fractions, in `candidates` order). rest is seed-level (pair-independent), stored once per seed under "".
@@ -197,32 +204,36 @@ export function runC2(ctx, lifBlock, gates) {
   for (const [pairId, sides] of pairs) {
     // side.<pair>.L/.R (D27): s = (rL − rR)/(rL + rR) on the calibration seeds; |s| > 0.3, mean rate >= 2 Hz
     // above rest, members sorted by |s| desc, ties on bodyId asc.
-    const sideScored = candidates.map((c, k) => {
-      const rL = meanOverSeeds(k, pairId, 'left', seeds);
-      const rR = meanOverSeeds(k, pairId, 'right', seeds);
-      const rest = meanOverSeeds(k, pairId, 'rest', seeds);
-      const s = (rL + rR) > 0 ? (rL - rR) / (rL + rR) : 0;
-      const meanRiseHz = hz((rL + rR) / 2) - hz(rest);
-      return { c, k, s, meanRiseHz };
-    });
-    const sideSelected = (sign) => sideScored
-      .filter((r) => (sign > 0 ? r.s > sideThreshold : r.s < -sideThreshold) && r.meanRiseHz >= sideMinRiseHz)
-      .sort((a, b) => Math.abs(b.s) - Math.abs(a.s) || a.c.bodyId - b.c.bodyId);
-    const leftMembers = sideSelected(1);
-    const rightMembers = sideSelected(-1);
-    for (const [name, members, sign] of [[`side.${pairId}.L`, leftMembers, 1], [`side.${pairId}.R`, rightMembers, -1]]) {
-      if (members.length < minSideMembers) continue; // D27 Part L: too few a side -> no side pool (klinotaxis alone)
-      const reproduced = members.filter((m) => {
-        const rL = measurements.get(heldBack).get(pairId).left[m.k];
-        const rR = measurements.get(heldBack).get(pairId).right[m.k];
-        const sHeld = (rL + rR) > 0 ? (rL - rR) / (rL + rR) : 0;
-        return sign > 0 ? sHeld > 0 : sHeld < 0;
+    if (noSidePairs.has(pairId)) {
+      // Skipped by declared gate (see noSidePairs above) — no side.<pairId>.L/.R pool at all, klinotaxis alone.
+    } else {
+      const sideScored = candidates.map((c, k) => {
+        const rL = meanOverSeeds(k, pairId, 'left', seeds);
+        const rR = meanOverSeeds(k, pairId, 'right', seeds);
+        const rest = meanOverSeeds(k, pairId, 'rest', seeds);
+        const s = (rL + rR) > 0 ? (rL - rR) / (rL + rR) : 0;
+        const meanRiseHz = hz((rL + rR) / 2) - hz(rest);
+        return { c, k, s, meanRiseHz };
       });
-      if (reproduced.length / members.length < reproductionFraction) {
-        errors.push(`E-DECODE-${name}`);
-        continue;
+      const sideSelected = (sign) => sideScored
+        .filter((r) => (sign > 0 ? r.s > sideThreshold : r.s < -sideThreshold) && r.meanRiseHz >= sideMinRiseHz)
+        .sort((a, b) => Math.abs(b.s) - Math.abs(a.s) || a.c.bodyId - b.c.bodyId);
+      const leftMembers = sideSelected(1);
+      const rightMembers = sideSelected(-1);
+      for (const [name, members, sign] of [[`side.${pairId}.L`, leftMembers, 1], [`side.${pairId}.R`, rightMembers, -1]]) {
+        if (members.length < minSideMembers) continue; // D27 Part L: too few a side -> no side pool (klinotaxis alone)
+        const reproduced = members.filter((m) => {
+          const rL = measurements.get(heldBack).get(pairId).left[m.k];
+          const rR = measurements.get(heldBack).get(pairId).right[m.k];
+          const sHeld = (rL + rR) > 0 ? (rL - rR) / (rL + rR) : 0;
+          return sign > 0 ? sHeld > 0 : sHeld < 0;
+        });
+        if (reproduced.length / members.length < reproductionFraction) {
+          errors.push(`E-DECODE-${name}`);
+          continue;
+        }
+        pools[name] = members.map((m) => m.c.index);
       }
-      pools[name] = members.map((m) => m.c.index);
     }
 
     // drive.<pair> (D27): rise >= driveRiseHz over rest under bilateral, and >= driveSelectivityRatio x the
@@ -348,6 +359,9 @@ export function runC3(ctxFor, worldPaths, decoderFile, seeds, ticks) {
       world: ctx.world, expConfig: ctx.expConfig, snapshot: ctx.snapshot,
       arms: ['v3', 'baseline'], seeds, ticks, capabilities: ctx.capabilities,
       decoders: { v3: decoderFile },
+      // ADR 011: ctxFor's own f.brain.learning must already be the parsed object (as ctxFor already resolves
+      // f.brain.snapshot), not the raw world-config path string.
+      learning: typeof ctx.f.brain.learning === 'object' ? ctx.f.brain.learning : undefined,
     });
     const metrics = armMetrics(['v3', 'baseline'], result, ctx.f.stimuli?.['odour:food']?.radius ?? 6, seeds[0] ?? 1);
     reports.push({ worldPath, metrics });

@@ -29,11 +29,21 @@ const WIDE_IO_VERSIONS = ['v2', 'v3'];
 // flies.stimuli[sense].from (contracts/world-config-wide-io.md, contracts/stimuli-field-sources.md): "edibles"/
 // "dangers" sample a world object list; "blocked" (touch) reads world walkability directly, with no object list;
 // "water"/"forestEdge" read the heat/danger field (contracts/world-format-sketch-map.md §3) at the channel's site.
-const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked', 'water', 'forestEdge'];
+// "events" (contracts/world-config-v3-learning.md, ADR 011): a world-event stimulus, read from the fly's own
+// body state and the food table, never from another fly.
+const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked', 'water', 'forestEdge', 'events'];
 // edibles[i].scent (contracts/world-config-v3-learning.md, ADR 011): orthogonal to kind (size/capacity).
 const SCENTS = ['fruit', 'floral'];
 // kinds/scaleBy/radius are meaningless once the field itself fixes the falloff shape (contracts/stimuli-field-sources.md §2).
 const FIELD_ONLY_SOURCES = ['water', 'forestEdge'];
+// flies.stimuli[s].events (contracts/world-config-v3-learning.md): fixed names, plus "eat:<scent>" for each
+// declared scent.
+const EVENT_NAMES = ['eat', 'escape', 'heatContact'];
+function isValidEvent(name) {
+  if (EVENT_NAMES.includes(name)) return true;
+  const m = /^eat:(.+)$/.exec(name);
+  return m !== null && SCENTS.includes(m[1]);
+}
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -850,6 +860,20 @@ function validateFlyStimuliWide(stimuli, err) {
     if (FIELD_ONLY_SOURCES.includes(spec.from)) {
       for (const key of ['kinds', 'scaleBy', 'radius']) {
         if (spec[key] !== undefined) err(path, `must not set ${key} when from is "${spec.from}"`);
+      }
+    }
+    // from: "events" (contracts/world-config-v3-learning.md, ADR 011): a declared reinforcement pair, driven by
+    // world events rather than a position/field sample.
+    if (spec.from === 'events') {
+      if (!(Array.isArray(spec.events) && spec.events.length > 0)) {
+        err(`${path}.events`, 'must be a non-empty list of event names');
+      } else {
+        for (const name of spec.events) {
+          if (!isValidEvent(name)) err(`${path}.events`, `unknown event "${name}"`);
+        }
+      }
+      if (spec.pulseTicks !== undefined && !isInt(spec.pulseTicks, 1, 100000)) {
+        err(`${path}.pulseTicks`, 'must be a positive integer');
       }
     }
   }

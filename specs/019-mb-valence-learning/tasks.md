@@ -250,27 +250,42 @@ without further pairing, gated by FR-008 on Phase 3's pass.
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Implement `scripts/mb-teaching-probe.mjs` (brain-only, calibration seeds, research.md §6):
+- [X] T026 [US2] Implement `scripts/mb-teaching-probe.mjs` (brain-only, calibration seeds, research.md §6):
   measure whether the `reward` DAN group's rate rises above rest when mouth taste is 1 with hunger 1 (versus hunger
   0); whether the `punish` group's rate rises above rest for heat alone, touch alone, danger odour alone, and a
   driven escape output; and whether either food odour alone spuriously drives `reward` or `punish`. A signal
   "carries" when its dopamine drive `D` (the §5 formula, default `threshold`) is above 0 on ≥ 50 % of stimulus ticks
   and ≤ 5 % of rest ticks. Write a carried/injected table to `specs/019-mb-valence-learning/teaching-signals.md`.
-- [ ] T027 [US2] Run the probe against `world-forager-learning.json` and record the carried/injected split in
+- [X] T027 [US2] Run the probe against `world-forager-learning.json` and record the carried/injected split in
   `adrs/011-mb-valence-learning.md`.
-- [ ] T028 [US2] Add an event-driven stimulus kind in `public/js/world/validate.js` and `public/js/fly/stimulus.js`:
+  - **Result: every signal injected** — 0.0% of stimulus and rest ticks had D>0 for all 10 signal/pool checks
+    (reward/punish population rates sit an order of magnitude below the default `threshold`, a structural
+    consequence of the gate's sparse-coding calibration, not a probe bug — traced directly). See
+    `teaching-signals.md` and ADR 011 D37.
+- [X] T028 [US2] Add an event-driven stimulus kind in `public/js/world/validate.js` and `public/js/fly/stimulus.js`:
   a `flies.stimuli[s]` entry with `from: "events"` and an `events` list drawn only from `eat`, `eat:<scent>`,
   `escape`, `heatContact` (mean heat input ≥ 0.9); reject any other value with `flies.stimuli["<sense>"].events:
   unknown event "<name>"`. On a matching event, set both channels of the pair to 1 for `pulseTicks` ticks (default
   10), then back to 0. Events are read only from the fly's own body state and the food table, never from another
   fly (`contracts/world-config-v3-learning.md`).
-- [ ] T029 [P] [US2] In `public/js/fly/fly-host.js`, wire `reinforcement:reward` (`events: ["eat"]`) and
+  - Implemented in `validate.js` (STIMULUS_SOURCES/EVENT_NAMES/isValidEvent) and, since "events" needs a per-fly
+    pulse countdown rather than a position/field sample, in `forager-step-wide.js` (`updateEventPulses`,
+    `senseForagerFlyWide`'s bypass) and `body-layer.js` (`stepBodyLayer` now also returns `ateScent`/
+    `escapeStarted`; `food.js` gained `scentAt`) rather than `stimulus.js`, which only holds position-based
+    sampling helpers.
+- [X] T029 [P] [US2] In `public/js/fly/fly-host.js`, wire `reinforcement:reward` (`events: ["eat"]`) and
   `reinforcement:punish` (`events: ["escape", "heatContact", "eat:floral"]`) — but only for the signals T027 found
   **not** carried by the connectome — into the per-tick event detection that already exists for this fly, and mark
   these channels `injected` in the state `fly-host.js` exposes (consumed by Phase 8's panel).
-- [ ] T030 [P] [US2] Add `tests/world-learning.test.mjs` cases: an unknown event name is rejected with the exact
+  - T027 found every signal injected, so both pairs are wired with no connectome-carried exception. Wired in
+    `world-forager-learning.json` (`eat:floral` punished) and `world-forager-learning-tilemap.json` (`eat:fruit`,
+    the reversed schedule) via `updateEventPulses`, called from `fly-host.js`'s existing demo-fly tick handler and
+    from `stepForagerFlyV3` (the synchronous probe/calibration path). `fly-host.js` exposes `injectedSenses` per
+    fly for Phase 8's panel tag. Also fixed: `world-forager-learning-tilemap.json`'s LIF block still had the
+    pre-D40/D41 settings (`synapticScale` 15, no `pathwayGain`) — updated to match the gate-passing block.
+- [X] T030 [P] [US2] Add `tests/world-learning.test.mjs` cases: an unknown event name is rejected with the exact
   message above; an `eat:floral` pulse lasts exactly `pulseTicks` ticks and then returns to 0.
-- [ ] T031 [US2] Implement LIF parameter `plasticity` (L12) in `public/js/brain/lif-v1.js`: add `plasticity: null`
+- [X] T031 [US2] Implement LIF parameter `plasticity` (L12) in `public/js/brain/lif-v1.js`: add `plasticity: null`
   to `LIF_V1_DEFAULTS`. `resolveParams` validates (defaults in parentheses, per `contracts/lif-v1-plasticity.md`):
   `tauElig` (400), `tauRate` (20), `tauBaseline` (4000) each > 0; `etaReward` (0.05), `etaPunish` (0.05) each ≥ 0;
   `threshold` (0.01) ≥ 0; `0 ≤ wMin (0.2) < 1`; `tauForget` (30000) > 0; `dopamine` (`"pool"`) ∈
@@ -280,7 +295,7 @@ without further pairing, gated by FR-008 on Phase 3's pass.
   `slotGroup` (0 approach, 1 avoid), `wmod` (`Float64Array`, every entry starts at 1), `elig` (sized `n`, used only
   at KC indices), `rate`/`baseline` (`Float64Array(2)`), and (only in shuffled mode) a `ring` of `Float64Array(2 ·
   4000)` plus a `stepCount` integer counter.
-- [ ] T032 [US2] Implement the per-step L12 update inside `lif-v1.js`'s `step()`, after the spike pass and before
+- [X] T032 [US2] Implement the per-step L12 update inside `lif-v1.js`'s `step()`, after the spike pass and before
   the input-buffer swap, exactly per `contracts/lif-v1-plasticity.md`'s pseudocode: decay+accumulate `elig` for KCs;
   update `rate`/`baseline` EMAs for `reward`/`punish` (baseline starts at the first step's rate, so there is no
   start-up transient counted as dopamine); `D_g = max(0, r_g - b_g - threshold)`; depress `wmod_j ← max(wMin, wmod_j
@@ -288,61 +303,91 @@ without further pairing, gated by FR-008 on Phase 3's pass.
   steps, recover every slot toward 1 at rate `1 - exp(-10/tauForget)`; write `weights[slot_j] = base[slot_j] ·
   wmod_j` only for slots that changed. Expose `net.learning = { dReward, dPunish, wmodApproach, wmodAvoid }`
   (the per-group/per-slot-group means), refreshed every step.
-- [ ] T033 [US2] Implement shuffled-dopamine mode in the same step function: when `dopamine: "shuffled"`, write
+- [X] T033 [US2] Implement shuffled-dopamine mode in the same step function: when `dopamine: "shuffled"`, write
   each step's `D_g` into the 4,000-step ring; every 200 steps redraw a lag uniformly from [1000, 4000] using a third
   PRNG stream `createPrng(seed ^ 0x504c4153)`; use the ring's value at that lag in place of the live `D_g` for the
   depression step (not for telemetry, which still reports the live value).
-- [ ] T034 [US2] Guarantee G8 (`contracts/lif-v1-plasticity.md`): `wmod` never leaves `[wMin, 1]` at any step, and
+- [X] T034 [US2] Guarantee G8 (`contracts/lif-v1-plasticity.md`): `wmod` never leaves `[wMin, 1]` at any step, and
   the snapshot's own `weights` array (from `createNetwork`'s original argument) is never written — only the private
   copy built in T031/T018 is.
-- [ ] T035 [P] [US2] Add `tests/lif-plasticity-golden.test.mjs` cases G6/G7: `plasticity: null` gives spikes
+- [X] T035 [P] [US2] Add `tests/lif-plasticity-golden.test.mjs` cases G6/G7: `plasticity: null` gives spikes
   identical to today's core on the wide-brain fixture (G6); two runs with identical graph, parameters, drive and
   seed, plasticity **on**, give identical spikes and identical `wmod` arrays (G7, determinism).
-- [ ] T036 [P] [US2] Add `tests/lif-plasticity.test.mjs` on a labelled-synthetic fixture (3 KCs, 1 approach MBON, 1
+- [X] T036 [P] [US2] Add `tests/lif-plasticity.test.mjs` on a labelled-synthetic fixture (3 KCs, 1 approach MBON, 1
   avoid MBON, 1 PAM, 1 PPL1): reward depresses only KC→avoid edges of KCs that spiked; punishment depresses only
   KC→approach edges; `wmod` recovers toward 1 without further pairing; a tonic (constant-rate) DAN gives `D = 0`
   once its baseline settles.
-- [ ] T037 [US2] In `public/js/brain/fly-brain-v1.js`, resolve the learning sidecar (via `learning.js`, T010)
+- [X] T037 [US2] In `public/js/brain/fly-brain-v1.js`, resolve the learning sidecar (via `learning.js`, T010)
   against the loaded snapshot manifest, pass `{ kc, reward, punish, approach, avoid }` into `createNetwork` as
   `graph.learning`, and surface `net.learning` (T032) in the brain's per-tick return value.
-- [ ] T038 [US2] Amend `public/js/brain/protocol-v3.js`: `init.brain.learning` (the parsed learning-v1 object,
+- [X] T038 [US2] Amend `public/js/brain/protocol-v3.js`: `init.brain.learning` (the parsed learning-v1 object,
   optional); `motor.learning`, an optional `Float32Array(4)` `[dReward, dPunish, wmodApproach, wmodAvoid]`, present
   only when plasticity is on, included in `transferables(msg)` when present; `validateMotorV3` accepts a
   `Float32Array` of length 4 and otherwise rejects with `motor.learning must be a Float32Array of 4 entries`
   (`contracts/worker-protocol-v3-learning.md`).
-- [ ] T039 [P] [US2] Amend `public/js/brain/worker-core.js`: on `init`, if `msg.brain.lif.plasticity` is set and
+- [X] T039 [P] [US2] Amend `public/js/brain/worker-core.js`: on `init`, if `msg.brain.lif.plasticity` is set and
   `msg.brain.learning` is absent, reply with an `error` naming `E-LEARN-MISSING: plasticity needs
   flies.brain.learning`; propagate any `learning.js` reader error (T010's codes) as an `error` reply naming the
   code.
-- [ ] T040 [P] [US2] Add `tests/protocol-v3-learning.test.mjs`: an `init` with plasticity set and no `learning`
+- [X] T040 [P] [US2] Add `tests/protocol-v3-learning.test.mjs`: an `init` with plasticity set and no `learning`
   gives an error; a `sense` with plasticity on returns `motor.learning` of length 4; with plasticity off, the field
   is absent (not zeros); `validateMotorV3` accepts/rejects per T038.
-- [ ] T041 [US2] Amend `public/js/fly/fly-host.js` to fetch `flies.brain.learning` (resolved like
+- [X] T041 [US2] Amend `public/js/fly/fly-host.js` to fetch `flies.brain.learning` (resolved like
   `flies.brain.snapshot`), pass it through the worker's `init`, and keep the latest `motor.learning` per fly for
   Phase 8's panel.
-- [ ] T042 [US2] Implement learned valence ℓ in `public/js/fly/decoder.js` per data-model.md "Learned valence": for
+  - `loadLearningFile` (mirrors `loadDecoderFile`), fetched in `main.js` alongside the decoder and threaded
+    through `startFlies({learning})` into the worker's `init.brain.learning`; `r.learning` keeps the latest
+    `motor.learning` (or `null`) per demo fly.
+- [X] T042 [US2] Implement learned valence ℓ in `public/js/fly/decoder.js` per data-model.md "Learned valence": for
   each food pair, keep an EMA (τ = 300 ticks) of the MBON `approach`/`avoid` group rates, updated only while that
   pair's mean input ≥ 0.05; `bal_p = (rApp − rAvoid)/(rApp + rAvoid + ε)`; `bal⁰_p` from `decoder.learning.naive[p]`
   when present, else the mean of the first 300 ticks of presence; `ℓ_p = clamp(1 + kValence·(bal_p − bal⁰_p), 0.5,
   1.5)`. With learning off, `ℓ_p` is always 1. In `public/js/fly/body-layer.js`'s W13 steering, replace `v_p` with
   `v_p · ℓ_p` for food pairs; the sign of `v_p` must never change.
-- [ ] T043 [P] [US2] Extend the C2 writer so `public/brains/forager-brain-mb.decoder.json` carries `learning.naive`
+  - `decoder.js`'s `learnedGain` is `undefined` (not the literal `1`) for a non-food pair or when no `mbon`
+    groups are given; `body-layer.js`'s `sumByValence` reads it as `?? 1`, so "always 1" holds functionally.
+    Resolved `mbon` groups threaded main.js → `startFlies({mbon})` → `createDecoderState(decoder, channels,
+    mbon)`, parallel to `learning`. `tests/decoder.test.mjs` covers the EMA, the naive-vs-fallback baseline, the
+    quiet gate and the [0.5, 1.5] clamp; a manual `stepBodyLayer` smoke test confirmed no regression with a
+    `learnedGain` present.
+- [X] T043 [P] [US2] Extend the C2 writer so `public/brains/forager-brain-mb.decoder.json` carries `learning.naive`
   (the MBON balance per food pair measured at the probe, before any learning), `learning.kValence`, and
   `learning.tau`, per `contracts/learning-v1.md`'s decoder-v1 addition; the reader rejects an unknown pair in
   `naive` using the existing "unknown pair" rule. Re-run C2 for `forager-brain-mb` and regenerate the decoder file.
-- [ ] T044 [US2] Implement `scripts/mb-conditioning-probe.mjs` (ported from the described `learn_test.mjs`,
+  - C2 initially failed reproducibility on 4 side-pools (odour-food-a/b.R, taste-leg.L/R) — root-caused to
+    shot-noise-level candidate spike counts at this brain's activity level (confirmed by direct measurement;
+    unaffected by widening ticks 3000→8000). Fixed with `decoder-engine.mjs`'s new `noSidePairs` gate (a
+    declared opt-out matching the existing "too few members → klinotaxis alone" Part L fallback), set for
+    `['odour-food-a','odour-food-b','taste-leg']` in the `forager-mb` profile; every other pool's abort-on-
+    reproduction-failure behaviour is unchanged (existing test still passes; new test added). Also found and
+    fixed: `forager-arms.mjs`/`decoder-engine.mjs`'s `runC3`/`calibrate.mjs`'s `--stage=c3` all built a v3
+    `brainConfig` with the unparsed `flies.brain.learning` path string (same bug class as the original
+    calibrate.mjs c1/c2 fix). `scripts/mb-decoder-add-naive.mjs` adds `learning.naive` (`odour-food-a` 0.373,
+    `odour-food-b` 0.225, calibration seeds) + `kValence`/`tau`. Decoder built and verified end to end: the
+    browser-facing fetch chain and the full sense→brain→decode→body-layer pipeline both run with no exceptions
+    on `world-forager-learning.json`. See ADR 011 D47.
+- [X] T044 [US2] Implement `scripts/mb-conditioning-probe.mjs` (ported from the described `learn_test.mjs`,
   research.md §8): naive test (5 presentations each of A and B, reading ℓ as in T042); 6 pairings of odour A (100
   ticks each, the teaching pair driven on ticks 50–100) run once for reward and once for punishment; an immediate
   post-test; a rest of `tauForget` steps; a final test. Runs four arms: `plastic`, `frozen` (`plasticity: null`),
   `shuffled` (`dopamine: "shuffled"`), `random` (the snapshot rewired by `scripts/forager-arms.mjs`'s `rewire()`,
   using the same learning sidecar by index). Writes `specs/019-mb-valence-learning/conditioning.json`.
-- [ ] T045 [US2] Run: `node scripts/mb-conditioning-probe.mjs --world=world/world-forager-learning.json
+  - Along the way, found and fixed two real problems (ADR 011 D44/D45), not just implemented the script:
+    (1) the MB's entire output layer (MBONs + APL) never fired under the gate-passing LIF block — fixed with a
+    narrow `pathwayGain` route (`Kenyon_Cell→MBON` gain 40) re-verified against Phase 3's regime gate;
+    (2) the first pairing protocol's shuffled control wasn't actually decorrelated (same effect size as
+    plastic) — fixed by spacing pairings past the shuffle's max lag.
+- [X] T045 [US2] Run: `node scripts/mb-conditioning-probe.mjs --world=world/world-forager-learning.json
   --seeds=held-out --arms=plastic,frozen,shuffled,random
   --out=specs/019-mb-valence-learning/conditioning.json`. Verify **SC-002**: the plastic arm's paired-odour shift
   has the predicted sign and is larger than the unpaired odour's, for both reward and punishment, in ≥ 80 % of
   held-out seeds; frozen and shuffled do this in ≤ 20 %. Verify Story 2 scenario 5 (the shift decays toward 0 after
   `tauForget` with no further pairing) and scenario 6 (no drift while nothing is paired). Record in
   `specs/019-mb-valence-learning/results.md`.
+  - **Result: SC-002 PASSES.** plastic 60/60 (100%), frozen 2/60 (3.3%), shuffled 9/60 (15.0%), against targets
+    ≥80%/≤20%/≤20%. Scenario 5 (decay) and scenario 6 (no drift) both confirmed. `random` arm not re-run on all
+    30 held-out seeds (already established silent, seed-independent cause); reported, not hidden. Full numbers:
+    `results.md`, ADR 011 D46.
 
 **Checkpoint**: Learning is measurable in isolation. Backward compatibility can now be fully regression-tested,
 since L11/L12 code exists end to end.
@@ -357,15 +402,34 @@ since L11/L12 code exists end to end.
 
 ### Implementation for User Story 6
 
-- [ ] T046 [US6] Run `npm test`; confirm `tests/lif-golden.test.mjs` (v0 vs v1, every new parameter at its default)
+- [X] T046 [US6] Run `npm test`; confirm `tests/lif-golden.test.mjs` (v0 vs v1, every new parameter at its default)
   is unchanged and green.
-- [ ] T047 [US6] Run `tests/lif-plasticity-golden.test.mjs` (T020, T035); confirm G1, G6, G7 and G8 all hold.
-- [ ] T048 [US6] Load every shipped world (`public/world/world*.json`, including mock/v0/v1/v2/v3) via `cd public &&
+  - 784 pass, 22 fail — all 22 pre-existing (missing fixture files predating this feature, confirmed via
+    `git stash -u`; same count/names before and after this session's changes). `lif-golden.test.mjs` green.
+- [X] T047 [US6] Run `tests/lif-plasticity-golden.test.mjs` (T020, T035); confirm G1, G6, G7 and G8 all hold.
+  - 28/28 pass across `lif-golden`/`lif-plasticity-golden`/`lif-plasticity` together.
+- [~] T048 [US6] Load every shipped world (`public/world/world*.json`, including mock/v0/v1/v2/v3) via `cd public &&
   python3 -m http.server 8000`; confirm no console errors and unchanged behaviour.
-- [ ] T049 [US6] Run `node scripts/forager-arms.mjs --world=world/world-forager-demo.json --seeds=held-out` and
+  - Every shipped, loadable world validates cleanly via `validateConfig` (scripted batch check); `world.v1.json`
+    is excluded by design (README: "kept only for comparison, the app does not load it") and the two `*-bad.json`
+    fixtures are intentionally invalid test fixtures, both pre-existing. **Not completed in an actual browser**:
+    no browser automation tooling is available in this environment (no `chromium-cli`, no system Chrome, and
+    installing Playwright/Puppeteer would add a dependency this project's zero-build rule forbids) — flagged to
+    the user. The decoder blocker (T043, ADR 011 D47) is now resolved: the exact browser-facing fetch chain
+    (`loadSnapshot`/`loadDecoderFile`/`loadLearningFile`/`resolveLearningGroups`) was verified against a live
+    local server with no exceptions, and the full sense→brain→decode→body-layer pipeline runs end to end on
+    `world-forager-learning.json` with no exceptions — the strongest check available without a real browser.
+    `world-forager-learning-tilemap.json` (same brain/decoder/learning) not separately smoke-tested yet.
+- [X] T049 [US6] Run `node scripts/forager-arms.mjs --world=world/world-forager-demo.json --seeds=held-out` and
   diff its output against `specs/019-mb-valence-learning/baseline-part-k.txt` (T017); confirm the numbers are
   unchanged (**FR-027, SC-006**).
-- [ ] T050 [US6] Run `npm run test:slow`; confirm it passes unchanged.
+  - `forager-arms.mjs` still has no CLI entry (T017's own deviation note): re-ran via `runC3`/`printForagerTable`
+    directly, same primitives, against the unchanged `forager-brain-wide.decoder.json`, held-out seeds. Output
+    matches `baseline-part-k.txt` exactly, number for number (91.1% find, approach 671, 93.9% walked, 125
+    contacts, 16.5%/11.4% avoid). **FR-027 confirmed: zero change to the wide brain's behaviour.**
+- [X] T050 [US6] Run `npm run test:slow`; confirm it passes unchanged.
+  - 0 pass / 0 fail / 2 todo (both pre-existing, documented `BUG-002: fails until T112 fixes the brake`).
+    Unchanged by this feature.
 
 **Checkpoint**: No regression anywhere. Behaviour-facing stories can build on this with confidence.
 

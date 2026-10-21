@@ -14,6 +14,14 @@ const DRIVE_TAU = 3;    // D29: drive_p's own smoothing
 const SLOW_TAU = 30;    // D29: trend_p's slow EMA
 const REST_TAU = 2000;  // D33: rest rate EMA
 
+// ADR 011 (contracts/learning-v1.md "Addition to decoder-v1", data-model.md "Learned valence"). A food pair is
+// one whose pair id starts with "odour-food" (the only senses this feature pairs with reward/punishment); every
+// other sense's learned gain stays 1 (W13 untouched). Defaults match the C2 example when a decoder carries no
+// `learning` block at all (not just a naive-less one).
+const LEARN_TAU = 300;
+const LEARN_K_DEFAULT = 2.0;
+const isFoodPair = (pair) => pair.startsWith('odour-food');
+
 // ---- reader (contracts/decoder-v1.md "Reader rules") ----
 
 // Fetches and parses the decoder-v1 sidecar named by flies.brain.decoder. path: as given in world config, resolved
@@ -66,7 +74,15 @@ export function parseDecoder(file, path, snapshot) {
   for (const [sense, v] of Object.entries(valence)) {
     if (!VALENCES.includes(v)) throw new Error(`decoder ${path} has an invalid valence for "${sense}"`);
   }
-  return { pools, valence, provenance: file.provenance ?? {}, homeostasis: file.homeostasis ?? { rest: {} } };
+  // ADR 011 (contracts/learning-v1.md "Addition to decoder-v1"): learning.naive keys are pair ids, checked with
+  // the existing "unknown pair" rule.
+  const learning = file.learning ?? {};
+  for (const pair of Object.keys(learning.naive ?? {})) {
+    if (!snapshot.senses.includes(pair)) throw new Error(`decoder ${path} names unknown pair "${pair}"`);
+  }
+  return {
+    pools, valence, learning, provenance: file.provenance ?? {}, homeostasis: file.homeostasis ?? { rest: {} },
+  };
 }
 
 // ---- per-tick decode + homeostasis (D29, D33) ----
@@ -82,8 +98,11 @@ export function pairOf(channelId) {
 
 // One state object per running v3 fly, seeded from the decoder file's own C2-measured rest rates (D33: "the fly
 // behaves correctly from tick 0"). channels: capabilities.channels.inputs, in declaration order (matches the
-// sense message's `inputs` array, and the echoed `inputs` on the motor message).
-export function createDecoderState(decoder, channels) {
+// sense message's `inputs` array, and the echoed `inputs` on the motor message). mbon (ADR 011, optional):
+// { approach, avoid } neuron-index arrays, resolved once by the caller (learning.js's resolveLearningGroups)
+// against the same snapshot manifest the worker uses — null when the world declares no learning sidecar, which
+// keeps every food pair's learned gain at 1 (learning off).
+export function createDecoderState(decoder, channels, mbon = null) {
   const rest = { ...decoder.homeostasis.rest };
   for (const name of Object.keys(decoder.pools)) if (!(name in rest)) rest[name] = 0;
   return {
@@ -92,7 +111,17 @@ export function createDecoderState(decoder, channels) {
     drive: {},  // per-pair max(0, r̄ − rest), from the smoothed rate
     slow: {},   // per-pair EMA (τ=30) of drive, for trend
     channels: channels.map((ch) => ({ pair: pairOf(ch.id), side: ch.side })),
+    mbon,
+    learnApp: {}, learnAvoid: {},   // per food-pair EMA (τ=300) of the MBON approach/avoid group rate
+    learnBaseline: {}, learnCount: {}, // the naive-balance fallback (first 300 ticks of presence)
   };
+}
+
+function groupRate(group, fired) {
+  if (!group || group.length === 0) return 0;
+  let count = 0;
+  for (const i of group) if (fired.has(i)) count++;
+  return count / group.length;
 }
 
 const ema = (prev, value, tau) => prev + (value - prev) / tau;
@@ -140,7 +169,7 @@ function restOf(state, pools, fired, name, quiet) {
 // Returns { senses: { [pair]: { drive, side, weight, trend, valence } }, named: { alarm, feed, forward, backward
 // : { r, rest, drive } } }. A pair with no side pool exposes `side` as undefined (absent), never 0 with a lie
 // attached (contracts/decoder-v1.md).
-export function decodeTick(state, { spikes, inputs }, { pools, valence }) {
+export function decodeTick(state, { spikes, inputs }, { pools, valence, learning }) {
   const fired = new Set(spikes);
   const { quiet, allQuiet } = quietByPair(state, inputs);
 
@@ -171,7 +200,41 @@ export function decodeTick(state, { spikes, inputs }, { pools, valence }) {
       side = (rHatL - rR) / (rHatL + rR + EPSILON);
     }
 
-    senses[pair] = { drive, side, weight, trend, valence: valence[pair] };
+    // ADR 011 (contracts/learning-v1.md, data-model.md "Learned valence"): a food pair's learned gain ℓ_p, from
+    // an EMA (τ=300) of the MBON approach/avoid group rates, updated only while the pair is present (the same
+    // "both channels < 0.05" gate D33 already computes as `quiet`). undefined (not 1) for a non-food pair, or
+    // when the world declares no learning sidecar — body-layer.js's sumByValence treats undefined as 1.
+    let learnedGain;
+    if (state.mbon && isFoodPair(pair)) {
+      if (!pairQuiet) {
+        const rApp = groupRate(state.mbon.approach, fired);
+        const rAvoid = groupRate(state.mbon.avoid, fired);
+        state.learnApp[pair] = ema(state.learnApp[pair] ?? rApp, rApp, LEARN_TAU);
+        state.learnAvoid[pair] = ema(state.learnAvoid[pair] ?? rAvoid, rAvoid, LEARN_TAU);
+      }
+      const rApp = state.learnApp[pair] ?? 0;
+      const rAvoid = state.learnAvoid[pair] ?? 0;
+      const bal = (rApp - rAvoid) / (rApp + rAvoid + EPSILON);
+
+      const naive = learning?.naive?.[pair];
+      let bal0;
+      if (naive !== undefined) {
+        bal0 = naive;
+      } else {
+        const seen = state.learnCount[pair] ?? 0;
+        if (seen < LEARN_TAU && !pairQuiet) {
+          const prevMean = state.learnBaseline[pair] ?? bal;
+          state.learnBaseline[pair] = prevMean + (bal - prevMean) / (seen + 1);
+          state.learnCount[pair] = seen + 1;
+        }
+        bal0 = state.learnBaseline[pair] ?? bal;
+      }
+
+      const kValence = learning?.kValence ?? LEARN_K_DEFAULT;
+      learnedGain = Math.min(1.5, Math.max(0.5, 1 + kValence * (bal - bal0)));
+    }
+
+    senses[pair] = { drive, side, weight, trend, valence: valence[pair], learnedGain };
   }
 
   const named = {};

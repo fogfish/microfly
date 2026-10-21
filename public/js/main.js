@@ -19,7 +19,8 @@ import { createRenderer } from './render/renderer.js';
 import { attachInput } from './render/input.js';
 import { showErrors, hideErrors } from './ui/error-panel.js';
 import { buildWorld, spawnFlies } from './fly/fly-world.js';
-import { loadDecoderFile, loadSnapshot, startFlies } from './fly/fly-host.js';
+import { loadDecoderFile, loadLearningFile, loadSnapshot, startFlies } from './fly/fly-host.js';
+import { resolveLearningGroups } from './brain/learning.js';
 import { initialLayers, toggleLayer } from './world/layers.js';
 import { dangerField } from './world/danger-field.js';
 import { heatField } from './world/heat-field.js';
@@ -65,6 +66,8 @@ async function boot() {
   // A snapshot brain is read before anything starts. A bad file shows the error panel and no fly starts.
   let snapshot = null;
   let decoder = null;
+  let learning = null;
+  let mbon = null;
   const flies = loaded.config.flies;
   if (flies !== undefined && (flies.mode ?? 'toy') === 'toy' && flies.brain?.snapshot !== undefined) {
     try {
@@ -79,13 +82,25 @@ async function boot() {
       } catch (e) {
         return fail([{ path: 'flies.brain.decoder', message: e.message }]);
       }
+      // learning-v1 (ADR 011), "v3" only, optional: read and cross-checked before any fly starts.
+      try {
+        learning = await loadLearningFile(flies.brain, APP_ROOT, snapshot);
+        // The MBON approach/avoid groups, resolved once here (not per fly) for decoder.js's learned valence
+        // (data-model.md "Learned valence"); the same resolver the worker runs on its own manifest copy.
+        if (learning) {
+          const groups = resolveLearningGroups(learning, snapshot.neurons);
+          mbon = { approach: groups.approach, avoid: groups.avoid };
+        }
+      } catch (e) {
+        return fail([{ path: 'flies.brain.learning', message: e.message }]);
+      }
     }
   }
 
-  startWorld({ config: loaded.config, catalog, sprites, snapshot, decoder });
+  startWorld({ config: loaded.config, catalog, sprites, snapshot, decoder, learning, mbon });
 }
 
-function startWorld({ config, catalog, sprites, snapshot, decoder }) {
+function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbon }) {
   hideErrors();
 
   const canvas = document.getElementById('world');
@@ -281,6 +296,8 @@ function startWorld({ config, catalog, sprites, snapshot, decoder }) {
         onUpdate: onFlyUpdate,
         snapshot,
         decoder,
+        learning,
+        mbon,
         onFlowers: (flowers) => {
           liveFood = flowers
             ? { field: createLiveFoodField(flyWorld.foodUnits, logic.cols, logic.rows), flowers, version: -1, painted: null }

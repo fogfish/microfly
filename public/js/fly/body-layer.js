@@ -29,12 +29,14 @@ export function initBodyLayerFly(fly, seed) {
   return fly;
 }
 
-// Σ_p v_p · f(sense_p) over every declared sense, skipping a sense whose f(sense_p) is absent (no side pool).
+// Σ_p v_p·ℓ_p · f(sense_p) over every declared sense, skipping a sense whose f(sense_p) is absent (no side pool).
+// ℓ_p (ADR 011, decoder.js's learnedGain) is undefined for every non-food pair and whenever learning is off, so
+// it defaults to 1 there; it is always > 0, so it scales v_p's magnitude without ever changing its sign.
 function sumByValence(senses, f) {
   let total = 0;
   for (const pair of Object.keys(senses)) {
     const sense = senses[pair];
-    const v = VALENCE_SIGN[sense.valence] ?? 0;
+    const v = (VALENCE_SIGN[sense.valence] ?? 0) * (sense.learnedGain ?? 1);
     const value = f(sense);
     if (value === undefined) continue;
     total += v * value;
@@ -220,5 +222,8 @@ export function stepBodyLayer(fly, decoded, cfg, env) {
   }
   fly.eating = eating;
 
-  return { eating };
+  // ADR 011 (contracts/world-config-v3-learning.md "events"): the fly's own outcome this tick, for a
+  // reinforcement:reward/punish stimulus to read next tick (senseForagerFlyWide/updateEventPulses, read-only —
+  // the body layer itself never reads the stimulus).
+  return { eating, ateScent: eating ? (flowers.scentAt?.(fx, fy) ?? null) : null, escapeStarted: willEscape };
 }

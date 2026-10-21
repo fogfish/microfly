@@ -21,6 +21,7 @@ import { buildLogic } from '../../../../public/js/world/layout.js';
 import { buildWorld } from '../../../../public/js/fly/fly-world.js';
 import { resolveFlies } from '../../../../public/js/fly/fly-config.js';
 import { parseSnapshot } from '../../../../public/js/brain/snapshot.js';
+import { parseLearning } from '../../../../public/js/brain/learning.js';
 import {
   classifyRegions, ensureDir, fmt, readCheckpoint, readout, regime, robustCandidates, runRegimeGrid,
   runWorldStage, writeCheckpoint,
@@ -132,7 +133,18 @@ const world = buildWorld(config, buildLogic(config, catalog));
 const bytes = readFileSync(new URL(f.brain.snapshot, webRoot));
 const snapshot = parseSnapshot(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
 const capabilities = snapshot.capabilities;
-const ctx = { f, world, expConfig, snapshot, capabilities };
+// ADR 011 (contracts/worker-protocol-v3-learning.md): flies.brain.learning is a path string in the world config,
+// same as flies.brain.snapshot was before this block parsed it above. The browser host (fly-host.js) fetches and
+// parses it before any fly starts; this Node CLI reads and parses it here instead, so decoder-engine.mjs's probe()
+// never sees the raw path string (createFlyBrain/resolveLearningGroups need the parsed object, contracts/
+// learning-v1.md).
+let learningFile = f.brain.learning;
+if (typeof learningFile === 'string') {
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const raw = JSON.parse(readFileSync(new URL(learningFile, webRoot), 'utf8'));
+  learningFile = parseLearning(raw, f.brain.learning, { sha256 });
+}
+const ctx = { f: { ...f, brain: { ...f.brain, learning: learningFile } }, world, expConfig, snapshot, capabilities };
 profile.prepareContext?.(ctx);
 
 console.log(`microfly-calibrate: ${profile.label}, stage=${stage}, world=${worldPath}`);
@@ -370,7 +382,14 @@ if (stage === 'regime') {
       const ff = resolveFlies(ec);
       const { catalog: cat } = indexCatalog(JSON.parse(readFileSync(new URL(c.atlas, webRoot), 'utf8')));
       const w = buildWorld(c, buildLogic(c, cat));
-      return { f: ff, world: w, expConfig: ec, snapshot, capabilities };
+      // ADR 011: resolve flies.brain.learning (a path string in world config) into the parsed object here too,
+      // the same substitution the top-level ctx already makes.
+      let learningFile = ff.brain.learning;
+      if (typeof learningFile === 'string') {
+        const raw = JSON.parse(readFileSync(new URL(learningFile, webRoot), 'utf8'));
+        learningFile = parseLearning(raw, ff.brain.learning, { sha256 });
+      }
+      return { f: { ...ff, brain: { ...ff.brain, learning: learningFile } }, world: w, expConfig: ec, snapshot, capabilities };
     };
     const reports = runC3(ctxFor, [profile.worldPath, profile.secondWorldPath], decoderFile, profile.c3.seeds, profile.c3.ticks);
     for (const { worldPath, metrics } of reports) {

@@ -71,3 +71,22 @@ test('a forced held-back-seed sign mismatch below the reproduction fraction prod
   assert.deepEqual(errors, ['E-DECODE-side.odour-food.R']);
   assert.equal(pools, null, 'C2 writes no pools/file when a selection fails its held-back reproduction check');
 });
+
+// ADR 011 (forager-mb profile, 2026-10-21): noSidePairs skips side-pool selection for a named pair entirely —
+// the same outcome as Part L's "too few members" fallback (klinotaxis alone), declared instead of discovered by
+// a reproduction failure. The same fixture as above would otherwise hit E-DECODE-side.odour-food.R.
+test('noSidePairs skips side-pool selection for a named pair, with no error, and the decoder still builds', () => {
+  const n = 9;
+  const offsets = Uint32Array.from([0, 1, 2, 2, 2, 2, 2, 2, 2]);
+  const targets = Uint32Array.from([8, 8]);
+  const weights = Float64Array.from([1.05, 1.05]);
+  const neurons = Array.from({ length: n }, (_, i) => ({ superclass: i === 8 ? 'descending_neuron' : null, bodyId: 1000 + i }));
+  const snapshot = { version: 4, kind: 'forager-wide', neuronCount: n, offsets, targets, weights, capabilities: CAPABILITIES, manifest: { neurons } };
+  const ctx = { f: { tickHz: 20, brain: { stepsPerTick: 1, lif: {} } }, snapshot, capabilities: CAPABILITIES };
+  const gates = { ...LOOSE_GATES, heldBack: 8, noSidePairs: ['odour-food'] };
+  const { errors, pools } = runC2(ctx, { synapticScale: 1, thresholdJitter: 0.3 }, gates);
+  assert.deepEqual(errors, []);
+  assert.equal(pools['side.odour-food.L'], undefined);
+  assert.equal(pools['side.odour-food.R'], undefined);
+  assert.ok(Array.isArray(pools['drive.odour-food']), 'drive.odour-food is unaffected by noSidePairs');
+});

@@ -83,3 +83,93 @@ test('decodeTick: a left-dominant side pool yields a positive side value', () =>
   const { senses } = decodeTick(state, { spikes: new Uint32Array([0, 1]), inputs: Float32Array.of(0.9, 0.1) }, decoder);
   assert.ok(senses['odour-food'].side > 0, `expected positive side, got ${senses['odour-food'].side}`);
 });
+
+// ---- learned valence ℓ (ADR 011, contracts/learning-v1.md, data-model.md "Learned valence") ----
+
+const FOOD_SNAPSHOT = { sha256: 'abc123', neuronCount: 12, senses: ['odour-food-a', 'odour-food-b'] };
+const FOOD_CHANNELS = [
+  { id: 'odour-food-a-left', side: 'L' },
+  { id: 'odour-food-a-right', side: 'R' },
+];
+const MBON = { approach: [10], avoid: [11] };
+
+function foodFile(overrides = {}) {
+  return {
+    format: 'decoder', version: 1,
+    snapshot: { file: 'forager-brain-mb.brain', sha256: 'abc123' },
+    lif: {}, probe: { seeds: [1], heldBack: 2, ticks: 10, rule: 'D27' },
+    pools: {}, valence: { 'odour-food-a': 'approach' }, homeostasis: { rest: {} }, provenance: {},
+    ...overrides,
+  };
+}
+
+test('rejects an unknown pair in learning.naive', () => {
+  const file = foodFile({ learning: { naive: { 'odour-food-nope': 0.1 } } });
+  assert.throws(
+    () => parseDecoder(file, 'brains/x.decoder.json', FOOD_SNAPSHOT),
+    { message: 'decoder brains/x.decoder.json names unknown pair "odour-food-nope"' },
+  );
+});
+
+test('parseDecoder exposes learning as {} when the file carries none', () => {
+  const decoder = parseDecoder(foodFile(), 'p', FOOD_SNAPSHOT);
+  assert.deepEqual(decoder.learning, {});
+});
+
+test('learnedGain is undefined for a non-food pair, and for every pair when no mbon groups are given', () => {
+  const decoder = parseDecoder(foodFile({ valence: { 'odour-danger': 'avoid' } }), 'p', FOOD_SNAPSHOT);
+  const state = createDecoderState(decoder, [{ id: 'odour-danger-left', side: 'L' }, { id: 'odour-danger-right', side: 'R' }], MBON);
+  const { senses } = decodeTick(state, { spikes: new Uint32Array([]), inputs: Float32Array.of(0.9, 0.1) }, decoder);
+  assert.equal(senses['odour-danger'].learnedGain, undefined);
+
+  const noMbon = createDecoderState(decoder, [{ id: 'odour-danger-left', side: 'L' }, { id: 'odour-danger-right', side: 'R' }], null);
+  const out2 = decodeTick(noMbon, { spikes: new Uint32Array([]), inputs: Float32Array.of(0.9, 0.1) }, decoder);
+  assert.equal(out2.senses['odour-danger'].learnedGain, undefined);
+});
+
+// bal0 (the naive baseline) is itself the running mean of bal during the first LEARN_TAU presence ticks, so a
+// shift only shows once that window has an established, different baseline to compare against: a naive phase
+// where both MBON groups fire together (bal ~ 0), then a learning phase that fires only one of them.
+test('learnedGain rises above 1 once approach outpaces avoid after an established naive baseline', () => {
+  const decoder = parseDecoder(foodFile(), 'p', FOOD_SNAPSHOT);
+  const state = createDecoderState(decoder, FOOD_CHANNELS, MBON);
+  const present = Float32Array.of(0.9, 0.9);
+  for (let t = 0; t < 300; t++) decodeTick(state, { spikes: new Uint32Array([10, 11]), inputs: present }, decoder);
+  let last;
+  for (let t = 0; t < 1000; t++) {
+    last = decodeTick(state, { spikes: new Uint32Array([10]), inputs: present }, decoder).senses['odour-food-a'];
+  }
+  assert.ok(last.learnedGain > 1, `expected learnedGain > 1, got ${last.learnedGain}`);
+  assert.ok(last.learnedGain <= 1.5);
+});
+
+test('learnedGain falls below 1 once avoid outpaces approach after an established naive baseline', () => {
+  const decoder = parseDecoder(foodFile(), 'p', FOOD_SNAPSHOT);
+  const state = createDecoderState(decoder, FOOD_CHANNELS, MBON);
+  const present = Float32Array.of(0.9, 0.9);
+  for (let t = 0; t < 300; t++) decodeTick(state, { spikes: new Uint32Array([10, 11]), inputs: present }, decoder);
+  let last;
+  for (let t = 0; t < 1000; t++) {
+    last = decodeTick(state, { spikes: new Uint32Array([11]), inputs: present }, decoder).senses['odour-food-a'];
+  }
+  assert.ok(last.learnedGain < 1, `expected learnedGain < 1, got ${last.learnedGain}`);
+  assert.ok(last.learnedGain >= 0.5);
+});
+
+test('learnedGain does not update while the pair is quiet (mean input < 0.05)', () => {
+  const decoder = parseDecoder(foodFile(), 'p', FOOD_SNAPSHOT);
+  const state = createDecoderState(decoder, FOOD_CHANNELS, MBON);
+  let last;
+  for (let t = 0; t < 50; t++) {
+    last = decodeTick(state, { spikes: new Uint32Array([10]), inputs: Float32Array.of(0, 0) }, decoder).senses['odour-food-a'];
+  }
+  assert.equal(last.learnedGain, 1, 'with no presence ever recorded, bal and bal0 both stay 0');
+});
+
+test('a provided naive baseline fixes bal0 instead of the first-300-ticks fallback', () => {
+  const decoder = parseDecoder(foodFile({ learning: { naive: { 'odour-food-a': 0.9 } } }), 'p', FOOD_SNAPSHOT);
+  const state = createDecoderState(decoder, FOOD_CHANNELS, MBON);
+  // approach fires every tick -> bal ~ 1, but naive bal0 is pinned at 0.9, close to bal: gain should stay mild.
+  const out = decodeTick(state, { spikes: new Uint32Array([10]), inputs: Float32Array.of(0.9, 0.9) }, decoder);
+  assert.ok(out.senses['odour-food-a'].learnedGain < 1.3, 'a naive baseline near bal should keep the gain mild');
+});

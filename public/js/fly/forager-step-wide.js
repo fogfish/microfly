@@ -62,6 +62,9 @@ function samplerFor(spec, world, flowers, reach = 0) {
       height: world.height,
     };
   }
+  // "events" (contracts/world-config-v3-learning.md, ADR 011): no position/field sample at all —
+  // senseForagerFlyWide reads fly.eventPulses directly and never calls this sampler.
+  if (spec.from === 'events') return { points: () => [], contactAt: () => 0 };
   throw new Error(`flies.stimuli source "${spec.from}" is not supported`);
 }
 
@@ -127,6 +130,12 @@ export function senseForagerFlyWide(fly, env) {
   const inputs = env.inputChannels;
   const values = new Float32Array(inputs.length);
   inputs.forEach((ch, k) => {
+    // "events" (ADR 011): both channels of the pair read the fly's own pulse countdown, updated by
+    // updateEventPulses after the previous tick's body layer — never a position/field sample.
+    if (env.stimuli[ch.sense].from === 'events') {
+      values[k] = (fly.eventPulses?.[ch.sense] ?? 0) > 0 ? 1 : 0;
+      return;
+    }
     const spec = declaredSpec(ch.sense, env.stimuli[ch.sense]);
     const site = env.bodySites[ch.site];
     const at = sitePoint(fly.body, site, ch.side);
@@ -172,7 +181,32 @@ export function stepForagerFlyV3(fly, env, brain, decoderState, decoderFile, bod
   const out = brain.step({ inputs, hunger });
   const motor = P3.motor({ tick: fly.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
   const decoded = decodeTick(decoderState, { spikes: motor.spikes, inputs: motor.inputs }, decoderFile);
-  const { eating } = stepBodyLayer(fly, decoded, bodyLayerCfg, env);
+  const { eating, ateScent, escapeStarted } = stepBodyLayer(fly, decoded, bodyLayerCfg, env);
+  updateEventPulses(fly, env, { eating, ateScent, escapeStarted, inputs: motor.inputs });
   fly.tick++;
   return { sense, motor, decoded, entry: { tick: fly.tick - 1, inputs: motor.inputs, eating, spikes: motor.spikes, outputs: motor.outputs } };
+}
+
+// ADR 011 (contracts/world-config-v3-learning.md "events"): updates fly.eventPulses, the per-sense countdown
+// (in ticks) that senseForagerFlyWide reads as a 0/1 value next tick. Reads only this tick's own outcome
+// (eating/ateScent/escapeStarted, already computed by stepBodyLayer, and the sensed heat input) — never the
+// stimulus directly, and never another fly.
+export function updateEventPulses(fly, env, { eating, ateScent, escapeStarted, inputs }) {
+  const pulses = (fly.eventPulses ??= {});
+  const heatChannels = env.inputChannels.filter((ch) => ch.sense === 'heat');
+  const heatMean = heatChannels.length === 0 ? 0 : heatChannels.reduce(
+    (sum, ch) => sum + inputs[env.inputChannels.indexOf(ch)], 0,
+  ) / heatChannels.length;
+  const heatContact = heatMean >= 0.9;
+  for (const [sense, spec] of Object.entries(env.stimuli)) {
+    if (spec.from !== 'events') continue;
+    const fired = spec.events.some((name) => {
+      if (name === 'eat') return eating;
+      if (name === 'escape') return escapeStarted;
+      if (name === 'heatContact') return heatContact;
+      const m = /^eat:(.+)$/.exec(name);
+      return m !== null && eating && ateScent === m[1];
+    });
+    pulses[sense] = fired ? (spec.pulseTicks ?? 10) : Math.max(0, (pulses[sense] ?? 0) - 1);
+  }
 }

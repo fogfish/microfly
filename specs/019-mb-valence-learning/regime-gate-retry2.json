@@ -1,0 +1,93 @@
+{
+  "snapshot": {
+    "file": "forager-brain-mb.brain",
+    "sha256": "b381ba8281bfe20a0d70b14f381c24762d4209e312eb1adf099599d70c5f7466"
+  },
+  "lif": {
+    "synapticScale": 5,
+    "inhibitoryScale": 1.5,
+    "noiseAmplitude": 0.2,
+    "noiseBulkScale": 0,
+    "tauSyn": 3,
+    "tauAdapt": 100,
+    "adaptStep": 0.1,
+    "thresholdJitter": 0.1,
+    "baselineCurrent": 0,
+    "outputScale": null,
+    "pathwayGain": {
+      "routes": [
+        {
+          "from": "Kenyon_Cell",
+          "to": "Kenyon_Cell",
+          "gain": 0
+        },
+        {
+          "from": "ALPN",
+          "to": "Kenyon_Cell",
+          "gain": 2.1
+        },
+        {
+          "from": "Kenyon_Cell",
+          "to": "MBON",
+          "gain": 40
+        }
+      ],
+      "otherExcitatoryInto": [
+        "ALPN",
+        "Kenyon_Cell"
+      ],
+      "otherGain": 0.3
+    }
+  },
+  "seeds": [
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "perOdour": {
+    "A": {
+      "activeFraction": {
+        "mean": 0.13739173228346455,
+        "min": 0.12106299212598425,
+        "max": 0.15698818897637795
+      },
+      "reliability": 0.8928773368065949
+    },
+    "B": {
+      "activeFraction": {
+        "mean": 0.11952263779527554,
+        "min": 0.11122047244094488,
+        "max": 0.125
+      },
+      "reliability": 0.8966465295188873
+    }
+  },
+  "overlapAB": 0.14312693031426565,
+  "rateCorrelationAB": 0.13865771474199778,
+  "verdict": "pass",
+  "remedy": null,
+  "randomGraph": {
+    "perOdour": {
+      "A": {
+        "activeFraction": {
+          "mean": 0.00006889763779527559,
+          "min": 0,
+          "max": 0.00024606299212598425
+        },
+        "reliability": 0.03754197913475018
+      },
+      "B": {
+        "activeFraction": {
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "reliability": 0
+      }
+    },
+    "overlapAB": 0,
+    "rateCorrelationAB": 0.07867512722470667
+  }
+}

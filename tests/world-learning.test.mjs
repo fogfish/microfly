@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { validateConfig } from '../public/js/world/validate.js';
 import { createFood } from '../public/js/fly/food.js';
-import { forageEnvWide, senseForagerFlyWide } from '../public/js/fly/forager-step-wide.js';
+import { forageEnvWide, senseForagerFlyWide, updateEventPulses } from '../public/js/fly/forager-step-wide.js';
 
 const load = (file) => JSON.parse(readFileSync(new URL(`../public/world/${file}`, import.meta.url), 'utf8'));
 
@@ -116,4 +116,63 @@ test('rejects a world pathwayGain that is neither an object nor null', () => {
   const hit = validateConfig(c).find((e) => e.path === 'flies.brain.lif');
   assert.ok(hit, 'no error on flies.brain.lif');
   assert.equal(hit.message, 'LIF parameter "pathwayGain" must be null or an object with routes');
+});
+
+// ---- flies.stimuli[s].events (contracts/world-config-v3-learning.md, ADR 011) ----
+
+test('rejects an unknown flies.stimuli[s].events value', () => {
+  const c = load('world-forager-learning.json');
+  c.flies.stimuli['reinforcement:punish'] = { ...c.flies.stimuli['reinforcement:punish'], events: ['party'] };
+  const errors = validateConfig(c);
+  const hit = errors.find((e) => e.path === 'flies.stimuli.reinforcement:punish.events');
+  assert.ok(hit, 'no error on flies.stimuli.reinforcement:punish.events');
+  assert.equal(hit.message, 'unknown event "party"');
+});
+
+test('accepts every declared event name, including eat:<scent>', () => {
+  assert.deepEqual(validateConfig(load('world-forager-learning.json')), []);
+  assert.deepEqual(validateConfig(load('world-forager-learning-tilemap.json')), []);
+});
+
+test('an eat:<scent> pulse lasts exactly pulseTicks ticks and then returns to 0', () => {
+  const env = {
+    stimuli: { 'reinforcement:punish': { from: 'events', events: ['eat:floral'], pulseTicks: 4 } },
+    inputChannels: [],
+  };
+  const fly = {};
+  updateEventPulses(fly, env, { eating: true, ateScent: 'floral', escapeStarted: false, inputs: [] });
+  const on = [];
+  for (let t = 0; t < 6; t++) {
+    on.push(fly.eventPulses['reinforcement:punish'] > 0);
+    updateEventPulses(fly, env, { eating: false, ateScent: null, escapeStarted: false, inputs: [] });
+  }
+  assert.deepEqual(on, [true, true, true, true, false, false]);
+});
+
+test('eating a flower of a different scent does not fire an eat:<scent> pulse', () => {
+  const env = {
+    stimuli: { 'reinforcement:punish': { from: 'events', events: ['eat:floral'], pulseTicks: 4 } },
+    inputChannels: [],
+  };
+  const fly = {};
+  updateEventPulses(fly, env, { eating: true, ateScent: 'fruit', escapeStarted: false, inputs: [] });
+  assert.equal(fly.eventPulses['reinforcement:punish'], 0);
+});
+
+test('escape and heatContact events fire their own pair independently of eat', () => {
+  const env = {
+    stimuli: { 'reinforcement:punish': { from: 'events', events: ['escape', 'heatContact'], pulseTicks: 3 } },
+    inputChannels: [{ id: 'heat-left', sense: 'heat' }, { id: 'heat-right', sense: 'heat' }],
+  };
+  const fly = {};
+  updateEventPulses(fly, env, { eating: false, ateScent: null, escapeStarted: true, inputs: [0, 0] });
+  assert.equal(fly.eventPulses['reinforcement:punish'], 3);
+
+  const fly2 = {};
+  updateEventPulses(fly2, env, { eating: false, ateScent: null, escapeStarted: false, inputs: [0.95, 0.95] });
+  assert.equal(fly2.eventPulses['reinforcement:punish'], 3);
+
+  const fly3 = {};
+  updateEventPulses(fly3, env, { eating: false, ateScent: null, escapeStarted: false, inputs: [0, 0] });
+  assert.equal(fly3.eventPulses['reinforcement:punish'], 0);
 });

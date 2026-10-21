@@ -72,6 +72,12 @@ export function createWorkerCore() {
     switch (msg.type) {
       case 'init': {
         if (msg.brain.snapshot?.version !== 4) return failV3(msg.flyId, null, MISMATCH);
+        // L12 (contracts/worker-protocol-v3-learning.md): plasticity needs a resolved learning sidecar. Checked
+        // here, before createFlyBrain, so the message names the world key rather than lif-v1.js's own internal
+        // "learning groups" wording.
+        if (msg.brain.lif?.plasticity && !msg.brain.learning) {
+          return failV3(msg.flyId, null, 'E-LEARN-MISSING: plasticity needs flies.brain.learning');
+        }
         try {
           brain = createFlyBrain({ ...msg.brain, version: msg.brain.version ?? 'v1' }, msg.seed);
         } catch (e) {
@@ -92,7 +98,10 @@ export function createWorkerCore() {
         if (problemSense) return failV3(flyId, msg.tick, problemSense);
         const out = brain.step({ inputs: msg.inputs, hunger: msg.state.hunger });
         lastTick = msg.tick;
-        const m = P3.motor({ tick: msg.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes });
+        const learning = out.learning
+          ? Float32Array.from([out.learning.dReward, out.learning.dPunish, out.learning.wmodApproach, out.learning.wmodAvoid])
+          : undefined;
+        const m = P3.motor({ tick: msg.tick, inputs: out.inputs, outputs: out.outputs, spikes: out.spikes, learning });
         return { reply: m, transfer: P3.transferables(m) };
       }
 

@@ -261,13 +261,14 @@
       "sites": {
         "antenna": {"forward": 0, "lateral": 0.5},
         "mouth": {"forward": 0, "lateral": 0},
-        "front-leg": {"forward": 0.5, "lateral": 0.25}
+        "front-leg": {"forward": 0.5, "lateral": 0.25},
+        "central": {"forward": 0, "lateral": 0}
       },
       "locomotion": {
         "baseSpeed": 0.6, "speedGain": 2, "maxSpeed": 3, "surgeGain": 0.3, "wander": 0.4,
         "turnGain": 1.5, "castGain": 1, "castMin": 0.3, "castMax": 1
       },
-      "escape": {"enabled": true, "threshold": 0.22, "tau": 20, "turn": {"min": 1.571, "max": 2.356}, "distance": 1.5, "cooldown": 2},
+      "escape": {"enabled": true, "threshold": 0.05, "tau": 3, "turn": {"min": 1.571, "max": 2.356}, "distance": 1.5, "cooldown": 2},
       "crossWater": true,
       "motor": {"maxTurnRate": 4, "escapeTurnRate": 15, "maxAccel": 12, "sprintSpeed": 3},
       "backup": {"threshold": 0.5, "ticks": 10}
@@ -281,7 +282,9 @@
       "odour:danger": {"from": "forestEdge", "interpolate": true},
       "heat": {"from": "water", "interpolate": true},
       "taste": {"from": "edibles", "scaleBy": "stock", "contact": true},
-      "touch": {"from": "blocked", "contact": true}
+      "touch": {"from": "blocked", "contact": true},
+      "reinforcement:reward": {"from": "events", "events": ["eat"], "pulseTicks": 10},
+      "reinforcement:punish": {"from": "events", "events": ["escape", "heatContact", "eat:floral"], "pulseTicks": 10}
     },
     "modulators": {"hunger": {"threshold": 0.4, "gain": [0, 1.5]}},
     "brain": {
@@ -312,7 +315,8 @@
         "pathwayGain": {
           "routes": [
             { "from": "Kenyon_Cell", "to": "Kenyon_Cell", "gain": 0 },
-            { "from": "ALPN", "to": "Kenyon_Cell", "gain": 2.1 }
+            { "from": "ALPN", "to": "Kenyon_Cell", "gain": 2.1 },
+            { "from": "Kenyon_Cell", "to": "MBON", "gain": 40 }
           ],
           "otherExcitatoryInto": ["ALPN", "Kenyon_Cell"],
           "otherGain": 0.3

@@ -24,6 +24,13 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   inhibitoryScale: 1,     // multiplier of every negative edge weight; 1 is a no-op (L8)
   baselineCurrent: 0,     // constant input current added to every neuron every step; 0 is a no-op (L10)
   pathwayGain: null,      // gain on excitatory edges chosen by pre/post class; null is a no-op (L11, ADR 011)
+  plasticity: null,       // three-factor depression on KC->MBON edges; null is a no-op, no per-step work (L12, ADR 011)
+});
+
+// L12 (contracts/lif-v1-plasticity.md): defaults for a declared-but-partial plasticity block.
+const PLASTICITY_DEFAULTS = Object.freeze({
+  tauElig: 400, tauRate: 20, tauBaseline: 4000, threshold: 0.01,
+  etaReward: 0.05, etaPunish: 0.05, wMin: 0.2, tauForget: 30000, dopamine: 'pool',
 });
 
 // Merges overrides into LIF_V1_DEFAULTS and checks them. Throws an Error naming the parameter.
@@ -95,6 +102,36 @@ export function resolveParams(overrides = {}) {
     if (pg.otherGain !== undefined && !(Number.isFinite(pg.otherGain) && pg.otherGain >= 0)) {
       throw new Error('LIF parameter "pathwayGain.routes[i].gain" must be a number of 0 or more');
     }
+  }
+  if (p.plasticity !== null) {
+    const lp = p.plasticity;
+    if (!(lp !== null && typeof lp === 'object' && !Array.isArray(lp))) {
+      throw new Error('LIF parameter "plasticity" must be null or an object');
+    }
+    for (const key of Object.keys(lp)) {
+      if (!Object.hasOwn(PLASTICITY_DEFAULTS, key)) throw new Error(`unknown LIF parameter "plasticity.${key}"`);
+    }
+    const merged = { ...PLASTICITY_DEFAULTS, ...lp };
+    for (const key of ['tauElig', 'tauRate', 'tauBaseline', 'tauForget']) {
+      if (!(Number.isFinite(merged[key]) && merged[key] > 0)) {
+        throw new Error(`LIF parameter "plasticity.${key}" must be greater than 0`);
+      }
+    }
+    for (const key of ['etaReward', 'etaPunish']) {
+      if (!(Number.isFinite(merged[key]) && merged[key] >= 0)) {
+        throw new Error(`LIF parameter "plasticity.${key}" must be 0 or more`);
+      }
+    }
+    if (!(Number.isFinite(merged.threshold) && merged.threshold >= 0)) {
+      throw new Error('LIF parameter "plasticity.threshold" must be 0 or more');
+    }
+    if (!(Number.isFinite(merged.wMin) && merged.wMin >= 0 && merged.wMin < 1)) {
+      throw new Error('LIF parameter "plasticity.wMin" must be from 0 to less than 1');
+    }
+    if (!(merged.dopamine === 'pool' || merged.dopamine === 'shuffled')) {
+      throw new Error('LIF parameter "plasticity.dopamine" must be "pool" or "shuffled"');
+    }
+    p.plasticity = Object.freeze(merged);
   }
   return Object.freeze(p);
 }
@@ -220,6 +257,49 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     }
     weights = gained;
   }
+  // L12 (ADR 011, contracts/lif-v1-plasticity.md): per-edge synapse modifier on KC->MBON edges (pre in
+  // graph.learning.kc, target in approach or avoid), three-factor depression driven by reward/punish DAN pool
+  // activity against a slow running baseline. Needs graph.learning; builds its own private weights copy so the
+  // snapshot's array (and any L8/L11 copy already made) is never written in place (G8). A no-op when null.
+  let plastic = null;
+  if (params.plasticity !== null) {
+    if (!graph.learning) throw new Error('E-LEARN-MISSING: plasticity needs learning groups');
+    const { kc, reward, punish, approach, avoid } = graph.learning;
+    if (weights === csr.weights) weights = Float64Array.from(weights);
+    const inApproach = new Uint8Array(n);
+    for (const idx of approach) inApproach[idx] = 1;
+    const inAvoid = new Uint8Array(n);
+    for (const idx of avoid) inAvoid[idx] = 1;
+    const slotK = [];
+    const slotPreList = [];
+    const slotGroupList = [];
+    for (const i of kc) {
+      for (let k = csr.offsets[i]; k < csr.offsets[i + 1]; k++) {
+        const post = csr.targets[k];
+        if (inApproach[post]) { slotK.push(k); slotPreList.push(i); slotGroupList.push(0); }
+        else if (inAvoid[post]) { slotK.push(k); slotPreList.push(i); slotGroupList.push(1); }
+      }
+    }
+    const m = slotK.length;
+    const slot = Uint32Array.from(slotK);
+    const slotPre = Uint32Array.from(slotPreList);
+    const slotGroup = Uint8Array.from(slotGroupList);
+    const slotBase = Float64Array.from(slot, (k) => weights[k]);
+    const shuffled = params.plasticity.dopamine === 'shuffled';
+    plastic = {
+      kc, reward, punish,
+      slot, slotPre, slotGroup, slotBase,
+      wmod: new Float64Array(m).fill(1),
+      elig: new Float64Array(n),
+      rate: new Float64Array(2),
+      baseline: new Float64Array(2),
+      initialized: false,
+      stepCount: 0,
+      lag: 1000,
+      ring: shuffled ? new Float64Array(2 * 4000) : undefined,
+      lagRand: shuffled ? createPrng(seed ^ 0x504c4153).next : undefined,
+    };
+  }
   return {
     params, n,
     offsets: csr.offsets,
@@ -238,6 +318,8 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
     outputScaleOf,                 // per-neuron resolved output scale, meaningful only where outputOverride is set
     noiseRand,                     // L7: next() of the dedicated noise stream; undefined when noiseAmplitude is 0
     noiseOf,                       // L7′: per-neuron noise half-width; undefined when noiseAmplitude is 0
+    plastic,                       // L12: internal synapse-modifier state; undefined when plasticity is null
+    learning: plastic ? { dReward: 0, dPunish: 0, wmodApproach: 1, wmodAvoid: 1 } : undefined,
   };
 }
 
@@ -300,6 +382,80 @@ export function step(net, external) {
       }
     }
   }
+  if (net.plastic) net.learning = updatePlasticity(net, p.plasticity);
+
   net.input = nextInput;
   net.spare = input;
+}
+
+// L12: the per-step synapse-modifier update, after the spike pass and before the buffer swap
+// (contracts/lif-v1-plasticity.md). Mutates net.weights in place at plastic slots only; returns the telemetry
+// object net.learning is set to.
+function updatePlasticity(net, lp) {
+  const pl = net.plastic;
+  const { spikes, weights } = net;
+
+  const decayElig = Math.exp(-1 / lp.tauElig);
+  for (let idx = 0; idx < pl.kc.length; idx++) {
+    const i = pl.kc[idx];
+    pl.elig[i] = pl.elig[i] * decayElig + spikes[i];
+  }
+
+  const meanSpikes = (group) => {
+    let sum = 0;
+    for (let idx = 0; idx < group.length; idx++) sum += spikes[group[idx]];
+    return sum / group.length;
+  };
+  pl.rate[0] += (meanSpikes(pl.reward) - pl.rate[0]) / lp.tauRate;
+  pl.rate[1] += (meanSpikes(pl.punish) - pl.rate[1]) / lp.tauRate;
+  if (!pl.initialized) {
+    pl.baseline[0] = pl.rate[0];
+    pl.baseline[1] = pl.rate[1];
+    pl.initialized = true;
+  } else {
+    pl.baseline[0] += (pl.rate[0] - pl.baseline[0]) / lp.tauBaseline;
+    pl.baseline[1] += (pl.rate[1] - pl.baseline[1]) / lp.tauBaseline;
+  }
+  const liveReward = Math.max(0, pl.rate[0] - pl.baseline[0] - lp.threshold);
+  const livePunish = Math.max(0, pl.rate[1] - pl.baseline[1] - lp.threshold);
+
+  let dReward = liveReward;
+  let dPunish = livePunish;
+  if (pl.ring) {
+    const slotIdx = pl.stepCount % 4000;
+    pl.ring[slotIdx] = liveReward;
+    pl.ring[4000 + slotIdx] = livePunish;
+    if (pl.stepCount % 200 === 0) pl.lag = 1000 + Math.floor(pl.lagRand() * 3001);
+    const lagIdx = (((pl.stepCount - pl.lag) % 4000) + 4000) % 4000;
+    dReward = pl.ring[lagIdx];
+    dPunish = pl.ring[4000 + lagIdx];
+  }
+
+  const { slot, slotPre, slotGroup, slotBase, wmod, elig } = pl;
+  for (let j = 0; j < slot.length; j++) {
+    // slotGroup 0 (approach) is depressed by punish; slotGroup 1 (avoid) is depressed by reward.
+    const D = slotGroup[j] === 1 ? dReward : dPunish;
+    if (D <= 0) continue;
+    const eta = slotGroup[j] === 1 ? lp.etaReward : lp.etaPunish;
+    wmod[j] = Math.max(lp.wMin, wmod[j] - eta * D * elig[slotPre[j]]);
+  }
+
+  pl.stepCount++;
+  if (pl.stepCount % 10 === 0) {
+    const recover = 1 - Math.exp(-10 / lp.tauForget);
+    for (let j = 0; j < wmod.length; j++) wmod[j] += (1 - wmod[j]) * recover;
+  }
+
+  for (let j = 0; j < slot.length; j++) weights[slot[j]] = slotBase[j] * wmod[j];
+
+  return { dReward: liveReward, dPunish: livePunish, wmodApproach: meanWhere(wmod, slotGroup, 0), wmodAvoid: meanWhere(wmod, slotGroup, 1) };
+}
+
+function meanWhere(values, tags, tag) {
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (tags[i] === tag) { sum += values[i]; count++; }
+  }
+  return count > 0 ? sum / count : 0;
 }

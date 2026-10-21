@@ -18,8 +18,11 @@ export const ready = ({ flyId, neuronCount, capabilities }) => ({
   v: PROTOCOL_VERSION_V3, type: 'ready', flyId, neuronCount, capabilities,
 });
 // inputs is echoed for the panel. It is a copy, so the sense message's array is not detached.
-export const motor = ({ tick, inputs, outputs, spikes }) => ({
+// learning (contracts/worker-protocol-v3-learning.md): an optional Float32Array(4) [dReward, dPunish,
+// wmodApproach, wmodAvoid], present only when plasticity is on.
+export const motor = ({ tick, inputs, outputs, spikes, learning }) => ({
   v: PROTOCOL_VERSION_V3, type: 'motor', tick, inputs: inputs.slice(), outputs, spikes,
+  ...(learning !== undefined ? { learning } : {}),
 });
 export const error = ({ flyId, tick = null, message }) => ({
   v: PROTOCOL_VERSION_V3, type: 'error', flyId, tick, message,
@@ -27,7 +30,10 @@ export const error = ({ flyId, tick = null, message }) => ({
 
 // Buffers to transfer instead of copy. Only motor carries them, and inputs are copied (see motor).
 export function transferables(msg) {
-  return msg.type === 'motor' ? [msg.outputs.buffer, msg.spikes.buffer] : [];
+  if (msg.type !== 'motor') return [];
+  const buffers = [msg.outputs.buffer, msg.spikes.buffer];
+  if (msg.learning !== undefined) buffers.push(msg.learning.buffer);
+  return buffers;
 }
 
 // Returns null when the message is valid, otherwise a short error string.
@@ -81,6 +87,9 @@ export function validateSenseV3(msg, decl) {
 export function validateMotorV3(msg, decl) {
   for (const key of ['left', 'right']) {
     if (key in msg) return `motor.${key} is not part of protocol 3 forager messages`;
+  }
+  if ('learning' in msg && !(msg.learning instanceof Float32Array && msg.learning.length === 4)) {
+    return 'motor.learning must be a Float32Array of 4 entries';
   }
   if (msg.outputs.length !== decl.outputCount) {
     return `motor.outputs must have ${decl.outputCount} entries, one per declared output`;

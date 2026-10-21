@@ -257,7 +257,7 @@ function runV1Cohort(seeded, cohortEnergy, brainConfig, ctx) {
 // are selected against this exact graph, so re-rewiring per seed would make them meaningless (research.md §8).
 export function runForagerArms({
   f, world, expConfig, snapshot, v0Snapshot, snapshots = {}, arms, seeds, ticks, capabilities,
-  decoders = {}, rgSnapshot,
+  decoders = {}, rgSnapshot, learning,
 }) {
   // The v0 arm runs the small snapshot (version 3) with the v0 runner, passed as v0Snapshot. It is not the forager one.
   if (arms.includes('v0') && (v0Snapshot === undefined || v0Snapshot.version !== 3)) {
@@ -323,8 +323,14 @@ export function runForagerArms({
         const decoderFile = decoders[arm];
         if (!decoderFile) throw new Error(`arm "${arm}" needs its own decoder-v1 object in runForagerArms({ decoders })`);
         // D32: the world's hunger threshold and gain overrides reach every v3-style arm's brain, as fly-host.js
-        // folds them into the worker's brain payload in the browser.
-        const brainConfig = { ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot, version: 'v3', modulators: f.modulators };
+        // folds them into the worker's brain payload in the browser. ADR 011: `learning` (the parsed learning-v1
+        // object, resolved by the caller — a path string here would crash fly-brain-v1.js exactly as an
+        // unparsed snapshot would) replaces flies.brain.learning's own path string, the same substitution
+        // fly-host.js already makes for flies.brain.snapshot.
+        const brainConfig = {
+          ...f.brain, lif: scopedLif(f.brain.lif, arm_snapshot), snapshot: arm_snapshot, version: 'v3',
+          modulators: f.modulators, ...(learning ? { learning } : {}),
+        };
         // Diagnostic only (tests/forager-arms-v3.test.mjs): the mechanical check that every v3-style arm receives
         // the identical bodyLayerCfg reference, not a per-arm copy.
         bucket.bodyLayerCfg = bodyLayerCfg;

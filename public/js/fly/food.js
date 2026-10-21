@@ -98,5 +98,8 @@ export function createFood(world, config, { sharers = 1 } = {}) {
     },
     // Cell index of a tile, for the eating cell of the bout and regrowth.
     cellOf: (cx, cy) => indexOf(cx, cy),
+    // The flower's declared scent at a tile, or null (no flower there, or a world that declares no scents).
+    // ADR 011: lets the body layer label a punished scent's `eat:<scent>` event without reading the stimulus.
+    scentAt: (cx, cy) => world.stimulusCells.get(indexOf(cx, cy))?.scent ?? null,
   };
 }

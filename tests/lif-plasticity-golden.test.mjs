@@ -1,6 +1,7 @@
-// L11 pathwayGain (contracts/lif-v1-plasticity.md, ADR 011). G1/G6: pathwayGain null is a no-op, bit-identical
-// to the same parameters without the key, on the wide-brain fixture. L12 (plasticity) does not exist yet
-// (Phase 4, gated by the Phase 3 regime gate, FR-008) — its G6/G7/G8 cases are added there.
+// L11 pathwayGain and L12 plasticity (contracts/lif-v1-plasticity.md, ADR 011). G1/G6: both null is a no-op,
+// bit-identical to the same parameters without the keys, on the wide-brain fixture. G7: plasticity on, two runs
+// with the same seed give identical spikes and wmod. G8: wmod stays in [wMin, 1]; the snapshot's weights array
+// is never written.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -150,3 +151,77 @@ test('createNetwork rejects a route type absent from the graph, naming it', () =
     pathwayGain: { routes: [{ from: 'Kenyon_Cell', toType: 'no-such-type', gain: 2 }] },
   }, 1), { message: 'E-LIF-PATHWAY: type "no-such-type" is not in the snapshot' });
 });
+
+// L12 plasticity. Synthetic toy graph: 0,1 KCs; 2 approach MBON; 3 avoid MBON; 4 reward DAN (PAM); 5 punish DAN
+// (PPL1). Weights chosen so reward/punish DANs spike readily under drive, and KC→MBON edges are plastic slots.
+const LEARNING_TOY = {
+  neuronCount: 6,
+  edges: [
+    { pre: 0, post: 2, weight: 0.5 },  // KC0->approach
+    { pre: 0, post: 3, weight: 0.5 },  // KC0->avoid
+    { pre: 1, post: 2, weight: 0.4 },  // KC1->approach
+    { pre: 1, post: 3, weight: 0.4 },  // KC1->avoid
+  ],
+  learning: {
+    kc: Uint32Array.from([0, 1]),
+    reward: Uint32Array.from([4]),
+    punish: Uint32Array.from([5]),
+    approach: Uint32Array.from([2]),
+    avoid: Uint32Array.from([3]),
+  },
+};
+
+function driveToy(net, { kc = 0, reward = 0, punish = 0 } = {}) {
+  const external = new Float64Array(net.n);
+  external[0] = kc;
+  external[1] = kc;
+  external[4] = reward;
+  external[5] = punish;
+  return external;
+}
+
+test('G6: plasticity null gives spikes identical to the same parameters without the key', () => {
+  const a = createNetwork(LEARNING_TOY, { vThreshold: 0.5 }, 1);
+  const b = createNetwork(LEARNING_TOY, { vThreshold: 0.5, plasticity: null }, 1);
+  for (let t = 0; t < 30; t++) {
+    const driveA = driveToy(a, { kc: 1, reward: 1 });
+    const driveB = driveToy(b, { kc: 1, reward: 1 });
+    step(a, driveA);
+    step(b, driveB);
+    for (let i = 0; i < a.n; i++) {
+      assert.equal(b.v[i], a.v[i]);
+      assert.equal(b.spikes[i], a.spikes[i]);
+    }
+  }
+});
+
+test('createNetwork rejects plasticity set with no graph.learning', () => {
+  assert.throws(() => createNetwork({ neuronCount: 2, edges: [] }, { plasticity: {} }, 1), {
+    message: 'E-LEARN-MISSING: plasticity needs learning groups',
+  });
+});
+
+test('G7: plasticity on, two runs with the same seed give identical spikes and wmod', () => {
+  const a = createNetwork(LEARNING_TOY, { vThreshold: 0.5, plasticity: {} }, 7);
+  const b = createNetwork(LEARNING_TOY, { vThreshold: 0.5, plasticity: {} }, 7);
+  for (let t = 0; t < 200; t++) {
+    step(a, driveToy(a, { kc: 1, reward: 1 }));
+    step(b, driveToy(b, { kc: 1, reward: 1 }));
+  }
+  for (let i = 0; i < a.n; i++) assert.equal(b.spikes[i], a.spikes[i]);
+  for (let j = 0; j < a.plastic.wmod.length; j++) assert.equal(b.plastic.wmod[j], a.plastic.wmod[j]);
+});
+
+test('G8: wmod stays in [wMin, 1], and each createNetwork call gets its own private weights copy', () => {
+  const graph = { ...LEARNING_TOY };
+  const net = createNetwork(graph, { vThreshold: 0.5, plasticity: { wMin: 0.2 } }, 3);
+  const weightsRefBefore = net.weights;
+  for (let t = 0; t < 500; t++) step(net, driveToy(net, { kc: 1, reward: 1 }));
+  for (const w of net.plastic.wmod) {
+    assert.ok(w >= 0.2 - 1e-9 && w <= 1 + 1e-9, `wmod ${w} out of [wMin, 1]`);
+  }
+  assert.equal(net.weights, weightsRefBefore, 'weights array is mutated in place, not reallocated');
+  const net2 = createNetwork(graph, { vThreshold: 0.5 }, 3);
+  assert.notEqual(net.weights, net2.weights, 'a second createNetwork call must not share the first\'s weights copy');
+});
+
