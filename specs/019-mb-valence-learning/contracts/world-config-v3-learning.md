@@ -39,6 +39,16 @@ The panel shows each `from: "events"` channel with the tag **injected**.
 `reinforcement:punish` stimulus that lists `eat:<scent>`, and the validator warns when `outcome` names a scent
 that no stimulus delivers.
 
+## `flies.food.feedTau` (ADR 011 D53, v3)
+
+Number ≥ 1, default 1. Ticks the decoded feed drive is integrated over before `food.feedThreshold`, as
+`flies.body.escape.tau` does for alarm (spec 017 BUG-003). The body layer keeps `f ← f + (drive(feed) − f) / feedTau`,
+starting from 0, and eats while `f ≥ feedThreshold` on a flower. With 1 the gate reads `drive(feed)` itself, so a
+world without the key behaves exactly as before. It uses only the decoded drive, never the stimulus, and is applied
+identically to every arm.
+
+Any other value gives: `flies.food.feedTau must be a number of 1 or more`.
+
 ## `flies.brain` additions (v3)
 
 | Key                    | Meaning                                                                   |
@@ -77,4 +87,6 @@ Both use only decoded values. Absent or `false`: `ℓ` is not used by the body. 
 
 Validator: each new error. Stimulus: a scent-filtered field is 0 at a flower of the other scent and normalised to
 [0, 1]. Events: an `eat:floral` pulse lasts exactly `pulseTicks`. W16: with ℓ = 1 the body is identical to W16 off.
+`feedTau`: 1 gates on the drive itself; a larger value holds a bout through a silent drive until the integral
+decays below the threshold; a drive below the threshold never starts a bout (`tests/body-layer.test.mjs`, D53).
 Old worlds: every shipped world loads and validates unchanged.

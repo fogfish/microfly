@@ -208,3 +208,37 @@ test('spec 018 US2: with capacity, the body layer drains the flower while the fl
   assert.equal(fly.bouts.at(-1).endedBy, 'sated', 'energy reached satiation, so the bout closes sated');
   assert.ok(Math.abs(env.flowers.stockAt(10, 10) - 0.4) < 1e-9, 'no extra charge at close');
 });
+
+// ADR 011 D53 (contracts/world-config-v3-learning.md "flies.food.feedTau"): the eating reflex integrates the decoded
+// feed drive over feedTau ticks before comparing it with feedThreshold, as escape.tau does for alarm (BUG-003).
+const FEED_OFF = decoded({ named: { feed: { r: 0, rest: 0, drive: 0 } } });
+
+test('D53: without feedTau the reflex gates on the drive itself, so one quiet tick ends the bout', () => {
+  const fly = freshFly();
+  const env = feedingEnv({ feedThreshold: 0.1 });
+  assert.equal(stepBodyLayer(fly, FEED_ON, CFG, env).eating, true);
+  assert.equal(stepBodyLayer(fly, FEED_OFF, CFG, env).eating, false);
+  assert.equal(fly.bodyLayer.feed, 0, 'tau 1 takes the drive itself');
+});
+
+test('D53: with feedTau a bout outlasts a drive that falls silent, and ends once the integral decays', () => {
+  const fly = freshFly();
+  const env = feedingEnv({ feedThreshold: 0.1, feedTau: 10 });
+  // One tick of drive 1 lifts the integral to 1/10 = feedThreshold, so the fly eats on that tick.
+  assert.equal(stepBodyLayer(fly, FEED_ON, CFG, env).eating, true);
+  for (let t = 0; t < 5; t++) stepBodyLayer(fly, FEED_ON, CFG, env);
+  const peak = fly.bodyLayer.feed;
+  // The drive drops to 0 (the taste pool adapts, L2): the integral decays by (1 − 1/10) per tick.
+  let held = 0;
+  while (stepBodyLayer(fly, FEED_OFF, CFG, env).eating) held++;
+  assert.equal(held, Math.floor(Math.log(0.1 / peak) / Math.log(0.9)), 'eats until peak × 0.9^k < feedThreshold');
+  assert.ok(held > 0, 'the bout holds through the silent drive');
+  assert.equal(fly.bouts.length, 1, 'one bout, not one per tick');
+});
+
+test('D53: the integral starts from 0, so a weak drive below feedThreshold never starts a bout', () => {
+  const fly = freshFly();
+  const env = feedingEnv({ feedThreshold: 0.1, feedTau: 10 });
+  const weak = decoded({ named: { feed: { r: 0.05, rest: 0, drive: 0.05 } } });
+  for (let t = 0; t < 200; t++) assert.equal(stepBodyLayer(fly, weak, CFG, env).eating, false, `tick ${t}`);
+});

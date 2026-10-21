@@ -23,6 +23,8 @@ export function initBodyLayerFly(fly, seed) {
   fly.body.escapeCooldown = 0;
   fly.bodyLayer = {
     rand: createPrng(seed).next, backupTicksLeft: 0, alarm: 0,
+    // flies.food.feedTau (ADR 011 D53): the integrated feed drive the eating reflex compares with feedThreshold.
+    feed: 0,
     // Motor stage (BUG-004): current signed speed, and the escape sprint in progress (distance left, heading).
     velocity: 0, sprintLeft: 0, sprintHeading: 0, sprintTicks: 0,
   };
@@ -130,7 +132,14 @@ export function stepBodyLayer(fly, decoded, cfg, env) {
   // the nerve-cord stand-in halts walking for the tick the brain feeds, as a fly stands still while it extends its
   // proboscis. "On food" is the flower's eating area (flies.food.reach, fly-world.js flowerAt; spec 017 BUG-002),
   // decided where the fly stands before it moves; the flower's own cell holds the stock.
-  const feed = named.feed ?? { drive: 0 };
+  // flies.food.feedTau (ticks, default 1 = no integration; ADR 011 D53): the reflex integrates the decoded feed
+  // drive before comparing it with feedThreshold, as escape.tau does for alarm (BUG-003). The taste-mouth pool
+  // adapts within ~10 ticks of contact (L2), so a per-tick gate on its rate ended every bout after a few ticks.
+  // tau 1 takes the drive itself, so a world without the key is bit-for-bit unchanged.
+  const feedTau = foodConfig.feedTau ?? 1;
+  const feedDrive = (named.feed ?? { drive: 0 }).drive;
+  state.feed = feedTau === 1 ? feedDrive : (state.feed ?? 0) + (feedDrive - (state.feed ?? 0)) / feedTau;
+  const feed = { drive: state.feed };
   const flower = flowerAt(env, Math.floor(body.x), Math.floor(body.y), foodConfig.reach ?? 0);
   const fx = flower < 0 ? Math.floor(body.x) : flower % env.width;
   const fy = flower < 0 ? Math.floor(body.y) : Math.floor(flower / env.width);

@@ -591,6 +591,43 @@ brain-side plumbing. 6 tests in `tests/panel-learning-section.test.mjs`.
 via the section's own unit tests and a full `stepForagerFlyV3`/`decodeTick` pipeline run with no exceptions.
 `npm test`: 798 pass / 22 pre-existing unrelated fails, 9 new tests (3 + 6) added and green.
 
+## D53. `flies.food.feedTau`: the eating reflex integrates the feed drive, as escape.tau does for alarm
+
+**User-reported, 2026-10-21**: in the learning worlds flies are almost always hungry, rarely stay at food, and do
+not stop to eat.
+
+**Measured** (headless replay of fly-host.js's v3 tick, calibration seeds 6-10, 6 flies × 3000 ticks, energy 0.3
+start): every fly hungry 100% of the run, mean energy 0.14, eating on 12.8% of on-flower ticks, every bout 9-13
+ticks and ended `walked`. A trace aligned to flower arrival shows why: the taste-mouth drive bursts to ~0.2 at
+contact, then L2 adaptation (`adaptStep` 0.1, `tauAdapt` 100) silences the pool within ~20 ticks, so the per-tick
+gate `drive(feed) ≥ feedThreshold` (0.12, calibrated on the wide brain, D30) closes and the fly walks off.
+
+**Rejected, measured**: `feedThreshold` alone (0.06/0.04: bouts of 2-3 ticks, flicker); `hunger-taste` gain
+override (no effect: the input is already clamped at the channel range 1); `adaptStep` 0.05/0.03 (bouts still 2
+ticks at p50, sated flies eat more; and adaptation is global, fixed by the regime gate D40/D41); `adaptStep` 0
+(flies never leave food).
+
+**Decision**: a declared reflex law in the body layer, `flies.food.feedTau` (ticks, default 1 = the drive itself,
+so every other world is bit-for-bit unchanged): `f ← f + (drive(feed) − f) / feedTau`, eat while
+`f ≥ feedThreshold` on a flower. It reads only the decoded drive, never the stimulus, and is the same for every
+arm (Principle VI). The hunger-gated burst becomes a bout whose length grows with hunger; a sated fly's burst
+(median drive 0.002) never reaches the threshold. Learning worlds set `feedTau: 60`, `feedThreshold: 0.015`,
+picked from a {10, 20, 40, 60} × {0.015, 0.02, 0.03} sweep on calibration seeds with hungry and sated starts.
+
+**Verdict, held-out seeds 101-130** (180 flies × 3000 ticks, energy 0.3 start):
+
+| | before (τ 1, thr 0.12) | after (τ 60, thr 0.015) |
+|---|---|---|
+| time hungry (hunger ≥ 0.4) | 100% | 47% |
+| mean energy / median at end | 0.13 / 0.02 | 0.56 / 0.56 |
+| eating / on-flower ticks | 13% | 30% |
+| bout ticks p50 / p90 | 10 / 11 | 69 / 90 |
+| bouts ended `sated` / `walked` | 0 / 791 | 168 / 163 |
+
+Visits per fly are unchanged (3.7 → 3.5): finding food is the brain's, as before. Not run: the null arms and the
+browser; the conditioning probe is brain-only and unaffected. Longer bouts deliver longer `eat` and `eat:floral`
+pulses, so the in-world teaching signal is stronger than before.
+
 ## Rationale
 
 See research.md §1-§10 for the decision-by-decision rationale and rejected alternatives. This ADR records only

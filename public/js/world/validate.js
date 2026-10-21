@@ -940,6 +940,8 @@ function validateFlyFood(food, err) {
   };
   check('eatSpeed', (v) => isNum(v) && v > 0, 'must be a number greater than 0');
   check('feedThreshold', (v) => isNum(v) && v >= 0 && v <= 1, 'must be a number from 0 to 1');
+  // feedTau (ADR 011 D53): ticks the decoded feed drive is integrated over before feedThreshold; 1 is none (v3).
+  check('feedTau', (v) => isNum(v) && v >= 1, 'must be a number of 1 or more');
   check('stock', (v) => isNum(v) && v > 0, 'must be a number greater than 0');
   check('consumeRate', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');
   check('regrowth', (v) => isNum(v) && v >= 0, 'must be a number of 0 or more');

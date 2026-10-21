@@ -311,3 +311,19 @@ test('feedMotion "slow" requires feedSlowSpeed, which must be 0 or more (spec 01
   assert.deepEqual(paths(negative), ['flies.food.feedSlowSpeed']);
   assert.equal(negative[0].message, 'must be a number of 0 or more');
 });
+
+// ADR 011 D53 (contracts/world-config-v3-learning.md): flies.food.feedTau, ticks the feed drive is integrated over.
+test('flies.food.feedTau accepts a number of 1 or more and rejects anything else', () => {
+  for (const ok of [1, 60, 2.5]) {
+    const c = loadForager();
+    c.flies.food = { ...c.flies.food, feedTau: ok };
+    assert.equal(paths(validateConfig(c)).includes('flies.food.feedTau'), false, `feedTau ${ok}`);
+  }
+  for (const bad of [0, 0.5, -1, '60', null]) {
+    const c = loadForager();
+    c.flies.food = { ...c.flies.food, feedTau: bad };
+    const hit = validateConfig(c).find((e) => e.path === 'flies.food.feedTau');
+    assert.ok(hit, `feedTau ${JSON.stringify(bad)} not rejected`);
+    assert.equal(hit.message, 'must be a number of 1 or more');
+  }
+});
