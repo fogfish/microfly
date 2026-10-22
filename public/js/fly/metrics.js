@@ -163,3 +163,147 @@ export function escapeOrTurnWithin(records, radius, window = 20) {
   }
   return { rate: encounters ? resolved / encounters : null, encounters, resolved };
 }
+
+// ---- ADR 012 research.md R14: social metrics. The caller (scripts/social-arms.mjs) computes the per-tick
+// neighbour geometry once, directly off the live fly table it already holds in its lockstep loop, and hands
+// each fly its own per-tick record array (the same "never flatMap across flies" rule as above, because contact
+// and song are run-length-encoded over the tick sequence — merging two flies' arrays would splice their events
+// together at the join). records: one fly's own
+//   [{ nnDistance, nnHeading, nnAhead, nnSex, heading, contactWith, contactSide, contactSex, singing }]
+// one entry per tick, in tick order. nnDistance/nnHeading/nnSex describe the nearest live other fly (null when
+// none); nnAhead is true when that neighbour lies in this fly's own forward half-plane. contactWith is the
+// touched fly's id (null when none), contactSide 'L'/'R', contactSex its sex.
+
+// The nnDistance series, one fly's own records (the ticks with no live neighbour kept as null, not dropped,
+// so the series stays index-aligned with records for a caller that wants to cross-reference a tick).
+export function nnDistances(records) {
+  return records.map((r) => r.nnDistance);
+}
+
+// The median nearest-neighbour distance over ticks with a live neighbour.
+export function nnMedian(records) {
+  return median(nnDistances(records).filter((d) => d !== null));
+}
+
+// The fraction of ticks (with a live neighbour) at nnDistance <= radius tiles (default 2, research R14).
+export function timeNear(records, radius = 2) {
+  const valid = records.filter((r) => r.nnDistance !== null);
+  return valid.length ? valid.filter((r) => r.nnDistance <= radius).length / valid.length : null;
+}
+
+// Contact events: a run of ticks with the same contactWith id. Each event is
+// { onset, duration, otherId, side, otherSex }, read from the tick that opens the run.
+export function contactEvents(records) {
+  const events = [];
+  let open = null;
+  records.forEach((r, t) => {
+    if (r.contactWith !== null && r.contactWith !== undefined) {
+      if (!open) open = { onset: t, duration: 0, otherId: r.contactWith, side: r.contactSide ?? null, otherSex: r.contactSex ?? null };
+      open.duration += 1;
+    } else if (open) {
+      events.push(open);
+      open = null;
+    }
+  });
+  if (open) events.push(open);
+  return events;
+}
+
+// Contact-event onsets per simulated minute (research R14 "Contact rate").
+export function contactRate(records, tickHz) {
+  const minutes = records.length / tickHz / 60;
+  return minutes > 0 ? contactEvents(records).length / minutes : null;
+}
+
+// Mean contact-event length, in ticks.
+export function contactDuration(records) {
+  const events = contactEvents(records);
+  return events.length ? events.reduce((s, e) => s + e.duration, 0) / events.length : null;
+}
+
+// Over ticks with a live neighbour at nnDistance <= radius, the mean of cos(heading - nnHeading), zeroed on
+// ticks where the neighbour is not ahead of this fly (research R14): near 1 for a follower directly behind a
+// leader heading the same way, near 0 on average for an independent random walk.
+export function followingIndex(records, radius = 2) {
+  const values = records
+    .filter((r) => r.nnDistance !== null && r.nnDistance <= radius)
+    .map((r) => (r.nnAhead ? Math.cos(r.heading - r.nnHeading) : 0));
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+}
+
+// Song bouts: a run of ticks with singing true. Each bout is { onset, duration }.
+export function songBouts(records) {
+  const bouts = [];
+  let open = null;
+  records.forEach((r, t) => {
+    if (r.singing) {
+      if (!open) open = { onset: t, duration: 0 };
+      open.duration += 1;
+    } else if (open) {
+      bouts.push(open);
+      open = null;
+    }
+  });
+  if (open) bouts.push(open);
+  return bouts;
+}
+
+// Song-bout onsets during a contact event / contact events (one fly), against song-bout onsets per tick alone
+// (nnDistance null or > radius) — research R14 "Song per contact". events/bouts may be precomputed (so a
+// caller pooling across flies, e.g. by sex, can filter the event list once and reuse it for both figures).
+export function songPerContact(records, radius = 2, events = contactEvents(records), bouts = songBouts(records)) {
+  const duringAnyEvent = (onset) => events.some((e) => onset >= e.onset && onset < e.onset + e.duration);
+  const perContact = events.length ? bouts.filter((b) => duringAnyEvent(b.onset)).length / events.length : null;
+  const aloneTicks = records.filter((r) => r.nnDistance === null || r.nnDistance > radius).length;
+  const aloneOnsets = bouts.filter((b) => {
+    const r = records[b.onset];
+    return r === undefined || r.nnDistance === null || r.nnDistance > radius;
+  }).length;
+  const perTickAlone = aloneTicks > 0 ? aloneOnsets / aloneTicks : null;
+  return { perContact, perTickAlone };
+}
+
+// Pools the metrics above across a roster of flies, overall and split by the *other* fly's sex tag (research
+// R14 "Sex split"). flies: [{ sex, records }], each records the fly's own per-tick array (as above).
+export function socialSummary(flies, { radius = 2, tickHz = 20 } = {}) {
+  const perFly = flies.map(({ sex, records }) => {
+    const events = contactEvents(records);
+    const bouts = songBouts(records);
+    const minutes = records.length / tickHz / 60;
+    return {
+      sex,
+      nnMedian: nnMedian(records),
+      timeNear: timeNear(records, radius),
+      contactRate: minutes > 0 ? events.length / minutes : null,
+      contactDuration: events.length ? events.reduce((s, e) => s + e.duration, 0) / events.length : null,
+      followingIndex: followingIndex(records, radius),
+      song: songPerContact(records, radius, events, bouts),
+    };
+  });
+
+  const bySex = {};
+  for (const sex of new Set(flies.map((f) => f.sex))) {
+    const nnPool = flies.flatMap(({ records }) => records.filter((r) => r.nnSex === sex));
+    const minutesTotal = flies.reduce((s, { records }) => s + records.length, 0) / tickHz / 60;
+    const perFlyEvents = flies.map(({ records }) => ({
+      records, events: contactEvents(records).filter((e) => e.otherSex === sex), bouts: songBouts(records),
+    }));
+    const eventsPool = perFlyEvents.flatMap((f) => f.events);
+    const songDuringPool = perFlyEvents.flatMap(({ bouts, events }) => bouts.filter(
+      (b) => events.some((e) => b.onset >= e.onset && b.onset < e.onset + e.duration),
+    ));
+    bySex[sex] = {
+      nnMedian: median(nnPool.map((r) => r.nnDistance)),
+      timeNear: nnPool.length ? nnPool.filter((r) => r.nnDistance <= radius).length / nnPool.length : null,
+      contactRate: minutesTotal > 0 ? eventsPool.length / minutesTotal : null,
+      contactDuration: eventsPool.length ? eventsPool.reduce((s, e) => s + e.duration, 0) / eventsPool.length : null,
+      followingIndex: nnPool.filter((r) => r.nnDistance <= radius).length
+        ? nnPool.filter((r) => r.nnDistance <= radius)
+            .reduce((s, r) => s + (r.nnAhead ? Math.cos(r.heading - r.nnHeading) : 0), 0)
+          / nnPool.filter((r) => r.nnDistance <= radius).length
+        : null,
+      songPerContact: eventsPool.length ? songDuringPool.length / eventsPool.length : null,
+    };
+  }
+  return { perFly, bySex };
+}

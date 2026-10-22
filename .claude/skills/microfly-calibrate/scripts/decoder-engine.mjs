@@ -267,7 +267,9 @@ export function runC2(ctx, lifBlock, gates) {
 
   // Named pools (D27): alarm/feed/forward/backward are the snapshot's own output neurons, plus drive.odour-danger
   // and drive.heat for alarm (the fallback path when neither exists is ADR 010 Part L's, handled by the body
-  // layer, not here).
+  // layer, not here). ADR 012 R12: a `song` pool is emitted too, but only when the snapshot declares a `song`
+  // output (channel-declaration-v6) — a v5 snapshot with no song output gets no `song` key at all, so the
+  // decoder file stays exactly as it was for every pre-existing brain.
   const outputNeurons = (drive) => ctx.capabilities.channels.outputs.find((ch) => ch.drive === drive)?.neurons ?? [];
   pools.feed = outputNeurons('feed');
   pools.forward = outputNeurons('forward');
@@ -277,6 +279,9 @@ export function runC2(ctx, lifBlock, gates) {
     ...(pools['drive.odour-danger'] ?? []),
     ...(pools['drive.heat'] ?? []),
   ])].sort((a, b) => a - b);
+  if (ctx.capabilities.channels.outputs.some((ch) => ch.drive === 'song')) {
+    pools.song = outputNeurons('song');
+  }
 
   if (errors.length > 0) {
     return { errors, pools: null };
@@ -307,7 +312,9 @@ export function runC2(ctx, lifBlock, gates) {
 }
 
 // Writes the decoder-v1 shape (contracts/decoder-v1.md). sha256: the loaded .brain file's own hash.
-export function buildDecoderFile(c2Result, snapshotFile, sha256, lifBlock, configHash) {
+// valenceSource (ADR 012 R7, optional): {pair: "claims.md#<row>"}, documentation only (decoder.js's reader
+// accepts and carries it through, never validates it against `valence`'s own keys).
+export function buildDecoderFile(c2Result, snapshotFile, sha256, lifBlock, configHash, valenceSource) {
   return {
     format: 'decoder', version: 1,
     snapshot: { file: snapshotFile, sha256 },
@@ -315,6 +322,7 @@ export function buildDecoderFile(c2Result, snapshotFile, sha256, lifBlock, confi
     probe: c2Result.probe,
     pools: c2Result.pools,
     valence: c2Result.valence,
+    ...(valenceSource ? { valenceSource } : {}),
     homeostasis: { rest: c2Result.homeostasisRest },
     provenance: { createdAt: new Date().toISOString(), tool: 'calibrate.mjs C2', configHash },
   };

@@ -13,6 +13,9 @@ const CASES = [
   ['world.json', 'mock'],
   ['world-connectome.json', 'v0'],
   ['world-antennal-lobe.json', 'v0'],
+  // ADR 012: the social worlds, checked on every npm test alongside the pre-existing cases above.
+  ['world-forager-social.json', 'v3'],
+  ['world-forager-social-tilemap.json', 'v3'],
 ];
 
 for (const [name, version] of CASES) {

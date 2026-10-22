@@ -5,12 +5,17 @@
 // body-physics side) are shared unchanged between v1 and v2; only the sensing/env side has a wide-I/O twin.
 
 import * as P3 from '../brain/protocol-v3.js';
-import { bilateralContrast, senseDeclared, sitePoint } from './stimulus.js';
+import { bilateralContrast, conspecificAt, contactAt, senseDeclared, sitePoint } from './stimulus.js';
 import { flowerAt, hazardPoints } from './fly-world.js';
 import { hunger as hungerOf, odourGain } from './energy.js';
 import { foodFieldAt } from '../world/food-field.js';
 import { decodeTick } from './decoder.js';
 import { stepBodyLayer } from './body-layer.js';
+import { emitsOf } from './fly-config.js';
+
+// ADR 012 R8: odour-mode `from: "flies"` falls back to this radius when the world declares none
+// (contracts/world-config-v3-social.md).
+const FLIES_RADIUS_DEFAULT = 3;
 
 // The sampler for one declared sense (ADR 007 W8, contracts/world-config-wide-io.md, contracts/stimuli-field-
 // sources.md §4): "edibles" reads the shared flower table (field food odour, taste/contact alike), filtered by
@@ -21,7 +26,21 @@ import { stepBodyLayer } from './body-layer.js';
 // reach: flies.food.reach, the eating area (fly-world.js flowerAt). Taste contact is read over the same area the
 // fly can eat in, so the mouth tastes a flower wherever it can feed on it (spec 017 BUG-002); 0 keeps v2's
 // own-cell contact.
-function samplerFor(spec, world, flowers, reach = 0) {
+// social: { conspecifics, bodyRadius, sexes } (ADR 012 R8/R9), only meaningful when spec.from === "flies".
+// conspecifics is the live, per-tick-refreshed table (forageEnvWide/refreshConspecifics); the sampler itself
+// stays a fixed object built once, closing over that same mutable array. sense: the stimuli key this sampler
+// is for (the spec object itself does not carry its own key), so emits() resolves per the right sense.
+function samplerFor(spec, world, flowers, reach = 0, sense = null, social = {}) {
+  if (spec.from === 'flies') {
+    const { conspecifics, bodyRadius, sexes } = social;
+    return {
+      isFlies: true,
+      conspecifics,
+      bodyRadius,
+      emits: (sex) => emitsOf(sexes, sex, sense),
+      points: () => [], contactAt: () => 0,
+    };
+  }
   if (spec.from === 'edibles') {
     // scents (contracts/world-config-v3-learning.md, ADR 011): restricts the odour field to flowers of the
     // listed scent(s); taste/contact senses read every flower regardless (no scents key on a taste channel).
@@ -91,17 +110,27 @@ function declaredSpec(sense, spec) {
 // any fly starts (spec FR-018's edge case) — not lazily inside the per-tick sense function.
 export function forageEnvWide(f, world, flowers, capabilities) {
   const inputs = capabilities.channels.inputs;
+  // ADR 012 R8: the live per-tick conspecific table, refreshed in place by refreshConspecifics so every
+  // "flies"-sourced sampler (closing over this same array) sees the current tick's positions.
+  const conspecifics = [];
+  const social = { conspecifics, bodyRadius: f.body.bodyRadius, sexes: f.sexes ?? {} };
   const samplers = {};
   for (const ch of inputs) {
     if (Object.hasOwn(samplers, ch.sense)) continue;
     const spec = f.stimuli[ch.sense];
     if (!spec) throw new Error(`flies.stimuli is missing sense "${ch.sense}", declared by channel "${ch.id}"`);
-    samplers[ch.sense] = samplerFor(spec, world, flowers, f.food?.reach ?? 0);
+    samplers[ch.sense] = samplerFor(spec, world, flowers, f.food?.reach ?? 0, ch.sense, social);
   }
   for (const ch of inputs) {
     if (!f.body.sites[ch.site]) {
       throw new Error(`flies.body.sites is missing site "${ch.site}", declared by channel "${ch.id}"`);
     }
+  }
+  // ADR 012 R12 (contracts/world-config-v3-social.md): flies.body.song needs a snapshot song output, checked
+  // here against the loaded capabilities — the same "runtime check at snapshot load" pattern as the two
+  // throws just above (validate.js only checks song's own shape, which does not need the snapshot).
+  if (f.body.song !== undefined && !capabilities.channels.outputs.some((ch) => ch.drive === 'song')) {
+    throw new Error('flies.body.song needs a snapshot song output');
   }
   return {
     dt: 1 / f.tickHz,
@@ -121,7 +150,30 @@ export function forageEnvWide(f, world, flowers, capabilities) {
     flowers,
     drives: capabilities.channels.outputs.map((ch) => ch.drive),
     inputCount: inputs.length,
+    conspecifics,
   };
+}
+
+// ADR 012 R8 (data-model.md "Conspecific table"): writes { id, x, y, heading, sex, alive } for each fly into
+// env.conspecifics, in place, so every sampler built over that same array (forageEnvWide) sees this tick's
+// positions. Called once a tick, before any fly senses (fly-host.js pump(), scripts/social-arms.mjs).
+export function refreshConspecifics(env, flies) {
+  env.conspecifics.length = 0;
+  for (const fly of flies) {
+    env.conspecifics.push({
+      id: fly.id, x: fly.body.x, y: fly.body.y, heading: fly.body.heading, sex: fly.sex, alive: fly.alive !== false,
+    });
+  }
+}
+
+// ADR 012 R10 (flies.body.solid, contracts/world-config-v3-social.md): the world-physics hook body.js's
+// free() reads (env.isBodyFree). A point is free of every other live fly's body when no other live fly's
+// centre sits closer than 2 x bodyRadius. The caller binds this once per fly, per tick (it needs that fly's
+// own id to exclude it), over the same conspecifics table the sampler reads.
+export function isBodyFree(conspecifics, selfId, bodyRadius) {
+  return (x, y) => !conspecifics.some(
+    (c) => c.id !== selfId && c.alive && Math.hypot(c.x - x, c.y - y) < 2 * bodyRadius,
+  );
 }
 
 // The sense for this tick: one value per declared input channel, built generically from its sense/site
@@ -134,6 +186,18 @@ export function senseForagerFlyWide(fly, env) {
     // updateEventPulses after the previous tick's body layer — never a position/field sample.
     if (env.stimuli[ch.sense].from === 'events') {
       values[k] = (fly.eventPulses?.[ch.sense] ?? 0) > 0 ? 1 : 0;
+      return;
+    }
+    // "flies" (ADR 012 R8): routed to the pure conspecificAt/contactAt helpers directly, with this fly's own
+    // id, before declaredSpec/senseDeclared (neither of which knows about self-exclusion or a moving source).
+    const sampler = env.samplers[ch.sense];
+    if (sampler.isFlies) {
+      const site = env.bodySites[ch.site];
+      const at = sitePoint(fly.body, site, ch.side);
+      const spec = env.stimuli[ch.sense];
+      values[k] = spec.contact
+        ? contactAt(at, sampler.conspecifics, fly.id, sampler.bodyRadius, sampler.emits)
+        : conspecificAt(at, sampler.conspecifics, fly.id, { radius: spec.radius ?? FLIES_RADIUS_DEFAULT }, sampler.emits);
       return;
     }
     const spec = declaredSpec(ch.sense, env.stimuli[ch.sense]);

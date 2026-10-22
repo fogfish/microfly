@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStatusModel } from '../public/js/ui/panel/model.js';
+import { socialLine } from '../public/js/ui/panel/sections/inputs.js';
 
 const CAPABILITIES = {
   channels: {
@@ -23,9 +24,9 @@ const CAPABILITIES = {
   },
 };
 
-function record(entry) {
+function record(entry, state = {}) {
   return {
-    state: { id: 3 },
+    state: { id: 3, ...state },
     brainLabel: 'v1 forager brain',
     capabilities: CAPABILITIES,
     neuronCount: 0,
@@ -73,4 +74,44 @@ test('a forager fly shows the drives and the speed behind its action (FR-034)', 
 test('a v0 fly has no diagnostic', () => {
   const model = buildStatusModel(record({ tick: 1, sensory: 0.5, left: 0.2, right: 0.1, outputs: Float32Array.of(0.2, 0.1), spikes: new Uint32Array(0) }), 0);
   assert.equal(model.diagnostic, null);
+});
+
+// ---- ADR 012 R9/R12: sex tag, contactWith, and valence-labelled input rows ----
+
+test('sexLabel reads "female (male connectome)" for female, plain "male" for male, undefined otherwise', () => {
+  const entry = { tick: 1, sensory: 0.5, left: 0, right: 0, outputs: Float32Array.of(0, 0), spikes: new Uint32Array(0) };
+  assert.equal(buildStatusModel(record(entry, { sex: 'female' }), 0).sexLabel, 'female (male connectome)');
+  assert.equal(buildStatusModel(record(entry, { sex: 'male' }), 0).sexLabel, 'male');
+  assert.equal(buildStatusModel(record(entry), 0).sexLabel, undefined);
+});
+
+test('contactWith passes through record.state.contactWith unchanged, including null', () => {
+  const entry = { tick: 1, sensory: 0.5, left: 0, right: 0, outputs: Float32Array.of(0, 0), spikes: new Uint32Array(0) };
+  assert.equal(buildStatusModel(record(entry, { contactWith: 5 }), 0).contactWith, 5);
+  assert.equal(buildStatusModel(record(entry, { contactWith: null }), 0).contactWith, null);
+  assert.equal(buildStatusModel(record(entry), 0).contactWith, undefined);
+});
+
+test('an input channel label gains its decoded sense\'s valence; a sense with no decoded valence is unchanged', () => {
+  const entry = {
+    tick: 4, inputs: Float32Array.of(0.1, 0.2, 0.3, 0.4), outputs: new Float32Array(5),
+    spikes: new Uint32Array(0), energy: 0.3, hunger: 0.7, eating: false, drives: {},
+    decoded: { senses: { odour: { valence: 'none' } }, named: {} },
+  };
+  const model = buildStatusModel(record(entry), 0);
+  assert.equal(model.inputs[0].channel.label, 'Odour left (none)');
+  assert.equal(model.inputs[1].channel.label, 'Odour right (none)');
+  assert.equal(model.inputs[2].channel.label, 'Taste left'); // no decoded entry for "taste": unchanged
+});
+
+test('socialLine shows sex and contactWith when the model provides either, and null otherwise', () => {
+  const entry = { tick: 1, inputs: Float32Array.of(0, 0, 0, 0), outputs: new Float32Array(5), spikes: new Uint32Array(0) };
+  const withSocial = buildStatusModel(record(entry, { sex: 'female', contactWith: 7 }), 0);
+  assert.equal(socialLine(withSocial), 'sex: female (male connectome) · touching: fly 7');
+
+  const noContact = buildStatusModel(record(entry, { sex: 'male', contactWith: null }), 0);
+  assert.equal(socialLine(noContact), 'sex: male · touching: none');
+
+  const withoutSocial = buildStatusModel(record(entry), 0);
+  assert.equal(socialLine(withoutSocial), null);
 });

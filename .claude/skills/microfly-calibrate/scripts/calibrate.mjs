@@ -360,7 +360,7 @@ if (stage === 'regime') {
     }
     const configHash = createHash('sha256').update(JSON.stringify({ lif: lifBlock, c1: profile.c1 })).digest('hex');
     const snapshotFile = f.brain.snapshot.split('/').pop();
-    decoderFile = buildDecoderFile(c2, snapshotFile, sha256, lifBlock, configHash);
+    decoderFile = buildDecoderFile(c2, snapshotFile, sha256, lifBlock, configHash, profile.c2.valenceSource);
     writeCheckpoint(checkpointFor('c2'), { stage: 'c2', decoder: decoderFile });
     ensureDir(decoderOutUrl.pathname.replace(/\/[^/]*$/, ''));
     writeFileSync(decoderOutUrl, `${JSON.stringify(decoderFile, null, 2)}\n`);

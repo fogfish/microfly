@@ -157,6 +157,10 @@ export function spawnFlies(config, world, mode = resolveFlies(config).mode) {
       id: i,
       mode,
       sprite,
+      // ADR 012 R9 (contracts/world-config-v3-social.md): the resolved sex tag, a fly with no flies.sex[i]
+      // taking flies.sexes.default (fly-config.js, always resolved). Read by the from:"flies" sampler and the
+      // panel; it never selects a brain, decoder or body layer (research R9: "a male brain wearing a name tag").
+      sex: sex ?? f.sexes?.default,
       brainSeed: (f.seed + (i + 1) * GOLDEN) >>> 0,
       body: createBody({ x: cell.cx + 0.5, y: cell.cy + 0.5, heading }),
       motor: { left: 0, right: 0 },

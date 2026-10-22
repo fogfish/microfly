@@ -27,6 +27,11 @@ export const BACKUP_DEFAULTS = Object.freeze({ threshold: 0.5, ticks: 10 });
 // flies.body.escape default (contracts/world-config-v3.md): enabled is true for v3 (W14), false for v2 (ADR 007).
 const ESCAPE_DEFAULTS_V3 = Object.freeze({ ...ESCAPE_DEFAULTS, enabled: true });
 export const HUNGER_MODULATOR_DEFAULTS = Object.freeze({ threshold: 0.4 });
+// ADR 012 R9/R10 (contracts/world-config-v3-social.md): flies.sexes absent means every fly emits 1 for every
+// `from: "flies"` stimulus (fly-config.js's own ?? 1 lookup per sense, not defaulted here); `default` picks the
+// tag for a fly with no `flies.sex[i]`. bodyRadius/solid are the contact-sense/physics defaults.
+export const SEXES_DEFAULT = Object.freeze({ default: 'female' });
+export const BODY_RADIUS_DEFAULT = 0.35;
 
 export function resolveFlies(config) {
   const f = config.flies;
@@ -52,6 +57,14 @@ export function resolveFlies(config) {
       // other version, since forager-step.js's escape step and forager-step-wide.js's sampler both read them
       // only when set. v3's escape.enabled defaults to true (W14), v2's to false (ADR 007 D17).
       ...(isWide ? { sites: f.body.sites ?? {}, escape: { ...(isDemo ? ESCAPE_DEFAULTS_V3 : ESCAPE_DEFAULTS), ...f.body.escape } } : {}),
+      // flies.body.bodyRadius/solid/song (ADR 012 R9/R10/R12, v2/v3 only): the contact-sense radius, whether
+      // bodies block each other, and the song reflex's own params (undefined unless the world declares it —
+      // W17 is then off, no default to merge).
+      ...(isWide ? {
+        bodyRadius: f.body.bodyRadius ?? BODY_RADIUS_DEFAULT,
+        solid: f.body.solid === true,
+        ...(f.body.song !== undefined ? { song: f.body.song } : {}),
+      } : {}),
       // flies.body.locomotion/backup (v3 only, required; contracts/world-config-v3.md, W12–W14).
       ...(isDemo ? { locomotion: { ...LOCOMOTION_DEFAULTS, ...f.body.locomotion }, backup: { ...BACKUP_DEFAULTS, ...f.body.backup } } : {}),
       // flies.body.crossWater (v3 only, spec 017 BUG-003): the fly may fly over water cells.
@@ -64,6 +77,9 @@ export function resolveFlies(config) {
     // flies.stimuli (v2/v3; contracts/world-config-wide-io.md): the declared sense sources, generic over the
     // snapshot's channel count. Absent (every pre-v2 world) stays undefined, so forageEnv's v1 path is unaffected.
     ...(isWide ? { stimuli: f.stimuli ?? {} } : {}),
+    // flies.sexes (ADR 012 R9, v2/v3 only): `default` is always resolved, so a fly with no `flies.sex[i]`
+    // always has a tag to fall back to even when the world declares no `sexes` key at all.
+    ...(isWide ? { sexes: { ...SEXES_DEFAULT, ...f.sexes } } : {}),
     // flies.modulators.hunger.threshold (D32, v3 only; contracts/world-config-v3.md): a pure world-config
     // override, never written to the snapshot (research.md §6).
     ...(isDemo ? { modulators: { ...f.modulators, hunger: { ...HUNGER_MODULATOR_DEFAULTS, ...f.modulators?.hunger } } } : {}),
@@ -74,6 +90,12 @@ export function resolveFlies(config) {
       ...(f.experiment?.heldOut !== undefined ? { heldOut: f.experiment.heldOut } : {}),
     },
   };
+}
+
+// Emission strength for a sex under a `from: "flies"` stimulus sense (ADR 012 R9): declared, or 1 (every fly
+// emits fully when the world declares no flies.sexes.<sex>.emits entry for this sense).
+export function emitsOf(sexes, sex, sense) {
+  return sexes[sex]?.emits?.[sense] ?? 1;
 }
 
 // Toy brains merge every default. A snapshot brain has no toy size, so only the settings that apply

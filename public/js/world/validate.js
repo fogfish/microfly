@@ -30,8 +30,12 @@ const WIDE_IO_VERSIONS = ['v2', 'v3'];
 // "dangers" sample a world object list; "blocked" (touch) reads world walkability directly, with no object list;
 // "water"/"forestEdge" read the heat/danger field (contracts/world-format-sketch-map.md §3) at the channel's site.
 // "events" (contracts/world-config-v3-learning.md, ADR 011): a world-event stimulus, read from the fly's own
-// body state and the food table, never from another fly.
-const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked', 'water', 'forestEdge', 'events'];
+// body state and the food table, never from another fly. "flies" (ADR 012 R8, contracts/world-config-v3-
+// social.md): a moving source per other live fly (odour mode) or front-leg contact (contact mode).
+const STIMULUS_SOURCES = ['edibles', 'dangers', 'blocked', 'water', 'forestEdge', 'events', 'flies'];
+// flies.stimuli[s].interpolate/scaleBy do not apply to from:"flies" (contracts/world-config-v3-social.md): the
+// field is analytic (falloff from a live point), not a per-cell stepped field or a stock fraction.
+const FLIES_FORBIDDEN_KEYS = ['interpolate', 'scaleBy'];
 // edibles[i].scent (contracts/world-config-v3-learning.md, ADR 011): orthogonal to kind (size/capacity).
 const SCENTS = ['fruit', 'floral'];
 // kinds/scaleBy/radius are meaningless once the field itself fixes the falloff shape (contracts/stimuli-field-sources.md §2).
@@ -652,8 +656,13 @@ function validateFlies(flies, config, err) {
   validateFlyFood(flies.food, err);
   // v2/v3 sense generically from flies.stimuli (contracts/world-config-wide-io.md), not the old singular
   // flies.stimulus (v0/v1's antenna gain/max/resting/radius), so the two are mutually exclusive by version.
-  if (WIDE_IO_VERSIONS.includes(brainVersionGuess)) validateFlyStimuliWide(flies.stimuli, err);
-  else validateFlyStimulus(flies.stimulus, edible, err);
+  if (WIDE_IO_VERSIONS.includes(brainVersionGuess)) {
+    validateFlyStimuliWide(flies.stimuli, err);
+    validateFlySexes(flies.sexes, flies.stimuli, err);
+  } else {
+    validateFlyStimulus(flies.stimulus, edible, err);
+    if (flies.sexes !== undefined) err('flies.sexes', 'is only for version "v2" or "v3"');
+  }
 
   // flies.modulators.hunger.threshold (D32, contracts/world-config-v3.md): a world-config override, optional
   // for every version (absent keeps today's linear gain curve, research.md §6).
@@ -674,7 +683,7 @@ function validateFlySex(sex, count, hasSprite, err) {
   }
   const used = new Set();
   sex.forEach((s, i) => {
-    if (!FLY_SEXES.includes(s)) err(`flies.sex[${i}]`, 'must be "female" or "male"');
+    if (!FLY_SEXES.includes(s)) err(`flies.sex[${i}]`, `unknown sex "${s}"`);
     else used.add(s);
   });
   for (const s of used) {
@@ -710,6 +719,19 @@ function validateFlyBody(body, err, version) {
 
   // flies.body.sites (v2/v3; contracts/world-config-wide-io.md).
   if (WIDE_IO_VERSIONS.includes(version)) validateBodySites(body.sites, err);
+
+  // flies.body.bodyRadius/solid/song (ADR 012 R9/R10/R12, v2/v3 only; contracts/world-config-v3-social.md).
+  if (WIDE_IO_VERSIONS.includes(version)) {
+    if (body.bodyRadius !== undefined && !(isNum(body.bodyRadius) && body.bodyRadius > 0)) {
+      err('flies.body.bodyRadius', 'must be a number greater than 0');
+    }
+    if (body.solid !== undefined && typeof body.solid !== 'boolean') err('flies.body.solid', 'must be true or false');
+    if (body.song !== undefined) validateBodySong(body.song, err);
+  } else {
+    if (body.bodyRadius !== undefined) err('flies.body.bodyRadius', 'is only for version "v2" or "v3"');
+    if (body.solid !== undefined) err('flies.body.solid', 'is only for version "v2" or "v3"');
+    if (body.song !== undefined) err('flies.body.song', 'is only for version "v2" or "v3"');
+  }
 
   // flies.body.escape (v2/v3; contracts/world-config-wide-io.md). Present under any other version is refused.
   if (body.escape !== undefined && !WIDE_IO_VERSIONS.includes(version)) {
@@ -791,6 +813,55 @@ function validateBodyBackup(backup, err) {
   if (!isInt(backup.ticks, 1, 100000)) err('flies.body.backup.ticks', 'must be a positive integer');
 }
 
+// flies.body.song (ADR 012 R12, v2/v3 only, optional; contracts/world-config-v3-social.md): the wing-extension
+// reflex's own params. Shape only is checked here; "needs a snapshot song output" is a runtime cross-check
+// against the loaded snapshot's capabilities (forager-step-wide.js forageEnvWide), the same pattern as
+// "flies.stimuli is missing sense" and "flies.body.sites is missing site" above it.
+function validateBodySong(song, err) {
+  if (!isObject(song)) {
+    err('flies.body.song', 'must be an object with threshold and tau');
+    return;
+  }
+  if (!(isNum(song.threshold) && song.threshold >= 0)) err('flies.body.song.threshold', 'must be a number of 0 or more');
+  if (!(isNum(song.tau) && song.tau > 0)) err('flies.body.song.tau', 'must be a number greater than 0');
+}
+
+// flies.sexes (ADR 012 R9, v2/v3 only, optional; contracts/world-config-v3-social.md): emission strength per
+// sex for every from:"flies" stimulus. Absent means every fly emits 1 (fly-config.js's own ?? 1 default).
+function validateFlySexes(sexes, stimuli, err) {
+  if (sexes === undefined) return;
+  if (!isObject(sexes)) {
+    err('flies.sexes', 'must be an object');
+    return;
+  }
+  if (sexes.default !== undefined && !FLY_SEXES.includes(sexes.default)) {
+    err('flies.sexes.default', 'must be "female" or "male"');
+  }
+  const fliesSenses = new Set(
+    Object.entries(isObject(stimuli) ? stimuli : {}).filter(([, spec]) => spec?.from === 'flies').map(([sense]) => sense),
+  );
+  for (const sex of FLY_SEXES) {
+    if (sexes[sex] === undefined) continue;
+    if (!isObject(sexes[sex])) {
+      err(`flies.sexes.${sex}`, 'must be an object');
+      continue;
+    }
+    const emits = sexes[sex].emits;
+    if (emits === undefined) continue;
+    if (!isObject(emits)) {
+      err(`flies.sexes.${sex}.emits`, 'must be an object');
+      continue;
+    }
+    for (const [sense, value] of Object.entries(emits)) {
+      if (!fliesSenses.has(sense)) {
+        err(`flies.sexes.${sex}.emits`, `"${sense}" is not a declared from:"flies" stimulus`);
+      } else if (!(isNum(value) && value >= 0 && value <= 1)) {
+        err(`flies.sexes.${sex}.emits.${sense}`, 'must be a number from 0 to 1');
+      }
+    }
+  }
+}
+
 // flies.modulators.hunger.threshold (D32, contracts/world-config-v3.md): optional for every version.
 function validateModulatorsHunger(modulators, err) {
   if (modulators === undefined) return;
@@ -860,6 +931,13 @@ function validateFlyStimuliWide(stimuli, err) {
     if (FIELD_ONLY_SOURCES.includes(spec.from)) {
       for (const key of ['kinds', 'scaleBy', 'radius']) {
         if (spec[key] !== undefined) err(path, `must not set ${key} when from is "${spec.from}"`);
+      }
+    }
+    // from: "flies" (ADR 012 R8, contracts/world-config-v3-social.md): interpolate/scaleBy do not apply (the
+    // field is analytic, not a stepped per-cell field or a stock fraction); contact mode skips radius entirely.
+    if (spec.from === 'flies') {
+      for (const key of FLIES_FORBIDDEN_KEYS) {
+        if (spec[key] !== undefined) err(`flies.stimuli["${sense}"]`, `${key} does not apply to from "flies"`);
       }
     }
     // from: "events" (contracts/world-config-v3-learning.md, ADR 011): a declared reinforcement pair, driven by

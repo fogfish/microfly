@@ -13,7 +13,11 @@ Wide-I/O codes (ADR 007 D19/D20, contracts/extract-config-forager-wide.md): E-PA
 probe-checked `pair` does not resolve to exactly one left and one right channel id).
 
 ADR 011 codes (specs/019-mb-valence-learning): E-POOL-OVERLAP (two declared input pairs of the same class share a
-`types`/`subclasses`/`typePrefixes` entry; names both pairs and the shared identifier).
+`types`/`subclasses`/`typePrefixes` entry; names both pairs and the shared identifier). ADR 012
+(specs/020-social-pheromone-senses, research R3): E-POOL-OVERLAP is also raised after pool resolution, naming
+both pairs and the smallest shared `bodyId`, when a declared-set filter alone could not tell the pools apart
+(e.g. a `receptorTypes`/`excludeReceptorTypes` split on the same subclass). ADR 012 also extends E-SEED-EMPTY to
+a `seeds[].types`/`typePrefixes` filter (research R4): per unmatched filter, and per unmatched `types` entry.
 """
 
 

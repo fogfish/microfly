@@ -7,7 +7,8 @@ import math
 import re
 
 from .capabilities import (
-    FORAGER_DRIVES, FORAGER_WIDE_DRIVES, validate_capabilities, validate_capabilities_v4, validate_capabilities_v5,
+    FORAGER_DRIVES, FORAGER_WIDE_DRIVES, FORAGER_WIDE_OPTIONAL_DRIVES, validate_capabilities, validate_capabilities_v4,
+    validate_capabilities_v5, validate_capabilities_v6,
 )
 from .errors import ExtractError
 
@@ -385,11 +386,14 @@ FIDELITY_KEYS = {"require", "steps", "minContrastFraction"}
 # ADR 009 D24: the one partner seed filter. Only the output side is defined: the input side (postsynaptic partners
 # of the input pools) was measured and rejected (ADR 009 Annex A3).
 PARTNER_SEED_VALUES = {"outputs"}
+# ADR 012 R4: a seed filter may instead name types directly (plain identity selection, like a class filter).
+SEED_TYPE_KEYS = {"class", "superclass", "types", "typePrefixes"}
 
 
 def _check_seed_filters(seeds, allow_partners=False):
-    """Seed filters: {"class": [...]} or {"superclass": [...]}; under format 5 also {"partnersOf": "outputs"}
-    (ADR 009 D24), at most once."""
+    """Seed filters: exactly one of {"class": [...]}, {"superclass": [...]}, {"types": [...]} or
+    {"typePrefixes": [...]} (ADR 012 R4 adds the last two to ADR 006 D8's class/superclass). Under format 5 also
+    {"partnersOf": "outputs"} (ADR 009 D24), at most once."""
     if not isinstance(seeds, list) or not seeds:
         _fail("seeds must be a non-empty list")
     partner_filters = 0
@@ -406,10 +410,10 @@ def _check_seed_filters(seeds, allow_partners=False):
             if partner_filters > 1:
                 _fail("seeds may declare partnersOf only once")
             continue
-        has_class, has_superclass = "class" in filt, "superclass" in filt
-        if has_class == has_superclass:
-            _fail(f"seeds[{index}] needs exactly one of class or superclass")
-        key = "class" if has_class else "superclass"
+        present = sorted(set(filt) & SEED_TYPE_KEYS)
+        if len(present) != 1:
+            _fail(f"seeds[{index}] needs exactly one of class, superclass, types or typePrefixes")
+        key = present[0]
         if not _is_str_list(filt[key]):
             _fail(f"seeds[{index}].{key} must be a non-empty list of strings")
         unknown = sorted(set(filt) - {key})
@@ -420,7 +424,11 @@ def _check_seed_filters(seeds, allow_partners=False):
 def _check_forager_wide_capabilities(decl, inputs, outputs):
     """Like _check_forager_capabilities, for the v5 declaration (channel-declaration-v5.md): C1, then R1-R6 and
     R9-R11. The pool members are not known before selection, so each channel gets a placeholder neuron for the
-    check; R5 is checked again when the container is written, with the real neurons."""
+    check; R5 is checked again when the container is written, with the real neurons.
+
+    ADR 012 (channel-declaration-v6.md): when the config declares a `song` output, the v6 validator runs
+    instead (v5's rules plus the optional `song` drive); a config with no `song` output is checked exactly as
+    before, so it still extracts byte-identically."""
     if isinstance(decl, dict) and isinstance(decl.get("channels"), dict):
         channels = decl["channels"]
         declared_in = [ch.get("id") for ch in channels.get("inputs", []) if isinstance(ch, dict)]
@@ -447,8 +455,10 @@ def _check_forager_wide_capabilities(decl, inputs, outputs):
         for slot, channel in enumerate(everything):
             channel["neurons"] = [slot]
         decl = template
+    has_song = any(spec.get("drive") == "song" for spec in outputs.values())
+    validator = validate_capabilities_v6 if has_song else validate_capabilities_v5
     try:
-        validate_capabilities_v5(decl, math.inf, subject="config")
+        validator(decl, math.inf, subject="config")
     except ValueError as error:
         _fail(str(error))
 
@@ -457,14 +467,23 @@ def _check_pool_overlap(inputs):
     """E-POOL-OVERLAP (ADR 011, specs/019-mb-valence-learning): two declared input pairs of the same `class`
     whose `types`/`subclasses`/`typePrefixes` sets share an entry. Applies to any config with `pair`-keyed inputs
     (format 5); a config without `pair` has no pairs to compare and always passes. Checked after sideMatch so
-    every pair already resolved to exactly one left/right channel (E-PAIR)."""
+    every pair already resolved to exactly one left/right channel (E-PAIR).
+
+    ADR 012 research R3: a pair of pairs is skipped here when either declares a `receptorTypes` or
+    `excludeReceptorTypes` filter, because their declared sets may share a subclass/type while their resolved
+    neurons do not (e.g. `taste-leg`'s exclude filter and `contact-pheromone`'s include filter on the same
+    `leg bristle` subclass). The real invariant is then checked on the resolved pools
+    (selection_class_seed._check_resolved_pool_overlap)."""
     pool = {}
     pair_class = {}
+    pair_has_receptor_filter = {}
     for spec in inputs.values():
         pair = spec.get("pair")
         if pair is None:
             continue
         pair_class[pair] = spec["class"]
+        pair_has_receptor_filter[pair] = (pair_has_receptor_filter.get(pair, False)
+                                           or "receptorTypes" in spec or "excludeReceptorTypes" in spec)
         bucket = pool.setdefault(pair, set())
         for key in ("types", "subclasses", "typePrefixes"):
             bucket.update(spec.get(key, []))
@@ -473,6 +492,8 @@ def _check_pool_overlap(inputs):
         for second in pair_ids[i + 1:]:
             if pair_class[first] != pair_class[second]:
                 continue
+            if pair_has_receptor_filter[first] or pair_has_receptor_filter[second]:
+                continue
             shared = pool[first] & pool[second]
             if shared:
                 raise ExtractError(
@@ -480,7 +501,7 @@ def _check_pool_overlap(inputs):
                 )
 
 
-WIDE_INPUT_KEYS = INPUT_KEYS | {"pair", "entryNerves", "excludeReceptorTypes", "sideBy"}
+WIDE_INPUT_KEYS = INPUT_KEYS | {"pair", "entryNerves", "excludeReceptorTypes", "receptorTypes", "sideBy"}
 SIDE_BY_VALUES = {"rootSide", "somaSide"}
 WIDE_FIDELITY_KEYS = {"require", "steps", "checks"}
 WIDE_CHECK_KEYS = {"contrast": {"kind", "pair", "minFraction"}, "sign": {"kind", "from", "to"}}
@@ -583,6 +604,10 @@ def validate_forager_wide(config):
             _fail(f"inputs.{name}.entryNerves must be a non-empty list of strings")
         if "excludeReceptorTypes" in spec and not _is_str_list(spec["excludeReceptorTypes"]):
             _fail(f"inputs.{name}.excludeReceptorTypes must be a non-empty list of strings")
+        if "receptorTypes" in spec and not _is_str_list(spec["receptorTypes"]):
+            _fail(f"inputs.{name}.receptorTypes must be a non-empty list of strings")
+        if "receptorTypes" in spec and "excludeReceptorTypes" in spec:
+            _fail(f"inputs.{name} must not declare both receptorTypes and excludeReceptorTypes")
         if "sideBy" in spec and spec["sideBy"] not in SIDE_BY_VALUES:
             _fail(f'inputs.{name}.sideBy must be "rootSide" or "somaSide"')
 
@@ -595,6 +620,7 @@ def validate_forager_wide(config):
     outputs = config["outputs"]
     if not isinstance(outputs, dict) or not outputs:
         _fail("outputs must be a non-empty object")
+    allowed_drives = set(FORAGER_WIDE_DRIVES) | set(FORAGER_WIDE_OPTIONAL_DRIVES)
     for name, spec in outputs.items():
         if not isinstance(spec, dict):
             _fail(f"outputs.{name} must be an object")
@@ -603,10 +629,15 @@ def validate_forager_wide(config):
             _fail(f"unknown key in outputs.{name}: {unknown[0]}")
         if not _is_str_list(spec.get("types")):
             _fail(f"outputs.{name}.types must be a non-empty list of strings")
-        if spec.get("drive") not in FORAGER_WIDE_DRIVES:
-            _fail(f"outputs.{name}.drive must be one of {', '.join(FORAGER_WIDE_DRIVES)}")
+        if spec.get("drive") not in allowed_drives:
+            _fail(f"outputs.{name}.drive must be one of {', '.join(FORAGER_WIDE_DRIVES)} or "
+                  f"{', '.join(FORAGER_WIDE_OPTIONAL_DRIVES)}")
         if "somaSide" in spec and spec["somaSide"] not in ("L", "R"):
             _fail(f'outputs.{name}.somaSide must be "L" or "R"')
+    for optional in FORAGER_WIDE_OPTIONAL_DRIVES:
+        count = sum(1 for spec in outputs.values() if spec.get("drive") == optional)
+        if count > 1:
+            _fail(f'outputs may declare drive "{optional}" at most once')
 
     _check_forager_wide_capabilities(config["capabilities"], inputs, outputs)
     _check_modulators(config["modulators"], inputs)

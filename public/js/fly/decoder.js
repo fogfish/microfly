@@ -70,6 +70,11 @@ export function parseDecoder(file, path, snapshot) {
       throw new Error(`decoder ${path} names unknown pair "${pair}"`);
     }
   }
+  // ADR 012 R12: a `song` pool only makes sense against a snapshot that declares a `song` output
+  // (channel-declaration-v6); rejecting it here rather than silently reading an undefined drive.
+  if ('song' in pools && !snapshot.hasSongOutput) {
+    throw new Error(`decoder ${path}: song pool needs a snapshot song output`);
+  }
   const valence = file.valence ?? {};
   for (const [sense, v] of Object.entries(valence)) {
     if (!VALENCES.includes(v)) throw new Error(`decoder ${path} has an invalid valence for "${sense}"`);
@@ -80,8 +85,12 @@ export function parseDecoder(file, path, snapshot) {
   for (const pair of Object.keys(learning.naive ?? {})) {
     if (!snapshot.senses.includes(pair)) throw new Error(`decoder ${path} names unknown pair "${pair}"`);
   }
+  // ADR 012 R7: valenceSource (which claims.md row motivated a declared pair's valence) is documentation, not
+  // behaviour — accepted and carried through for the panel/provenance, never required or validated against
+  // `valence`'s own keys.
   return {
     pools, valence, learning, provenance: file.provenance ?? {}, homeostasis: file.homeostasis ?? { rest: {} },
+    valenceSource: file.valenceSource ?? {},
   };
 }
 
@@ -238,7 +247,7 @@ export function decodeTick(state, { spikes, inputs }, { pools, valence, learning
   }
 
   const named = {};
-  for (const name of ['alarm', 'feed', 'forward', 'backward']) {
+  for (const name of ['alarm', 'feed', 'forward', 'backward', 'song']) {
     if (!(name in pools)) continue;
     const { r, rest } = restOf(state, pools, fired, name, allQuiet);
     named[name] = { r, rest, drive: Math.max(0, r - rest) };

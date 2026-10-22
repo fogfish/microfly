@@ -150,6 +150,53 @@ block is a placeholder (a copy of the 11K world's own calibrated block) until th
 that names this brain's snapshot (kind `"forager-wide"`) under `v1`, so it must refuse to start on the kind
 mismatch, the same mechanism `world-forager-11k-bad.json` exercises for a version mismatch.
 
+## The social world: `world-forager-social.json`
+
+The same map as `world.json`, with the social brain (`brains/forager-brain-social.brain`, from
+`extract/configs/forager-brain-social.json`, ADR 012) and its decoder (`brains/forager-brain-social.decoder.json`)
+under `flies.brain.version: "v3"`. The social brain adds two declared senses to the MB brain's topology: an
+`odour:conspecific` pair (seeded from the fly-odour ORNs DA1/VA1v/VA1d) and a `contact:pheromone` pair (the
+136 front-leg ppk23/ppk25 GRNs ADR 007 D16 kept out of leg taste), plus a `song` output on pIP10. ADR 012
+"Claims and valence" records each sense's measured sign before any world code reads it (Gate C).
+
+Six flies spawn with alternating `flies.sex` (`female`, `male`, …). `flies.sexes` (research R9) declares what each
+sex emits per `from: "flies"` stimulus: a female fly emits full-strength `odour:conspecific` and
+`contact:pheromone` (a fly is always smellable and touchable to another), a male fly emits `odour:conspecific`
+but not `contact:pheromone` (the dataset's contact-pheromone GRNs are read as a sex-specific contact cue;
+see ADR 012). Because MaleCNS v1.0 is a male-only connectome, **every fly's brain is the same male brain —
+`sex: "female"` only changes a fly's own emission and its sprite, "a male brain wearing a name tag"** (ADR 012,
+Principle VI limitation).
+
+`odour:conspecific` and `contact:pheromone` read `from: "flies"` instead of `edibles`/`dangers`/`blocked`: the
+sampler (`forager-step-wide.js` `samplerFor`) reads the live `env.conspecifics` array (`fly-host.js`
+`refreshConspecifics`, run once per `pump()` before any worker dispatch) instead of a static field. `odour:conspecific`
+falls off with distance inside `radius` tiles (`stimulus.js conspecificAt`, like the food/danger falloff) and is
+bilateral; `contact:pheromone` fires 1 × the other fly's emission when a front-leg site lies inside the other
+fly's `flies.body.bodyRadius` (`stimulus.js contactAt`), and the panel's social line shows which fly, if any,
+(`contactWith`). `flies.body.solid` (default `false`) additionally refuses a body step that would overlap two
+fly centres by less than `2 × bodyRadius`, enforced as world physics (`fly-host.js`), never inside `body-layer.js`.
+
+`flies.body.song` (`{ threshold, tau }`) drives W17: a per-fly integrator
+(`song ← song + (max(0, r − rest) − song) / tau`, `body-layer.js`) reads only the decoder's named `song` pool
+(`decoder.js`) and sets `fly.singing` while `song ≥ threshold`; it changes no heading or speed and is drawing-only
+(one extended wing, on the side of the larger `contact-pheromone` side pool when one exists, else the left,
+`render/renderer.js` / `render/sprites.js`). It is absent unless the world declares `flies.body.song`, so every
+pre-social `v3` world is unaffected.
+
+The side panel's Inputs section shows a social line above the channel rows — the fly's sex tag
+(`"female (male connectome)"` / `"male"`) and which other fly's front-leg contact it currently reads, when the
+world declares either (`panel/sections/inputs.js`, `panel/model.js`). Each social input row's label carries its
+ADR 012 valence (`approach`/`avoid`/`none`), the same labelling the decoder section already gives every sense. A
+fifth World-tab overlay switch, off on load, draws the live `odour:conspecific` field from `conspecificAt` sampled
+at cell centres (`main.js`), shown only when the world declares that sense.
+
+`stimuli["odour:conspecific"].contrast`/`radius` and `flies.body.{bodyRadius, song}` start as placeholders mirrored
+from the food stimuli's own values; `calibration.md` records the run that replaced each with its calibrated value
+(ADR 012 "Calibration"). `experiment.seeds` (6–10) are calibration seeds, `experiment.heldOut` (101–130, no
+overlap) are the held-out seeds for the SC-004 verdict run (`scripts/social-arms.mjs --seeds=held-out`).
+`world-forager-social-tilemap.json` repeats the same social additions on the learning tilemap's structurally
+distinct map, so the experiment runs on two maps.
+
 ## The mushroom-body learning worlds (ADR 011): do not currently load a fly
 
 `world-forager-learning.json` (sketch map) and `world-forager-learning-tilemap.json` (a second, structurally

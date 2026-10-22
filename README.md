@@ -41,6 +41,7 @@ Other worlds on the same server:
 | URL                                                  | Brain                                                                                  |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `/`                                                  | `v3`: demo forager, the wide-I/O brain with a decoded readout and body layer (default) |
+| `/?world=world/world-forager-social.json`            | `v3`: social brain (ADR 012) — every fly also smells and touches the others            |
 | `/?world=world/world-forager-wide.json`              | `v2`: wide-I/O brain (14,500 neurons) read through its six named output neurons        |
 | `/?world=world/world-forager-11k.json`               | `v1`: class-seeded forager brain (11,000 neurons)                                      |
 | `/?world=world/world-forager.json`                   | `v1`: hungry forager brain (~3,400 neurons)                                            |
@@ -358,6 +359,14 @@ A brain is a config file, not code. To grow or tune one:
 When a brain fails a behaviour, the fix is a config change, never hand-wiring around the data. A failure is a finding about the subgraph.
 
 ---
+
+## Social and pheromone senses
+
+The 136 front-leg ppk23/ppk25 neurons that the wide-I/O brain's leg-taste pool always excluded ([ADR 007 D16](adrs/007-wide-io-forager-brain.md)) get their own sense, `contact-pheromone`, and the fly-odour receptor neurons (DA1, VA1v, VA1d) become `odour-conspecific`. [ADR 012](adrs/012-social-pheromone-senses.md) extracts `forager-brain-social` on top of the two-food MB brain, seeding the dataset's own courtship pathway (pC1, mAL, vAB3, pIP10) and declaring a `song` output on pIP10.
+
+The world makes every fly a moving odour source and senses leg-on-body contact between flies (`/?world=world/world-forager-social.json`). Each fly's own `sex` tag changes only what it emits to the others — **the dataset is a male-only connectome, so every fly's brain is identical; sex is a name tag on a male brain, never a different network.**
+
+Valence (does the sense turn the fly toward or away?) is never declared up front (Principle VI: "declared, not assumed"). A linear claim table and a spiking (C2) probe measured each sense's steering sign before any world code could read it, and both came back **`valence: "none"`**: the brain carries a real, measurable, sense-specific response to both senses (far stronger than a size-matched random graph for `contact-pheromone`), but the two measurement methods disagreed with each other on direction for both pairs, and `odour-conspecific` did not come out aversive the way the fly literature on cVA predicts. With `valence: "none"`, both senses still drive the brain, but the declared steering law contributes no turn or speed term for either — the honest outcome of a measurement that did not resolve a sign, not an assumed one. A fly that sings (the decoded `song` pool crosses a declared threshold) draws one extended wing; this is drawing only, it never drives movement.
 
 ## Conclusion
 

@@ -84,6 +84,74 @@ test('decodeTick: a left-dominant side pool yields a positive side value', () =>
   assert.ok(senses['odour-food'].side > 0, `expected positive side, got ${senses['odour-food'].side}`);
 });
 
+// ---- song pool (ADR 012 R12, channel-declaration-v6) ----
+
+const SOCIAL_SNAPSHOT = {
+  sha256: 'social123', neuronCount: 20,
+  senses: ['odour-food-a', 'odour-food-b', 'odour-conspecific', 'contact-pheromone'],
+  hasSongOutput: true,
+};
+
+function socialFile(overrides = {}) {
+  return {
+    format: 'decoder', version: 1,
+    snapshot: { file: 'forager-brain-social.brain', sha256: 'social123' },
+    lif: {},
+    probe: { seeds: [1, 2, 3], heldBack: 4, ticks: 3000, rule: 'D27' },
+    pools: {
+      'drive.odour-food-a': [0], 'drive.odour-conspecific': [1], 'drive.contact-pheromone': [2],
+      alarm: [3], feed: [4], forward: [5], backward: [6], song: [7, 8],
+    },
+    valence: { 'odour-food-a': 'approach', 'odour-conspecific': 'none', 'contact-pheromone': 'none' },
+    valenceSource: { 'odour-conspecific': 'claims.md#odour-conspecific', 'contact-pheromone': 'claims.md#contact-pheromone' },
+    homeostasis: { rest: {} },
+    provenance: {},
+    ...overrides,
+  };
+}
+
+test('the social decoder loads against a snapshot that declares a song output', () => {
+  const decoder = parseDecoder(socialFile(), 'brains/forager-brain-social.decoder.json', SOCIAL_SNAPSHOT);
+  assert.deepEqual(decoder.pools.song, [7, 8]);
+  assert.equal(decoder.valence['odour-conspecific'], 'none');
+  assert.equal(decoder.valence['contact-pheromone'], 'none');
+  assert.deepEqual(decoder.valenceSource, {
+    'odour-conspecific': 'claims.md#odour-conspecific', 'contact-pheromone': 'claims.md#contact-pheromone',
+  });
+});
+
+test('a song pool against a snapshot with no song output is rejected', () => {
+  const noSongSnapshot = { ...SOCIAL_SNAPSHOT, hasSongOutput: false };
+  assert.throws(
+    () => parseDecoder(socialFile(), 'brains/forager-brain-mb.decoder.json', noSongSnapshot),
+    /song pool needs a snapshot song output/,
+  );
+});
+
+test('a song pool against forager-brain-mb.brain (no hasSongOutput at all) is rejected', () => {
+  const mbSnapshot = { sha256: 'social123', neuronCount: 20, senses: SOCIAL_SNAPSHOT.senses };
+  assert.throws(
+    () => parseDecoder(socialFile(), 'brains/forager-brain-mb.decoder.json', mbSnapshot),
+    /song pool needs a snapshot song output/,
+  );
+});
+
+test('decodeTick: named.song.drive follows the pool rate, like the other named pools', () => {
+  const decoder = parseDecoder(socialFile(), 'p', SOCIAL_SNAPSHOT);
+  const channels = [
+    { id: 'odour-food-a-left', side: 'L' }, { id: 'odour-food-a-right', side: 'R' },
+    { id: 'odour-conspecific-left', side: 'L' }, { id: 'odour-conspecific-right', side: 'R' },
+    { id: 'contact-pheromone-left', side: 'L' }, { id: 'contact-pheromone-right', side: 'R' },
+  ];
+  const state = createDecoderState(decoder, channels);
+  const inputs = Float32Array.of(0, 0, 0, 0, 0.9, 0.9); // contact-pheromone present, drives song
+  const quiet = decodeTick(state, { spikes: new Uint32Array([]), inputs }, decoder);
+  assert.equal(quiet.named.song.drive, 0, 'no song-pool neuron fired: drive is 0');
+
+  const firing = decodeTick(state, { spikes: new Uint32Array([7, 8]), inputs }, decoder);
+  assert.ok(firing.named.song.drive > 0, `expected a positive song drive, got ${firing.named.song.drive}`);
+});
+
 // ---- learned valence ℓ (ADR 011, contracts/learning-v1.md, data-model.md "Learned valence") ----
 
 const FOOD_SNAPSHOT = { sha256: 'abc123', neuronCount: 12, senses: ['odour-food-a', 'odour-food-b'] };

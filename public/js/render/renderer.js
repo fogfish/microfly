@@ -7,6 +7,10 @@
 
 import { CELL_PX } from '../world/layout.js';
 
+// W17 (ADR 012 R12): one extended wing, drawn only, while f.singing. Length in tiles, roughly a fly's own
+// body length; the side convention matches stimulus.js's sitePoint ("left" is lateral > 0).
+const WING_LENGTH = 0.4;
+
 export function createRenderer(canvas, sprites) {
   const ctx = canvas.getContext('2d');
   let cssWidth = 0;
@@ -62,6 +66,26 @@ export function createRenderer(canvas, sprites) {
       ctx.rotate((f.body.heading ?? 0) + Math.PI / 2);
       ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, -Math.round(w / 2), -Math.round(h / 2), w, h);
       ctx.restore();
+
+      // W17 (ADR 012 R12): one extended wing while singing, on the side of the larger contact-pheromone side
+      // value if that pool exists, else the left (contracts/world-config-v3-social.md). Drawing only — nothing
+      // reads this back. Computed in world space with stimulus.js's own lateral convention, then projected to
+      // device pixels like the fly's own position, rather than inside the sprite's rotated local frame.
+      if (f.singing) {
+        const left = !(f.contactPheromoneSide < 0);
+        const lateral = left ? WING_LENGTH : -WING_LENGTH;
+        const heading = f.body.heading ?? 0;
+        const tipX = f.body.x + lateral * Math.sin(heading);
+        const tipY = f.body.y - lateral * Math.cos(heading);
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1, Math.round(scale * 0.05));
+        ctx.beginPath();
+        ctx.moveTo(toDeviceX(f.body.x), toDeviceY(f.body.y));
+        ctx.lineTo(toDeviceX(tipX), toDeviceY(tipY));
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 

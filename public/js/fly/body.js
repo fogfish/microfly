@@ -66,9 +66,14 @@ export function pick(x, y, dx, dy, env) {
   return { x, y };
 }
 
+// ADR 012 R10 (flies.body.solid, contracts/world-config-v3-social.md): env.isBodyFree(x, y), when the caller
+// supplies it, refuses a point the same way a blocked cell already does — one shared world-physics check, not
+// a special case inside body-layer.js. Absent (every arm/world with solid false or no social feature) is a
+// no-op, so every existing call site is unaffected.
 export function free(x, y, env) {
   if (x < 0 || y < 0 || x >= env.width || y >= env.height) return false;
-  return env.isWalkable(Math.floor(x), Math.floor(y));
+  if (!env.isWalkable(Math.floor(x), Math.floor(y))) return false;
+  return env.isBodyFree === undefined || env.isBodyFree(x, y);
 }
 
 // Forager motion (ADR 003 W4). The turn sign is fixed by the sign test in tests/forager-body.test.mjs: the fly's left

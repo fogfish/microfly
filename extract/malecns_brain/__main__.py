@@ -81,6 +81,10 @@ def build_header_class_seed(config, brain, created_at):
     capabilities = copy.deepcopy(config["capabilities"])
     for channel in capabilities["channels"]["inputs"] + capabilities["channels"]["outputs"]:
         channel["neurons"] = brain["pools"][channel["id"]]
+    # ADR 012, channel-declaration-v6.md: write declaration 6 only when the config declares a `song` output, so
+    # every config without one still writes v5 bytes (no `declaration` field) exactly as before.
+    if any(spec.get("drive") == "song" for spec in config["outputs"].values()):
+        capabilities["declaration"] = 6
     return {
         "provenance": {
             "datasetRelease": config["datasetRelease"],

@@ -6,6 +6,9 @@ export const LAYERS = [
   { id: 'odour-food', label: 'Food odour' },
   { id: 'odour-danger', label: 'Danger odour' },
   { id: 'odour-heat', label: 'Heat odour' },
+  // ADR 012 R8 (contracts/world-config-v3-social.md): off on load like every other layer, but its switch row
+  // is shown only when the world declares odour:conspecific (panel.js's view.available, main.js).
+  { id: 'odour-conspecific', label: 'Conspecific odour' },
   { id: 'grid', label: 'Grid' },
 ];
 

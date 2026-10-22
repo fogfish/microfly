@@ -16,7 +16,7 @@ import tempfile
 
 import numpy as np
 
-from .capabilities import validate_capabilities, validate_capabilities_v4, validate_capabilities_v5
+from .capabilities import validate_capabilities, validate_capabilities_v4, validate_capabilities_v5, validate_capabilities_v6
 
 MAGIC = b"MFBR"
 FORMAT_VERSION = 3
@@ -277,14 +277,23 @@ def _check_forager(header, neuron_count):
 def _check_forager_wide(header, neuron_count):
     """Kind "forager-wide" header rules (ADR 007 D20, channel-declaration-v5.md): the v5 declaration (six
     forager-wide drives, sense/site per input) in place of v4's; weight rule, synapse cap, roles, signs and
-    modulators are otherwise identical to _check_forager."""
+    modulators are otherwise identical to _check_forager.
+
+    ADR 012 (channel-declaration-v6.md): `header.capabilities.declaration` picks the validator. Absent is v5,
+    unchanged; `6` is v6 (v5 plus an optional `song` drive); any other value is rejected."""
     if header.get("weightRule") not in ("postFraction", "postFractionAbsolute"):
         _reject(f'snapshot weight rule "{header.get("weightRule")}" is not supported')
     cap = header.get("synapseCap")
     if not (isinstance(cap, int) and not isinstance(cap, bool) and 1 <= cap <= 65535):
         _reject("snapshot synapseCap must be an integer from 1 to 65535")
+    declaration = (header.get("capabilities") or {}).get("declaration")
     try:
-        validate_capabilities_v5(header.get("capabilities"), neuron_count)
+        if declaration is None:
+            validate_capabilities_v5(header.get("capabilities"), neuron_count)
+        elif declaration == 6:
+            validate_capabilities_v6(header.get("capabilities"), neuron_count)
+        else:
+            _reject(f"unsupported channel declaration {declaration}")
     except ValueError as error:
         _reject(str(error))
     _check_forager_neurons_and_modulators(header, neuron_count, header["capabilities"]["channels"])

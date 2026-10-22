@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from malecns_brain.admission import admit_all_traced  # noqa: E402
 from malecns_brain.errors import ExtractError  # noqa: E402
 from malecns_brain.selection_class_seed import (  # noqa: E402
-    apply_threshold, partner_seeds, resolve_pools, select_class_seed,
+    apply_threshold, partner_seeds, resolve_pools, seed_bodies, select_class_seed,
 )
 
 FIXTURE = os.path.join(HERE, "fixtures", "forager-wide-synthetic.json")
@@ -321,6 +321,131 @@ class ClassSeededInputPoolTest(unittest.TestCase):
         self.assertEqual(brain["seedCount"], base["seedCount"] + 2)
         self.assertEqual(brain["fillCount"], base["fillCount"])
         self.assertEqual(len(brain["neurons"]), len(base["neurons"]) + 2)
+
+
+def with_type_seeds(data):
+    """ADR 012 research R4: two labelled SYNTHETIC bodies for seeds[].types/typePrefixes, added beside the
+    fixture's existing class seed (701, class SEEDCLS, type SC_A). 740 is matched only by a `types` filter;
+    741 only by a `typePrefixes` filter."""
+    data = copy.deepcopy(data)
+    template = next(a for a in data["annotations"] if a["bodyId"] == 701)
+    for body, type_ in ((740, "SC_TYPED"), (741, "SCPFX_1")):
+        # class "intrinsic", not "SEEDCLS": these two must be matched only by their own types/typePrefixes
+        # filter, not by the fixture's existing {"class": ["SEEDCLS"]} filter.
+        data["annotations"].append({**template, "bodyId": body, "type": type_, "class": "intrinsic"})
+        data["transmitters"].append({"body": body, "consensus_nt": "acetylcholine"})
+    data["config"]["seeds"] = data["config"]["seeds"] + [
+        {"types": ["SC_TYPED"]}, {"typePrefixes": ["SCPFX"]},
+    ]
+    return data
+
+
+class TypeSeedTest(unittest.TestCase):
+    """seeds[].types / seeds[].typePrefixes (ADR 012 research R4), checked through seed_bodies."""
+
+    def test_types_filter_tags_the_matching_body_seed_type(self):
+        data = with_type_seeds(load())
+        seeds = seed_bodies(data["config"], admitted(data))
+        self.assertEqual(seeds[740], "seed:type")
+
+    def test_type_prefixes_filter_tags_the_matching_body_seed_type(self):
+        data = with_type_seeds(load())
+        seeds = seed_bodies(data["config"], admitted(data))
+        self.assertEqual(seeds[741], "seed:type")
+
+    def test_body_already_tagged_by_a_class_seed_keeps_its_class_tag(self):
+        # 701 matches both the fixture's existing {"class": ["SEEDCLS"]} filter and a new types filter on its
+        # own type SC_A; the class filter runs first in seeds[] order, and that tag must win.
+        data = with_type_seeds(load())
+        data["config"]["seeds"] = data["config"]["seeds"] + [{"types": ["SC_A"]}]
+        seeds = seed_bodies(data["config"], admitted(data))
+        self.assertEqual(seeds[701], "seed:SEEDCLS")
+
+    def test_unmatched_types_entry_raises_e_seed_empty_naming_the_type(self):
+        data = with_type_seeds(load())
+        data["config"]["seeds"] = data["config"]["seeds"] + [{"types": ["NO_SUCH_TYPE"]}]
+        with self.assertRaises(ExtractError) as ctx:
+            seed_bodies(data["config"], admitted(data))
+        self.assertEqual(ctx.exception.code, "E-SEED-EMPTY")
+        self.assertIn("NO_SUCH_TYPE", str(ctx.exception))
+
+    def test_unmatched_type_prefixes_filter_raises_e_seed_empty(self):
+        data = with_type_seeds(load())
+        data["config"]["seeds"] = data["config"]["seeds"] + [{"typePrefixes": ["NO_SUCH_PREFIX"]}]
+        with self.assertRaises(ExtractError) as ctx:
+            seed_bodies(data["config"], admitted(data))
+        self.assertEqual(ctx.exception.code, "E-SEED-EMPTY")
+
+
+def with_receptor_pair(data, second_pair=False):
+    """ADR 012 research R1/R3: a `contact-pheromone` input pair sharing taste-leg's subclass/entryNerve but
+    filtered by `receptorTypes` instead of `excludeReceptorTypes`. 402 (L, already in the fixture, receptorType
+    putative_ppk23) and a new body 405 (R, same receptorType) are its only matches: disjoint from taste-leg
+    (401/403, receptorType None), which excludes putative_ppk23. `second_pair` adds a further pair declaring
+    the same filter, so it resolves to the same bodies and triggers the resolved E-POOL-OVERLAP check."""
+    data = copy.deepcopy(data)
+    template = next(a for a in data["annotations"] if a["bodyId"] == 402)
+    data["annotations"].append({**template, "bodyId": 405, "rootSide": "R"})
+    data["transmitters"].append({"body": 405, "consensus_nt": "acetylcholine"})
+    config = data["config"]
+    config["inputs"] = {
+        **config["inputs"],
+        "contact-pheromone-left": {
+            "pair": "contact-pheromone", "class": "gustatory", "subclasses": ["leg bristle"],
+            "entryNerves": ["ProLN"], "receptorTypes": ["putative_ppk23"], "rootSide": "L",
+        },
+        "contact-pheromone-right": {
+            "pair": "contact-pheromone", "class": "gustatory", "subclasses": ["leg bristle"],
+            "entryNerves": ["ProLN"], "receptorTypes": ["putative_ppk23"], "rootSide": "R",
+        },
+    }
+    config["sideMatch"] = {**config["sideMatch"], "contact-pheromone": False}
+    config["capabilities"] = copy.deepcopy(config["capabilities"])
+    config["capabilities"]["channels"]["inputs"] += [
+        {"id": "contact-pheromone-left", "label": "Contact pheromone left", "range": [0, 1],
+         "sense": "contact:pheromone", "side": "L", "site": "front-leg"},
+        {"id": "contact-pheromone-right", "label": "Contact pheromone right", "range": [0, 1],
+         "sense": "contact:pheromone", "side": "R", "site": "front-leg"},
+    ]
+    if second_pair:
+        config["inputs"]["contact-pheromone2-left"] = {
+            **config["inputs"]["contact-pheromone-left"], "pair": "contact-pheromone2",
+        }
+        config["inputs"]["contact-pheromone2-right"] = {
+            **config["inputs"]["contact-pheromone-right"], "pair": "contact-pheromone2",
+        }
+        config["sideMatch"]["contact-pheromone2"] = False
+        config["capabilities"]["channels"]["inputs"] += [
+            {"id": "contact-pheromone2-left", "label": "Contact pheromone 2 left", "range": [0, 1],
+             "sense": "contact:pheromone", "side": "L", "site": "front-leg"},
+            {"id": "contact-pheromone2-right", "label": "Contact pheromone 2 right", "range": [0, 1],
+             "sense": "contact:pheromone", "side": "R", "site": "front-leg"},
+        ]
+    return data
+
+
+class ReceptorTypesFilterTest(unittest.TestCase):
+    """inputs[cid].receptorTypes (ADR 012 research R1/R3), checked through resolve_pools."""
+
+    def test_receptor_types_keeps_only_the_listed_receptor_type(self):
+        data = with_receptor_pair(load())
+        inputs, _ = resolve_pools(data["config"], admitted(data))
+        self.assertEqual(inputs["contact-pheromone-left"], [402])
+        self.assertEqual(inputs["contact-pheromone-right"], [405])
+
+    def test_disjoint_from_taste_leg_on_the_same_subclass(self):
+        data = with_receptor_pair(load())
+        inputs, _ = resolve_pools(data["config"], admitted(data))
+        self.assertEqual(inputs["taste-leg-left"], [401])  # unchanged: still excludes 402
+        self.assertFalse(set(inputs["taste-leg-left"]) & set(inputs["contact-pheromone-left"]))
+
+    def test_two_pairs_resolving_to_the_same_bodies_raise_e_pool_overlap(self):
+        data = with_receptor_pair(load(), second_pair=True)
+        with self.assertRaises(ExtractError) as ctx:
+            resolve_pools(data["config"], admitted(data))
+        self.assertEqual(ctx.exception.code, "E-POOL-OVERLAP")
+        self.assertIn("contact-pheromone", str(ctx.exception))
+        self.assertIn("402", str(ctx.exception))
 
 
 class DeterminismTest(unittest.TestCase):

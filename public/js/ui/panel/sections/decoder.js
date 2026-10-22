@@ -15,7 +15,7 @@ function poolSize(pools, pair) {
   return names.reduce((sum, name) => sum + (pools[name]?.length ?? 0), 0);
 }
 
-function renderRows(container, decoded, pools) {
+function renderRows(container, decoded, pools, singing) {
   container.replaceChildren();
   if (!decoded) return;
   for (const pair of Object.keys(decoded.senses).sort()) {
@@ -26,6 +26,17 @@ function renderRows(container, decoded, pools) {
     row.appendChild(textEl('span',
       ` side ${fmt(sense.side)} · drive ${fmt(sense.drive)} · trend ${fmt(sense.trend)} `
       + `· ${sense.valence} · pool ${poolSize(pools, pair) ?? 'absent'}`));
+    container.appendChild(row);
+  }
+  // W17 (ADR 012 R12): the song named pool, when the decoder declares one (channel-declaration-v6). `singing`
+  // is the body layer's own integrator state (model.js), not derived from this tick's named.song alone.
+  if (decoded.named.song) {
+    const row = document.createElement('p');
+    row.className = 'decoder-row';
+    row.appendChild(textEl('span', 'song'));
+    row.appendChild(textEl('span',
+      ` r ${fmt(decoded.named.song.r)} · rest ${fmt(decoded.named.song.rest)} · drive ${fmt(decoded.named.song.drive)} `
+      + `· pool ${pools?.song?.length ?? 'absent'} · ${singing ? 'singing' : 'quiet'}`));
     container.appendChild(row);
   }
 }
@@ -42,7 +53,7 @@ export const decoderSection = {
     rows.className = 'decoder-rows';
     body.replaceChildren(label, rows);
 
-    const update = (m) => renderRows(rows, m.decoded, m.decoderPools);
+    const update = (m) => renderRows(rows, m.decoded, m.decoderPools, m.singing);
     update(model);
     return { update };
   },

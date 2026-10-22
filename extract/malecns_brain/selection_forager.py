@@ -45,6 +45,10 @@ def _matches_input(body, spec):
     column carries the L/R split against `spec["rootSide"]`. malecns.md: `rootSide` is populated for about 8% of
     bodies (sensory neurons with a clear primary neurite); central neurons such as DAN carry side in `somaSide`
     instead. Absent `sideBy` means "rootSide", so every existing config behaves exactly as before.
+
+    ADR 012 (specs/020-social-pheromone-senses, research R1/R3): `receptorTypes` (a list, the include-filter
+    complement of `excludeReceptorTypes`): a body matches only if its receptorType is in the list. Config
+    validation (config.py) rejects declaring both on one input, so the two never combine here.
     """
     side_field = spec.get("sideBy", "rootSide")
     if body.get("class") != spec["class"] or body.get(side_field) != spec["rootSide"]:
@@ -52,6 +56,8 @@ def _matches_input(body, spec):
     if "entryNerves" in spec and body.get("entryNerve") not in spec["entryNerves"]:
         return False
     if "excludeReceptorTypes" in spec and body.get("receptorType") in spec["excludeReceptorTypes"]:
+        return False
+    if "receptorTypes" in spec and body.get("receptorType") not in spec["receptorTypes"]:
         return False
     if body.get("type") in spec.get("types", []):
         return True

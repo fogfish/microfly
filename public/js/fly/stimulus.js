@@ -138,3 +138,48 @@ export function bilateralContrast(left, right, { common, gain }) {
   const clamp01 = (v) => Math.min(1, Math.max(0, v));
   return { left: clamp01(common * m + gain * d), right: clamp01(common * m - gain * d) };
 }
+
+// ADR 012 (data-model.md "Conspecific odour field"/"Contact", research R8): `from: "flies"` stimuli. Both
+// helpers skip the sensing fly itself and any fly that is dead or not yet spawned (!alive); `emits(sex)` is
+// the resolved emission strength (flies.sexes) for the stimulus the caller is sampling. Pure: no DOM, no
+// world-physics lookup — just the live `flies` table forager-step-wide.js/fly-host.js refresh once a tick.
+
+// odour(at, self) = min(1, Σ_{j≠self,alive} falloff(|at−p_j|, radius) × emits_j) (data-model.md): a moving
+// source behaves like `fruitIntensity`'s static ones, so the same linear `falloff` and the same `contrast`
+// filter afterwards apply unchanged.
+export function conspecificAt(at, flies, selfId, spec, emits) {
+  let sum = 0;
+  for (const fly of flies) {
+    if (fly.id === selfId || !fly.alive) continue;
+    sum += falloff(Math.hypot(fly.x - at.x, fly.y - at.y), spec.radius) * emits(fly.sex);
+  }
+  return Math.min(1, sum);
+}
+
+// contact(at, self) = max_{j≠self,alive} [|at−p_j| ≤ bodyRadius] × emits_j (data-model.md): the maximum, not a
+// sum, so stacking flies does not raise contact above any one of them.
+export function contactAt(at, flies, selfId, bodyRadius, emits) {
+  let value = 0;
+  for (const fly of flies) {
+    if (fly.id === selfId || !fly.alive) continue;
+    if (Math.hypot(fly.x - at.x, fly.y - at.y) <= bodyRadius) value = Math.max(value, emits(fly.sex));
+  }
+  return value;
+}
+
+// The id of the nearest live other fly within bodyRadius of `at`, or null (ADR 012 "Telemetry": contactWith).
+// Unlike contactAt, this does not weigh by emission — a touch still identifies who, even from a sex that
+// emits 0 for the sense itself. Panel/telemetry use only; never read by sensing or the body layer.
+export function contactWithId(at, flies, selfId, bodyRadius) {
+  let best = null;
+  let bestD = Infinity;
+  for (const fly of flies) {
+    if (fly.id === selfId || !fly.alive) continue;
+    const d = Math.hypot(fly.x - at.x, fly.y - at.y);
+    if (d <= bodyRadius && d < bestD) {
+      best = fly.id;
+      bestD = d;
+    }
+  }
+  return best;
+}

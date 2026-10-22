@@ -30,8 +30,9 @@ microfly runs spiking brains cut from the male *Drosophila* connectome (MaleCNS 
 ```bash
 # Run the app (web root is public/)
 cd public && python3 -m http.server 8000
-#   http://localhost:8000/?world=world/world-forager.json   forager brain (v1)
-#   http://localhost:8000/brains/                           brain inspector
+#   http://localhost:8000/?world=world/world-forager.json          forager brain (v1)
+#   http://localhost:8000/?world=world/world-forager-social.json   social brain, two senses + song (v3, ADR 012)
+#   http://localhost:8000/brains/                                  brain inspector
 
 # JS tests (Node 20+, built-in test runner, no install)
 npm test                                  # tests/*.test.mjs
@@ -45,9 +46,14 @@ cd extract && python -m venv .venv && .venv/bin/pip install -r requirements.txt
 # Extract a brain (needs the dataset)
 cd extract && MALECNS_DIR=../data/malecns .venv/bin/python -m malecns_brain extract \
   --config configs/forager-brain.json --out ../public/brains/forager-brain.brain
+#   configs/forager-brain-social.json -> brains/forager-brain-social.brain adds odour-conspecific and
+#   contact-pheromone (ADR 012) on top of the two-food MB brain
 
 # Behaviour experiment on held-out seeds
 node scripts/compare-baseline.mjs --world=world/world-forager.json --seeds=held-out
+# Social experiment (lockstep, four arms) on held-out seeds
+node scripts/social-arms.mjs --world=world/world-forager-social.json --seeds=held-out \
+  --arms=social,ablated,random-graph,random-walk --out=results.json
 ```
 
 There is no `npm install`, no bundler and no build step. Do not add one.
@@ -74,7 +80,7 @@ These come from the constitution. Breaking one needs an amendment, not a workaro
 
 ## Contracts
 
-Snapshot format, worker protocol, world config, channel declaration and LIF parameters are documented contracts under `specs/*/contracts/`. The latest are in `specs/008-hungry-forager-brain/contracts/`. A change to any of them must:
+Snapshot format, worker protocol, world config, channel declaration and LIF parameters are documented contracts under `specs/*/contracts/`. The latest are in `specs/020-social-pheromone-senses/contracts/` (extract config additions, channel declaration v6, world config v3 social additions, decoder v1 social, the social experiment runner). A change to any of them must:
 
 - update the contract document in the same change;
 - bump its version when the change is incompatible, and keep the old reader;

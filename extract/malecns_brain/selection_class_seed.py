@@ -88,6 +88,9 @@ def resolve_pools(config, bodies):
                 _fail("E-SIDE-IMBALANCE", f"{group} pools differ in size after side matching: "
                                           f"{len(inputs[left])} and {len(inputs[right])}")
 
+    if uses_pair:
+        _check_resolved_pool_overlap(config, inputs)
+
     outputs = {}
     for cid in _output_order(config):
         spec = config["outputs"][cid]
@@ -99,6 +102,24 @@ def resolve_pools(config, bodies):
         if not outputs[cid]:
             _fail("E-POOL-EMPTY", f"output pool {cid} matches no admitted body")
     return inputs, outputs
+
+
+def _check_resolved_pool_overlap(config, inputs):
+    """ADR 012 research R3: the real invariant, checked on the resolved pools rather than the declared sets.
+    config.py's `_check_pool_overlap` skips a pair of pairs when either declares a `receptorTypes`/
+    `excludeReceptorTypes` filter, because their declared sets may share a subclass/type while their resolved
+    neurons do not. After every pair's pool is resolved here, no `bodyId` may belong to two pairs' pools.
+    Raises E-POOL-OVERLAP naming both pairs and the smallest shared bodyId."""
+    bodies_by_pair = {}
+    for cid, members in inputs.items():
+        pair = config["inputs"][cid].get("pair", cid)
+        bodies_by_pair.setdefault(pair, set()).update(members)
+    pairs = sorted(bodies_by_pair)
+    for i, first in enumerate(pairs):
+        for second in pairs[i + 1:]:
+            shared = bodies_by_pair[first] & bodies_by_pair[second]
+            if shared:
+                _fail("E-POOL-OVERLAP", f"pairs {first} and {second} share bodyId {min(shared)}")
 
 
 def apply_threshold(edges, min_synapses):
@@ -113,23 +134,44 @@ def apply_threshold(edges, min_synapses):
 
 def seed_bodies(config, bodies):
     """D8: every traced body matching a class/superclass filter in config['seeds']. No budget, no sampling.
+    ADR 012 R4 adds `types` and `typePrefixes` filters, plain identity selection like the class/superclass ones.
 
-    Returns {bodyId: "seed:<the matched class or superclass value>"}. Raises E-SEED-EMPTY when a filter entry
-    (the whole class/superclass list of one seeds[] item) matches no traced body.
+    Returns {bodyId: origin}: "seed:<the matched class or superclass value>" for a class/superclass filter,
+    "seed:type" for a types/typePrefixes filter. A body a class/superclass filter already tagged keeps that
+    tag, whichever filter runs next (ADR 012 research R4). Raises E-SEED-EMPTY when a class/superclass/
+    typePrefixes filter matches no traced body, and once per `types` entry that matches no traced body, naming
+    the type (so a misspelt name cannot pass silently).
     """
     seeds = {}
     for filt in config["seeds"]:
         if "partnersOf" in filt:
             continue  # resolved on the thresholded edges by partner_seeds (ADR 009 D24)
-        if "class" in filt:
-            key, values = "class", filt["class"]
-        else:
-            key, values = "superclass", filt["superclass"]
-        wanted = set(values)
-        matched = {b: f"seed:{body[key]}" for b, body in bodies.items() if body.get(key) in wanted}
-        if not matched:
-            _fail("E-SEED-EMPTY", f"seed filter {key}={values} matches no traced body")
-        seeds.update(matched)
+        if "class" in filt or "superclass" in filt:
+            key = "class" if "class" in filt else "superclass"
+            values = filt[key]
+            wanted = set(values)
+            matched = {b: f"seed:{body[key]}" for b, body in bodies.items() if body.get(key) in wanted}
+            if not matched:
+                _fail("E-SEED-EMPTY", f"seed filter {key}={values} matches no traced body")
+            for b, tag in matched.items():
+                seeds.setdefault(b, tag)
+        elif "types" in filt:
+            for type_name in filt["types"]:
+                matched = {b: "seed:type" for b, body in bodies.items() if body.get("type") == type_name}
+                if not matched:
+                    _fail("E-SEED-EMPTY", f'seed filter types "{type_name}" matches no traced body')
+                for b, tag in matched.items():
+                    seeds.setdefault(b, tag)
+        else:  # typePrefixes
+            prefixes = filt["typePrefixes"]
+            matched = {
+                b: "seed:type" for b, body in bodies.items()
+                if any((body.get("type") or "").startswith(prefix) for prefix in prefixes)
+            }
+            if not matched:
+                _fail("E-SEED-EMPTY", f"seed filter typePrefixes={prefixes} matches no traced body")
+            for b, tag in matched.items():
+                seeds.setdefault(b, tag)
     return seeds
 
 

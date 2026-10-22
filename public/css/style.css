@@ -28,6 +28,12 @@
   --odour-heat-mid: 59, 130, 246;
   --odour-heat-high: 30, 58, 138;
   --odour-heat-alpha: 0.55;
+  /* ADR 012 R8: the conspecific-odour overlay (a fifth, independent ramp, shown only when the world declares
+     odour:conspecific). */
+  --odour-social-low: 251, 207, 232;
+  --odour-social-mid: 236, 72, 153;
+  --odour-social-high: 131, 24, 67;
+  --odour-social-alpha: 0.55;
   --grid-line-color: rgba(27, 29, 42, 0.18);
 }
 
@@ -57,6 +63,10 @@
     --odour-heat-mid: 96, 165, 250;
     --odour-heat-high: 37, 99, 235;
     --odour-heat-alpha: 0.55;
+    --odour-social-low: 251, 207, 232;
+    --odour-social-mid: 244, 114, 182;
+    --odour-social-high: 190, 24, 93;
+    --odour-social-alpha: 0.55;
     --grid-line-color: rgba(232, 230, 217, 0.18);
   }
 }
@@ -86,6 +96,10 @@
   --odour-heat-mid: 96, 165, 250;
   --odour-heat-high: 37, 99, 235;
   --odour-heat-alpha: 0.55;
+  --odour-social-low: 251, 207, 232;
+  --odour-social-mid: 244, 114, 182;
+  --odour-social-high: 190, 24, 93;
+  --odour-social-alpha: 0.55;
   --grid-line-color: rgba(232, 230, 217, 0.18);
 }
 
@@ -479,6 +493,10 @@ body {
   background: rgb(var(--odour-heat-high));
 }
 
+#fly-panel .layer-row[data-layer="odour-conspecific"] button.arcade-switch[aria-checked="true"] {
+  background: rgb(var(--odour-social-high));
+}
+
 #fly-panel .layer-row[data-layer="grid"] button.arcade-switch[aria-checked="true"] {
   background: var(--fg);
   color: var(--bg);
@@ -534,6 +552,15 @@ body {
     rgba(var(--odour-heat-low), 0),
     rgba(var(--odour-heat-mid), calc(var(--odour-heat-alpha) * 0.5 + 0.25)),
     rgba(var(--odour-heat-high), 1)
+  );
+}
+
+.odour-legend[data-legend="odour-conspecific"] .legend-ramp {
+  background: linear-gradient(
+    to right,
+    rgba(var(--odour-social-low), 0),
+    rgba(var(--odour-social-mid), calc(var(--odour-social-alpha) * 0.5 + 0.25)),
+    rgba(var(--odour-social-high), 1)
   );
 }
 

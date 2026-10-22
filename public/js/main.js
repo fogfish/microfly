@@ -25,6 +25,8 @@ import { initialLayers, toggleLayer } from './world/layers.js';
 import { dangerField } from './world/danger-field.js';
 import { heatField } from './world/heat-field.js';
 import { createLiveFoodField, foodField } from './world/food-field.js';
+import { conspecificAt } from './fly/stimulus.js';
+import { emitsOf } from './fly/fly-config.js';
 import { parseRamp, paintField, paintGrid } from './render/heatmap.js';
 import { renderPanel, updatePanelValues } from './ui/panel/panel.js';
 import { SECTIONS } from './ui/panel/sections/index.js';
@@ -149,10 +151,16 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
   // layer needs no field, only config.grid. The overlay always shows exactly what a fly at that point would
   // sense — same field-building functions as fly/fly-world.js uses for sensing (data-model.md "Relationships").
   let layers = initialLayers();
+  // ADR 012 R8 (contracts/world-config-v3-social.md): the fifth overlay switch is shown only when the world
+  // declares odour:conspecific. layerAvailable feeds panel.js's view.available.
+  const conspecificSpec = config.flies?.stimuli?.['odour:conspecific'];
+  const hasConspecific = conspecificSpec !== undefined;
+  const layerAvailable = { 'odour-conspecific': hasConspecific };
   const legends = {
     'odour-food': (config.edibles ?? []).length > 0 ? { max: 1 } : null,
     'odour-danger': logic.forestEdge.some(Boolean) ? { max: 1 } : null,
     'odour-heat': logic.water.some(Boolean) ? { max: 1 } : null,
+    'odour-conspecific': hasConspecific ? { max: 1 } : null,
   };
 
   // Expands a {cols, rows, values} per-cell field to a {width, height, values} per-pixel field for paintField:
@@ -183,13 +191,33 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
   const foodOverlayField = () => (liveFood
     ? liveFood.field.fieldFor(liveFood.flowers)
     : foodField({ units: foodUnits, cols: logic.cols, rows: logic.rows }));
+  // ADR 012 R8: the conspecific-odour overlay, the same conspecificAt() the sense itself uses, sampled at
+  // cell centres with no selfId (the viewer is not a fly), from the live flies array main.js already owns —
+  // no self-exclusion, repainted on the same throttle as the food overlay (refreshFoodOverlay below).
+  const sexesConfig = { default: 'female', ...config.flies?.sexes };
+  const conspecificOverlayField = () => {
+    const cols = logic.cols;
+    const rows = logic.rows;
+    const values = new Float32Array(cols * rows);
+    const emits = (sex) => emitsOf(sexesConfig, sex, 'odour:conspecific');
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        values[cy * cols + cx] = conspecificAt({ x: cx + 0.5, y: cy + 0.5 }, flies, null, conspecificSpec, emits);
+      }
+    }
+    return { cols, rows, values };
+  };
   const overlayCanvas = {};
   const ensureOverlay = {
     'odour-food': () => expandCellField(foodOverlayField()),
     'odour-danger': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: dangerField({ forestEdge: logic.forestEdge, cols: logic.cols, rows: logic.rows }).intensity }),
     'odour-heat': () => expandCellField({ cols: logic.cols, rows: logic.rows, values: heatField({ water: logic.water, cols: logic.cols, rows: logic.rows, quiet: logic.heatQuiet }).intensity }),
+    'odour-conspecific': () => expandCellField(conspecificOverlayField()),
   };
-  const RAMP_PREFIX = { 'odour-food': '--odour-food', 'odour-danger': '--odour-danger', 'odour-heat': '--odour-heat' };
+  const RAMP_PREFIX = {
+    'odour-food': '--odour-food', 'odour-danger': '--odour-danger', 'odour-heat': '--odour-heat',
+    'odour-conspecific': '--odour-social',
+  };
   const paintOdour = (id, field) => paintField(field, parseRamp(getComputedStyle(document.documentElement), RAMP_PREFIX[id]));
   const odourFieldCache = {};
   const ensureLayer = (id) => {
@@ -225,8 +253,25 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
       return false;
     }
   };
+  // ADR 012 R8: the conspecific overlay follows the live flies array every tick (not a flower version check:
+  // there is nothing to compare against — every fly always moves), on the same throttle as the food overlay.
+  let conspecificPaintedAt = -Infinity;
+  const refreshConspecificOverlay = (now) => {
+    if (!hasConspecific || !layers['odour-conspecific'] || !overlayCanvas['odour-conspecific']) return false;
+    if (now - conspecificPaintedAt < FOOD_REPAINT_MS) return false;
+    conspecificPaintedAt = now;
+    try {
+      odourFieldCache['odour-conspecific'] = expandCellField(conspecificOverlayField());
+      overlayCanvas['odour-conspecific'] = paintOdour('odour-conspecific', odourFieldCache['odour-conspecific']);
+      return true;
+    } catch (e) {
+      console.error(`odour-conspecific layer: ${e.message}`);
+      return false;
+    }
+  };
   setInterval(() => {
-    if (refreshFoodOverlay(performance.now())) requestDraw();
+    const painted = refreshFoodOverlay(performance.now()) || refreshConspecificOverlay(performance.now());
+    if (painted) requestDraw();
   }, FOOD_REPAINT_MS);
 
   let frame = 0;
@@ -235,7 +280,8 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
     frame = requestAnimationFrame(() => {
       frame = 0;
       refreshFoodOverlay(performance.now());
-      const overlays = ['odour-food', 'odour-danger', 'odour-heat', 'grid']
+      refreshConspecificOverlay(performance.now());
+      const overlays = ['odour-food', 'odour-danger', 'odour-heat', 'odour-conspecific', 'grid']
         .filter((id) => layers[id] && overlayCanvas[id])
         .map((id) => overlayCanvas[id]);
       renderer.render({ camera, scene, flies, overlays });
@@ -267,7 +313,7 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
     if (panelFrame) return;
     panelFrame = requestAnimationFrame(() => {
       panelFrame = 0;
-      renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab, { layers, onLayer: toggle, legends });
+      renderPanel(panel, records, selectedId, selectFly, SECTIONS, tab, switchTab, { layers, onLayer: toggle, legends, available: layerAvailable });
     });
   };
   // Flies report every tick, but the panel does not follow each tick. Ticks only mark it stale, and a
@@ -347,7 +393,7 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
   // The heatmap/grid colours come from CSS tokens, so a theme change repaints every already-built canvas.
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     const style = getComputedStyle(document.documentElement);
-    for (const id of ['odour-food', 'odour-danger', 'odour-heat']) {
+    for (const id of ['odour-food', 'odour-danger', 'odour-heat', 'odour-conspecific']) {
       if (!odourFieldCache[id]) continue;
       try {
         overlayCanvas[id] = paintOdour(id, odourFieldCache[id]);

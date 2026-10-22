@@ -10,12 +10,12 @@ import { createActivity } from '../brain/activity.js';
 import { neuronPositions, somaPositions } from '../brain/layout.js';
 import { stepBody } from './body.js';
 import { createBaselineMotor } from './baseline.js';
-import { senseAt } from './stimulus.js';
+import { contactWithId, senseAt, sitePoint } from './stimulus.js';
 import { resolveFlies } from './fly-config.js';
 import { stimulusPoints } from './fly-world.js';
 import { createFood } from './food.js';
 import { applyForagerMotor, forageEnv, initForagerFly, senseForagerFly } from './forager-step.js';
-import { forageEnvWide, senseForagerFlyWide, updateEventPulses } from './forager-step-wide.js';
+import { forageEnvWide, isBodyFree, refreshConspecifics, senseForagerFlyWide, updateEventPulses } from './forager-step-wide.js';
 import { createDecoderState, decodeTick, loadDecoder, pairOf } from './decoder.js';
 import { loadLearning } from '../brain/learning.js';
 import { initBodyLayerFly, stepBodyLayer } from './body-layer.js';
@@ -87,7 +87,11 @@ export async function loadSnapshot(brain, root) {
 // fly, before any fly starts. snapshot: loadSnapshot's return (sha256, neuronCount, capabilities).
 export async function loadDecoderFile(brain, root, snapshot) {
   const senses = [...new Set(snapshot.capabilities.channels.inputs.map((ch) => pairOf(ch.id)))];
-  return loadDecoder(brain.decoder, root, { sha256: snapshot.sha256, neuronCount: snapshot.neuronCount, senses });
+  // ADR 012 R12: a decoder's `song` pool needs the snapshot to actually declare a `song` output.
+  const hasSongOutput = snapshot.capabilities.channels.outputs.some((ch) => ch.drive === 'song');
+  return loadDecoder(brain.decoder, root, {
+    sha256: snapshot.sha256, neuronCount: snapshot.neuronCount, senses, hasSongOutput,
+  });
 }
 
 // Fetches and parses the learning-v1 sidecar named by flies.brain.learning (contracts/worker-protocol-v3-
@@ -223,13 +227,30 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
   // For a "v3" fly, the decoder (D27–D29) and body layer (W12–W14) replace applyForagerMotor (research.md §2):
   // this is the one call site where decoded signals, not a hand-wired formula, drive the body.
   function applyForagerTick(r, msg) {
+    // ADR 012 R10 (flies.body.solid): a per-fly env wrapping the shared forageEnvironment with this fly's own
+    // isBodyFree hook (body.js free()). Off (solid false/absent) is a no-op: the plain forageEnvironment, same
+    // object every tick.
+    const envForBody = f.body?.solid
+      ? { ...forageEnvironment, isBodyFree: isBodyFree(forageEnvironment.conspecifics, r.state.id, f.body.bodyRadius) }
+      : forageEnvironment;
     if (r.demo) {
       const decoded = decodeTick(r.decoderState, { spikes: msg.spikes, inputs: msg.inputs }, decoder);
-      const { eating, ateScent, escapeStarted } = stepBodyLayer(r.state, decoded, { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor }, forageEnvironment);
+      // ADR 012 R12/W17 (renderer.js): the wing's side, read by the renderer only — never by locomotion.
+      r.state.contactPheromoneSide = decoded.senses['contact-pheromone']?.side;
+      // ADR 012 (contracts/world-config-v3-social.md "Telemetry"): which other fly's body this fly's own
+      // front-leg sites currently touch, for the panel — not read by sensing (contactAt already gives the
+      // sensed, emission-weighted value) or by the body layer.
+      const legSite = f.body.sites?.['front-leg'];
+      if (legSite && f.body.bodyRadius && forageEnvironment.conspecifics) {
+        const conspecifics = forageEnvironment.conspecifics;
+        r.state.contactWith = contactWithId(sitePoint(r.state.body, legSite, 'L'), conspecifics, r.state.id, f.body.bodyRadius)
+          ?? contactWithId(sitePoint(r.state.body, legSite, 'R'), conspecifics, r.state.id, f.body.bodyRadius);
+      }
+      const { eating, ateScent, escapeStarted } = stepBodyLayer(r.state, decoded, { locomotion: f.body.locomotion, escape: f.body.escape, backup: f.body.backup, motor: f.body.motor, song: f.body.song }, envForBody);
       // ADR 011 (contracts/world-config-v3-learning.md "events"): this tick's own outcome drives next tick's
       // reinforcement:reward/punish pulses (the sense for tick t+1 is built before tick t+1's body layer runs,
       // so an event can only be read one tick after it happens).
-      updateEventPulses(r.state, forageEnvironment, { eating, ateScent, escapeStarted, inputs: msg.inputs });
+      updateEventPulses(r.state, envForBody, { eating, ateScent, escapeStarted, inputs: msg.inputs });
       // contracts/worker-protocol-v3-learning.md: present only when plasticity is on; r.learning mirrors that
       // (undefined/absent reads as "learning off" on the panel, never a stale value from a previous tick).
       r.learning = msg.learning ?? null;
@@ -249,7 +270,7 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
       onUpdate();
       return;
     }
-    const entry = applyForagerMotor(r.state, msg, forageEnvironment);
+    const entry = applyForagerMotor(r.state, msg, envForBody);
     r.activity?.recordTick(msg.spikes, performance.now());
     r.history.push({ ...entry, sensory: entry.inputs[0] });
     if (r.history.length > HISTORY) r.history.shift();
@@ -357,6 +378,9 @@ export function startFlies({ config, world, flies, onUpdate, snapshot = null, de
   // One pass per animation frame. A fly is due when its tick is below floor(elapsed × tickHz).
   // A slow fly falls behind on its own and never stalls the others.
   function pump() {
+    // ADR 012 R8: refreshed once a tick, before any fly senses, so every "flies"-sourced sampler and the
+    // solid-body hook both read this tick's live positions.
+    if (isWide && forageEnvironment) refreshConspecifics(forageEnvironment, records.map((r) => r.state));
     const due = Math.floor((elapsed() / 1000) * f.tickHz);
     let live = false;
     for (const r of records) {

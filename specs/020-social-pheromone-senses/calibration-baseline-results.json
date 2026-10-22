@@ -1,0 +1,1746 @@
+{
+  "world": "world/world-forager-social.json",
+  "seeds": [
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "ticks": 3000,
+  "arms": {
+    "social": {
+      "forager": {
+        "find": {
+          "rate": 0.9333333333333333,
+          "found": 28,
+          "count": 30,
+          "ci95": [
+            0.8333333333333334,
+            1
+          ]
+        },
+        "feeding": {
+          "rate": 0.45614035087719296,
+          "arrivals": 114,
+          "fed": 52
+        },
+        "approach": {
+          "fruit": {
+            "median": 678,
+            "included": 22,
+            "excluded": 4
+          },
+          "floral": {
+            "median": 785,
+            "included": 23,
+            "excluded": 4
+          }
+        },
+        "escape": {
+          "encounters": 48,
+          "resolved": 10,
+          "rate": 0.20833333333333334
+        }
+      },
+      "social": {
+        "perFly": [
+          {
+            "sex": "female",
+            "nnMedian": 8.80292107093787,
+            "timeNear": 0.05333333333333334,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.11661705923633787,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.658517904172589,
+            "timeNear": 0.08466666666666667,
+            "contactRate": 0.8,
+            "contactDuration": 15.5,
+            "followingIndex": 0.23773740652933342,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 10.052519252189512,
+            "timeNear": 0.004333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.4669360392129767,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.174609894570604,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 7.309551940705219,
+            "timeNear": 0.035,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 14.984092286218253,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 7.043101213484485,
+            "timeNear": 0.09266666666666666,
+            "contactRate": 0.4,
+            "contactDuration": 10,
+            "followingIndex": -0.17378473411217782,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 11.386066357154753,
+            "timeNear": 0.04033333333333333,
+            "contactRate": 0.4,
+            "contactDuration": 2,
+            "followingIndex": -0.4803004866623027,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 14.969908672786197,
+            "timeNear": 0.041666666666666664,
+            "contactRate": 0.8,
+            "contactDuration": 3.5,
+            "followingIndex": -0.18059767481966024,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.947947032562601,
+            "timeNear": 0.09633333333333334,
+            "contactRate": 1.2,
+            "contactDuration": 11.333333333333334,
+            "followingIndex": -0.00466008133145728,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.8891348750211,
+            "timeNear": 0.07966666666666666,
+            "contactRate": 0.4,
+            "contactDuration": 10,
+            "followingIndex": -0.3784185735161986,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 13.462694637484343,
+            "timeNear": 0.004,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.5807403498499265,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 10.996057505038408,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.189412434361518,
+            "timeNear": 0.018666666666666668,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.10237382911041913,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 8.77416822152868,
+            "timeNear": 0.013,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.1662461712686818,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 8.406630169935063,
+            "timeNear": 0.03333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.3341814566568658,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 15.558137635744675,
+            "timeNear": 0.013,
+            "contactRate": 0.4,
+            "contactDuration": 4,
+            "followingIndex": -0.23706263096917032,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.72931822389905,
+            "timeNear": 0.015,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.3500591638721916,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 4.562312795085318,
+            "timeNear": 0.135,
+            "contactRate": 0.4,
+            "contactDuration": 7,
+            "followingIndex": 0.285106515671654,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 8.977970166486026,
+            "timeNear": 0.030333333333333334,
+            "contactRate": 0.4,
+            "contactDuration": 12,
+            "followingIndex": 0.22764706339865992,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 30.398694185592362,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.016927599878095,
+            "timeNear": 0.064,
+            "contactRate": 0.4,
+            "contactDuration": 17,
+            "followingIndex": 0.11459263839895323,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 6.120166958041201,
+            "timeNear": 0.019,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.7451724783794917,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.5275160805509795,
+            "timeNear": 0.07,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.024578611805722652,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 10.997075100659123,
+            "timeNear": 0.045,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.4010352365785157,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 14.054039054491547,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.258449500159289,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 15.7907592318466,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.110205969895393,
+            "timeNear": 0.032,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.020455584752581347,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 12.044159930970348,
+            "timeNear": 0.011333333333333334,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.007755121862219783,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          }
+        ],
+        "bySex": {
+          "female": {
+            "nnMedian": 10.036306493677143,
+            "timeNear": 0.035292374137274,
+            "contactRate": 0.13333333333333333,
+            "contactDuration": 10.4,
+            "followingIndex": 0.01429709619526567,
+            "songPerContact": 0
+          },
+          "male": {
+            "nnMedian": 10.08479857655667,
+            "timeNear": 0.03339101155123229,
+            "contactRate": 0.05333333333333334,
+            "contactDuration": 7.5,
+            "followingIndex": -0.024671990917941054,
+            "songPerContact": 0
+          }
+        },
+        "verdict": {
+          "timeNear": {
+            "mean": 0.03438888888888889,
+            "ci95": [
+              0.022422222222222225,
+              0.04726666666666667
+            ]
+          },
+          "contactRate": {
+            "mean": 0.18666666666666673,
+            "ci95": [
+              0.09333333333333332,
+              0.30666666666666675
+            ]
+          }
+        }
+      }
+    },
+    "ablated": {
+      "forager": {
+        "find": {
+          "rate": 0.9666666666666667,
+          "found": 29,
+          "count": 30,
+          "ci95": [
+            0.9,
+            1
+          ]
+        },
+        "feeding": {
+          "rate": 0.4576271186440678,
+          "arrivals": 118,
+          "fed": 54
+        },
+        "approach": {
+          "fruit": {
+            "median": 598,
+            "included": 21,
+            "excluded": 5
+          },
+          "floral": {
+            "median": 791,
+            "included": 21,
+            "excluded": 6
+          }
+        },
+        "escape": {
+          "encounters": 51,
+          "resolved": 6,
+          "rate": 0.11764705882352941
+        }
+      },
+      "social": {
+        "perFly": [
+          {
+            "sex": "female",
+            "nnMedian": 5.296204181951124,
+            "timeNear": 0.030666666666666665,
+            "contactRate": 0.4,
+            "contactDuration": 7,
+            "followingIndex": -0.2883202655256678,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 5.011782071584216,
+            "timeNear": 0.13233333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.11730198914594404,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.734970972708082,
+            "timeNear": 0.024666666666666667,
+            "contactRate": 0.4,
+            "contactDuration": 16,
+            "followingIndex": -0.18160778644315512,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.902529147632302,
+            "timeNear": 0.03166666666666667,
+            "contactRate": 0.8,
+            "contactDuration": 7,
+            "followingIndex": -0.3759757362543494,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 5.670089789064814,
+            "timeNear": 0.133,
+            "contactRate": 1.6,
+            "contactDuration": 12,
+            "followingIndex": 0.05646745222066557,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 20.660988554227536,
+            "timeNear": 0.021666666666666667,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7496428387828773,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 8.595877295131462,
+            "timeNear": 0.04533333333333334,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.15395546131172122,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.262410745808948,
+            "timeNear": 0.045,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.047513687884497724,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.730156900004967,
+            "timeNear": 0.043333333333333335,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.23228512735242585,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.84629886969478,
+            "timeNear": 0.045,
+            "contactRate": 0.8,
+            "contactDuration": 12.5,
+            "followingIndex": -0.024570940045856252,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 8.846891223790973,
+            "timeNear": 0.0033333333333333335,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.6751161422646492,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 19.055925110108113,
+            "timeNear": 0.004,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7833134831359221,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.25938030105931,
+            "timeNear": 0.035666666666666666,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.10245718079021177,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.768588160539643,
+            "timeNear": 0.044,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.49136641660200014,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 7.990839257275711,
+            "timeNear": 0.049666666666666665,
+            "contactRate": 0.4,
+            "contactDuration": 3,
+            "followingIndex": -0.13092629942864797,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.224878694613446,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 5.329402884857469,
+            "timeNear": 0.06133333333333333,
+            "contactRate": 0.4,
+            "contactDuration": 7,
+            "followingIndex": -0.03343883253971804,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.562681496326103,
+            "timeNear": 0.043666666666666666,
+            "contactRate": 0.8,
+            "contactDuration": 9.5,
+            "followingIndex": -0.5198196901792442,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 4.712285676379896,
+            "timeNear": 0.07366666666666667,
+            "contactRate": 0.4,
+            "contactDuration": 12,
+            "followingIndex": 0.13877468307178242,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 19.107127987961633,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 30.769615275612303,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.1154377805454665,
+            "timeNear": 0.018,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.4771681190465048,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 5.957737633466991,
+            "timeNear": 0.105,
+            "contactRate": 0.8,
+            "contactDuration": 13,
+            "followingIndex": 0.027479193722531225,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 5.3037335056109,
+            "timeNear": 0.051333333333333335,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.3463564003286059,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.496074153466688,
+            "timeNear": 0.13666666666666666,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.0709847404022414,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 12.74636246191719,
+            "timeNear": 0.019333333333333334,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.24511540210768465,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.498710353291521,
+            "timeNear": 0.151,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.5555554127580015,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.998401793635342,
+            "timeNear": 0.033,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.3634536781808616,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 13.682263088275501,
+            "timeNear": 0.013333333333333334,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.18638227849880848,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 13.692993517340042,
+            "timeNear": 0.052,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.4430724570167756,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          }
+        ],
+        "bySex": {
+          "female": {
+            "nnMedian": 8.189464916527335,
+            "timeNear": 0.06005586592178771,
+            "contactRate": 0.13333333333333333,
+            "contactDuration": 10.2,
+            "followingIndex": 0.028442294484806206,
+            "songPerContact": 0
+          },
+          "male": {
+            "nnMedian": 8.743650197340193,
+            "timeNear": 0.03639846743295019,
+            "contactRate": 0.16,
+            "contactDuration": 10.833333333333334,
+            "followingIndex": -0.2176819347671283,
+            "songPerContact": 0
+          }
+        },
+        "verdict": {
+          "timeNear": {
+            "mean": 0.048255555555555565,
+            "ci95": [
+              0.03378888888888889,
+              0.06255555555555556
+            ]
+          },
+          "contactRate": {
+            "mean": 0.2933333333333334,
+            "ci95": [
+              0.17333333333333334,
+              0.45333333333333337
+            ]
+          }
+        }
+      }
+    },
+    "random-graph": {
+      "forager": {
+        "find": {
+          "rate": 0.9,
+          "found": 27,
+          "count": 30,
+          "ci95": [
+            0.8,
+            1
+          ]
+        },
+        "feeding": {
+          "rate": 0.6904761904761905,
+          "arrivals": 84,
+          "fed": 58
+        },
+        "approach": {
+          "fruit": {
+            "median": 922,
+            "included": 18,
+            "excluded": 8
+          },
+          "floral": {
+            "median": 668,
+            "included": 22,
+            "excluded": 5
+          }
+        },
+        "escape": {
+          "encounters": 106,
+          "resolved": 9,
+          "rate": 0.08490566037735849
+        }
+      },
+      "social": {
+        "perFly": [
+          {
+            "sex": "female",
+            "nnMedian": 9.482873546692314,
+            "timeNear": 0.034,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.10378562977515574,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 12.623850029234859,
+            "timeNear": 0.001,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.46525674579903553,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.185309387267786,
+            "timeNear": 0.026,
+            "contactRate": 0.4,
+            "contactDuration": 3,
+            "followingIndex": -0.3136857449503785,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.057121167982011,
+            "timeNear": 0.02,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.08436469765106608,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 12.130291942110368,
+            "timeNear": 0.05733333333333333,
+            "contactRate": 1.2,
+            "contactDuration": 4.666666666666667,
+            "followingIndex": 0.3544128041222615,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.947204965935672,
+            "timeNear": 0.056,
+            "contactRate": 0.4,
+            "contactDuration": 3,
+            "followingIndex": 0.23401871044129857,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.129394649112829,
+            "timeNear": 0.01633333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.06888222335348615,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 14.698839154803627,
+            "timeNear": 0.005333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.26122537051094624,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 14.865973525983529,
+            "timeNear": 0.004666666666666667,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.922370128565,
+            "timeNear": 0.01633333333333333,
+            "contactRate": 0.4,
+            "contactDuration": 7,
+            "followingIndex": 0.23204534928481163,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.903829853080723,
+            "timeNear": 0.013,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.6195119562484654,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 13.483132672220592,
+            "timeNear": 0.013,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.48382358894741,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.476800675301979,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 11.664982040609535,
+            "timeNear": 0.008333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.3241456057819649,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 12.359112685057305,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.328387585110146,
+            "timeNear": 0.009,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.3674193450535885,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 12.718651316234443,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 15.580805077894432,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.809360807490402,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 11.672686788481833,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 13.889889817642514,
+            "timeNear": 0.013666666666666667,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.1201257907727421,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 11.701972857869878,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.9317858386812,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.160613846106646,
+            "timeNear": 0.013666666666666667,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 19.373930983057747,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 12.810829686814301,
+            "timeNear": 0.09166666666666666,
+            "contactRate": 0.8,
+            "contactDuration": 23,
+            "followingIndex": 0.3548119004184711,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.846430210133684,
+            "timeNear": 0.091,
+            "contactRate": 0.8,
+            "contactDuration": 30,
+            "followingIndex": 0.3964051605404117,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 13.28466844061188,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 13.204546403788921,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 18.294604172198408,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          }
+        ],
+        "bySex": {
+          "female": {
+            "nnMedian": 12.648354249038348,
+            "timeNear": 0.015378486055776892,
+            "contactRate": 0.08,
+            "contactDuration": 10.166666666666666,
+            "followingIndex": 0.1674925854858865,
+            "songPerContact": 0
+          },
+          "male": {
+            "nnMedian": 11.283722294990351,
+            "timeNear": 0.01756281407035176,
+            "contactRate": 0.05333333333333334,
+            "contactDuration": 18,
+            "followingIndex": 0.25142718601637354,
+            "songPerContact": 0
+          }
+        },
+        "verdict": {
+          "timeNear": {
+            "mean": 0.016344444444444446,
+            "ci95": [
+              0.00851111111111111,
+              0.025355555555555558
+            ]
+          },
+          "contactRate": {
+            "mean": 0.13333333333333333,
+            "ci95": [
+              0.04000000000000001,
+              0.2533333333333333
+            ]
+          }
+        }
+      }
+    },
+    "random-walk": {
+      "forager": {
+        "find": {
+          "rate": 0.7,
+          "found": 21,
+          "count": 30,
+          "ci95": [
+            0.5333333333333333,
+            0.8666666666666667
+          ]
+        },
+        "feeding": {
+          "rate": 0,
+          "arrivals": 53,
+          "fed": 0
+        },
+        "approach": {
+          "fruit": {
+            "median": 576,
+            "included": 13,
+            "excluded": 13
+          },
+          "floral": {
+            "median": 1481.5,
+            "included": 12,
+            "excluded": 15
+          }
+        },
+        "escape": {
+          "encounters": 85,
+          "resolved": 4,
+          "rate": 0.047058823529411764
+        }
+      },
+      "social": {
+        "perFly": [
+          {
+            "sex": "female",
+            "nnMedian": 10.852025043328094,
+            "timeNear": 0.028,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7321862167659231,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 6.4727107745933115,
+            "timeNear": 0.12733333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.13046105413926032,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 21.812938588444972,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 29.67988593305713,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 8.045867361100974,
+            "timeNear": 0.027666666666666666,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7271970259820937,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 8.230523867696418,
+            "timeNear": 0.127,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.31538724768784776,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 13.504590236634456,
+            "timeNear": 0.007,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.0878745675102148,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 13.029698714275305,
+            "timeNear": 0.10633333333333334,
+            "contactRate": 0.8,
+            "contactDuration": 2.5,
+            "followingIndex": 0.2665654724977533,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 11.026528086671819,
+            "timeNear": 0.0036666666666666666,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.36674084828197445,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.552335387936941,
+            "timeNear": 0.114,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.4288546719753115,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 16.08024925039261,
+            "timeNear": 0.004333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.4985711081478128,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 16.093522756018924,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 5.805261983855788,
+            "timeNear": 0.12933333333333333,
+            "contactRate": 0.8,
+            "contactDuration": 5.5,
+            "followingIndex": -0.05862122532239996,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 19.3498378265584,
+            "timeNear": 0.0036666666666666666,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.44314058707042464,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 20.371168798783852,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 18.2054454871872,
+            "timeNear": 0.002,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 13.64321985918685,
+            "timeNear": 0.019333333333333334,
+            "contactRate": 0.4,
+            "contactDuration": 11,
+            "followingIndex": -0.2723397054282831,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 5.5282702642172765,
+            "timeNear": 0.148,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.22849309832179235,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.559940148209662,
+            "timeNear": 0.025333333333333333,
+            "contactRate": 0.4,
+            "contactDuration": 14,
+            "followingIndex": -0.03712325351867089,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.395760724690328,
+            "timeNear": 0.17066666666666666,
+            "contactRate": 0.8,
+            "contactDuration": 4.5,
+            "followingIndex": 0.25565776519280053,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 21.004450838009923,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 5.352520680783755,
+            "timeNear": 0.191,
+            "contactRate": 0.8,
+            "contactDuration": 8.5,
+            "followingIndex": 0.17332665260581945,
+            "song": {
+              "perContact": 0,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 10.62823451406841,
+            "timeNear": 0.025333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.1830286742592953,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 7.192304690784475,
+            "timeNear": 0.059666666666666666,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.08332111277733302,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 29.867398665757626,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 9.442551074578988,
+            "timeNear": 0.03333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.007715411661382018,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.189010323055285,
+            "timeNear": 0.03333333333333333,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": 0.013748223442467613,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 35.97565460404863,
+            "timeNear": 0,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": null,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "female",
+            "nnMedian": 9.94780346951498,
+            "timeNear": 0.05333333333333334,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7766433764848715,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          },
+          {
+            "sex": "male",
+            "nnMedian": 10.264165110241466,
+            "timeNear": 0.052,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.7078376041011409,
+            "song": {
+              "perContact": null,
+              "perTickAlone": 0
+            }
+          }
+        ],
+        "bySex": {
+          "female": {
+            "nnMedian": 13.395502052405423,
+            "timeNear": 0.02483428251330408,
+            "contactRate": 0,
+            "contactDuration": null,
+            "followingIndex": -0.3513867518843001,
+            "songPerContact": null
+          },
+          "male": {
+            "nnMedian": 10.504577132359358,
+            "timeNear": 0.07233437950631945,
+            "contactRate": 0.13333333333333333,
+            "contactDuration": 6.7,
+            "followingIndex": 0.1355955365528992,
+            "songPerContact": 0
+          }
+        },
+        "verdict": {
+          "timeNear": {
+            "mean": 0.04972222222222224,
+            "ci95": [
+              0.02873333333333333,
+              0.06918888888888891
+            ]
+          },
+          "contactRate": {
+            "mean": 0.13333333333333333,
+            "ci95": [
+              0.04000000000000001,
+              0.23999999999999996
+            ]
+          }
+        }
+      }
+    }
+  },
+  "noSocialStimuli": false
+}

@@ -1,0 +1,895 @@
+{
+  "world": "world/world-forager-social-tilemap.json",
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "ticks": 3000,
+  "arms": {
+    "social": {
+      "forager": {
+        "find": {
+          "rate": 0.9555555555555556,
+          "found": 172,
+          "count": 180,
+          "ci95": [
+            0.9222222222222223,
+            0.9833333333333333
+          ]
+        },
+        "feeding": {
+          "rate": 0.5622568093385214,
+          "arrivals": 514,
+          "fed": 289
+        },
+        "approach": {
+          "floral": {
+            "median": 1058,
+            "included": 120,
+            "excluded": 44
+          },
+          "fruit": {
+            "median": 1000,
+            "included": 116,
+            "excluded": 52
+          }
+        },
+        "escape": {
+          "encounters": 383,
+          "resolved": 41,
+          "rate": 0.10704960835509138
+        }
+      },
+      "metrics": {
+        "nnMedian": {
+          "mean": 8.033797260762025,
+          "ci95": [
+            7.564646791801532,
+            8.490207765342449
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "timeNear": {
+          "mean": 0.05724444444444445,
+          "ci95": [
+            0.04692777777777777,
+            0.0684037037037037
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactRate": {
+          "mean": 0.3488888888888889,
+          "ci95": [
+            0.26888888888888896,
+            0.42888888888888876
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactDuration": {
+          "mean": 10.158307947196837,
+          "ci95": [
+            8.678531345198014,
+            11.643992838437283
+          ],
+          "seedsWithData": 27,
+          "seeds": 30
+        },
+        "followingIndex": {
+          "mean": -0.013568723977670387,
+          "ci95": [
+            -0.07269011100546854,
+            0.036890886570247444
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "songPerContact": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 27,
+          "seeds": 30
+        },
+        "songPerTickAlone": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        }
+      },
+      "bySex": {
+        "female": {
+          "nnMedian": {
+            "mean": 7.9031618918844275,
+            "ci95": [
+              7.365376880014369,
+              8.443026929060576
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.0578032983023504,
+            "ci95": [
+              0.04546513083335012,
+              0.07172273855727306
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.17111111111111113,
+            "ci95": [
+              0.12666666666666668,
+              0.21555555555555564
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 9.774761904761906,
+            "ci95": [
+              8.034666666666666,
+              11.638857142857143
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": -0.041930997527058804,
+            "ci95": [
+              -0.13607340225408782,
+              0.04208266602206754
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          }
+        },
+        "male": {
+          "nnMedian": {
+            "mean": 8.017083263537025,
+            "ci95": [
+              7.491636324216642,
+              8.497216632309554
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.05701063238315101,
+            "ci95": [
+              0.045848315927074654,
+              0.06744707542752391
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.17777777777777784,
+            "ci95": [
+              0.12888888888888891,
+              0.22666666666666677
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 9.776556776556777,
+            "ci95": [
+              7.867216117216117,
+              11.838369963369964
+            ],
+            "seedsWithData": 26,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": -0.03588590525221141,
+            "ci95": [
+              -0.11450276534192533,
+              0.04126512261336046
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 26,
+            "seeds": 30
+          }
+        }
+      }
+    },
+    "ablated": {
+      "forager": {
+        "find": {
+          "rate": 0.95,
+          "found": 171,
+          "count": 180,
+          "ci95": [
+            0.9166666666666666,
+            0.9777777777777777
+          ]
+        },
+        "feeding": {
+          "rate": 0.5410447761194029,
+          "arrivals": 536,
+          "fed": 290
+        },
+        "approach": {
+          "floral": {
+            "median": 1079,
+            "included": 125,
+            "excluded": 39
+          },
+          "fruit": {
+            "median": 1054.5,
+            "included": 116,
+            "excluded": 52
+          }
+        },
+        "escape": {
+          "encounters": 370,
+          "resolved": 48,
+          "rate": 0.12972972972972974
+        }
+      },
+      "metrics": {
+        "nnMedian": {
+          "mean": 7.905145937736751,
+          "ci95": [
+            7.503153568803495,
+            8.35172707693784
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "timeNear": {
+          "mean": 0.05222222222222222,
+          "ci95": [
+            0.04230740740740741,
+            0.0638611111111111
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactRate": {
+          "mean": 0.3066666666666667,
+          "ci95": [
+            0.2466666666666667,
+            0.3755555555555556
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactDuration": {
+          "mean": 13.022413793103448,
+          "ci95": [
+            11.041379310344826,
+            15.208620689655175
+          ],
+          "seedsWithData": 29,
+          "seeds": 30
+        },
+        "followingIndex": {
+          "mean": -0.014176177750691429,
+          "ci95": [
+            -0.07454230803100342,
+            0.044073394506689643
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "songPerContact": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 29,
+          "seeds": 30
+        },
+        "songPerTickAlone": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        }
+      },
+      "bySex": {
+        "female": {
+          "nnMedian": {
+            "mean": 7.903692794658218,
+            "ci95": [
+              7.4401509763989635,
+              8.41342720919852
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.05373986517883732,
+            "ci95": [
+              0.04139122378796367,
+              0.06811346164924209
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.1688888888888889,
+            "ci95": [
+              0.12000000000000002,
+              0.2222222222222222
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 13.670987654320989,
+            "ci95": [
+              10.260493827160493,
+              17.216049382716047
+            ],
+            "seedsWithData": 27,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": -0.048652900730763844,
+            "ci95": [
+              -0.12115071408722312,
+              0.01783184623469034
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 27,
+            "seeds": 30
+          }
+        },
+        "male": {
+          "nnMedian": {
+            "mean": 7.879610565082566,
+            "ci95": [
+              7.392622153824926,
+              8.369224230048294
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.04982242588952906,
+            "ci95": [
+              0.039496124251917834,
+              0.06166557621711613
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.1377777777777778,
+            "ci95": [
+              0.10000000000000002,
+              0.18222222222222223
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 12.845047619047618,
+            "ci95": [
+              9.797999999999998,
+              17.05952380952381
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": -0.02857425893335405,
+            "ci95": [
+              -0.11223922965940156,
+              0.052486656114198386
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          }
+        }
+      }
+    },
+    "random-graph": {
+      "forager": {
+        "find": {
+          "rate": 0.9722222222222222,
+          "found": 175,
+          "count": 180,
+          "ci95": [
+            0.9444444444444444,
+            0.9944444444444445
+          ]
+        },
+        "feeding": {
+          "rate": 0.6642984014209592,
+          "arrivals": 563,
+          "fed": 374
+        },
+        "approach": {
+          "floral": {
+            "median": 967,
+            "included": 131,
+            "excluded": 33
+          },
+          "fruit": {
+            "median": 783,
+            "included": 138,
+            "excluded": 30
+          }
+        },
+        "escape": {
+          "encounters": 873,
+          "resolved": 54,
+          "rate": 0.061855670103092786
+        }
+      },
+      "metrics": {
+        "nnMedian": {
+          "mean": 9.64800147864455,
+          "ci95": [
+            9.266657383934046,
+            10.052103757953038
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "timeNear": {
+          "mean": 0.028892592592592595,
+          "ci95": [
+            0.02355925925925926,
+            0.03491666666666667
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactRate": {
+          "mean": 0.3133333333333334,
+          "ci95": [
+            0.24000000000000007,
+            0.3911111111111112
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactDuration": {
+          "mean": 5.723956496178717,
+          "ci95": [
+            4.367342739564962,
+            7.331305114638448
+          ],
+          "seedsWithData": 27,
+          "seeds": 30
+        },
+        "followingIndex": {
+          "mean": 0.0564683527379207,
+          "ci95": [
+            0.001610415754870732,
+            0.11510691612197228
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "songPerContact": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 27,
+          "seeds": 30
+        },
+        "songPerTickAlone": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        }
+      },
+      "bySex": {
+        "female": {
+          "nnMedian": {
+            "mean": 9.6796056966668,
+            "ci95": [
+              9.178067171979832,
+              10.147794067269169
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.028847961898343644,
+            "ci95": [
+              0.02221875527455266,
+              0.03735215010127489
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.15111111111111114,
+            "ci95": [
+              0.10666666666666669,
+              0.19777777777777786
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 5.019333333333333,
+            "ci95": [
+              3.456666666666667,
+              6.932
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": 0.043451722680002296,
+            "ci95": [
+              -0.033171349287694246,
+              0.13026749146259747
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 25,
+            "seeds": 30
+          }
+        },
+        "male": {
+          "nnMedian": {
+            "mean": 9.660241438675321,
+            "ci95": [
+              9.171632144549983,
+              10.14132016443147
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.028274268630027584,
+            "ci95": [
+              0.02318631335392089,
+              0.03361225338373481
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.16222222222222227,
+            "ci95": [
+              0.11777777777777781,
+              0.21111111111111114
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 5.983699633699634,
+            "ci95": [
+              4.430769230769231,
+              7.791666666666668
+            ],
+            "seedsWithData": 26,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": 0.059113483583961596,
+            "ci95": [
+              -0.026239698445831364,
+              0.14444985521699286
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 26,
+            "seeds": 30
+          }
+        }
+      }
+    },
+    "random-walk": {
+      "forager": {
+        "find": {
+          "rate": 0.7333333333333333,
+          "found": 132,
+          "count": 180,
+          "ci95": [
+            0.6666666666666666,
+            0.8
+          ]
+        },
+        "feeding": {
+          "rate": 0,
+          "arrivals": 251,
+          "fed": 0
+        },
+        "approach": {
+          "floral": {
+            "median": 1107,
+            "included": 71,
+            "excluded": 93
+          },
+          "fruit": {
+            "median": 1065,
+            "included": 83,
+            "excluded": 85
+          }
+        },
+        "escape": {
+          "encounters": 450,
+          "resolved": 10,
+          "rate": 0.022222222222222223
+        }
+      },
+      "metrics": {
+        "nnMedian": {
+          "mean": 10.495284621719554,
+          "ci95": [
+            9.830988668885757,
+            11.13996146834918
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "timeNear": {
+          "mean": 0.10429629629629629,
+          "ci95": [
+            0.09037407407407409,
+            0.11790185185185185
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactRate": {
+          "mean": 0.888888888888889,
+          "ci95": [
+            0.7755555555555557,
+            1.028888888888889
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "contactDuration": {
+          "mean": 6.8752846635934874,
+          "ci95": [
+            6.253548771489949,
+            7.548914413473237
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "followingIndex": {
+          "mean": 0.22015439804237205,
+          "ci95": [
+            0.18939581207307374,
+            0.24841278220078425
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "songPerContact": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        },
+        "songPerTickAlone": {
+          "mean": 0,
+          "ci95": [
+            0,
+            0
+          ],
+          "seedsWithData": 30,
+          "seeds": 30
+        }
+      },
+      "bySex": {
+        "female": {
+          "nnMedian": {
+            "mean": 10.083869981661401,
+            "ci95": [
+              9.334310932732238,
+              10.83343874948613
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.11215507439975284,
+            "ci95": [
+              0.09543494621089275,
+              0.1321077479040084
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.44000000000000017,
+            "ci95": [
+              0.36222222222222233,
+              0.5355555555555556
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 6.926926591926591,
+            "ci95": [
+              6.128210678210679,
+              7.8251831501831495
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": 0.2179192233264343,
+            "ci95": [
+              0.17806392500243706,
+              0.25751627749058775
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          }
+        },
+        "male": {
+          "nnMedian": {
+            "mean": 10.943884224684322,
+            "ci95": [
+              10.07515943586402,
+              11.803388980686217
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "timeNear": {
+            "mean": 0.09436366566416315,
+            "ci95": [
+              0.07689841667494424,
+              0.11289717736758613
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactRate": {
+            "mean": 0.4488888888888889,
+            "ci95": [
+              0.3533333333333334,
+              0.5733333333333335
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "contactDuration": {
+            "mean": 6.283122895622895,
+            "ci95": [
+              5.600331890331891,
+              7.073123913123913
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "followingIndex": {
+            "mean": 0.19889770991168423,
+            "ci95": [
+              0.15149468269737223,
+              0.24278694139507676
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          },
+          "songPerContact": {
+            "mean": 0,
+            "ci95": [
+              0,
+              0
+            ],
+            "seedsWithData": 30,
+            "seeds": 30
+          }
+        }
+      }
+    }
+  },
+  "noSocialStimuli": false
+}

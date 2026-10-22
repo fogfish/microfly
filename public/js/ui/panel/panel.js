@@ -21,8 +21,10 @@ const flyViews = new WeakMap();
 const TAB_LABELS = { world: 'World', fly: 'Fly' };
 
 // tab is the active tab name; onTab(name) is called when a tab button is pressed.
-// view: { layers, onLayer(id), legends: { [id]: { max } | null } } drives the Layers box of the World tab —
-// one switch per LAYERS entry (contracts/odour-layer-v2.md §6), one legend per odour layer (not "grid").
+// view: { layers, onLayer(id), legends: { [id]: { max } | null }, available?: { [id]: boolean } } drives the
+// Layers box of the World tab — one switch per LAYERS entry (contracts/odour-layer-v2.md §6), one legend per
+// odour layer (not "grid"). available (ADR 012 R8, contracts/world-config-v3-social.md): omitted keys default
+// to true; odour-conspecific's row is hidden on a world that declares no odour:conspecific stimulus.
 export function renderPanel(
   container,
   records,
@@ -136,6 +138,13 @@ function renderLayers(worldPane, view) {
   // Writes happen only when a value changes, so a render does not repaint a switch or a legend.
   for (const row of box.querySelectorAll(':scope > .layer-row')) {
     const id = row.dataset.layer;
+    // ADR 012 R8: a layer not in view.available (e.g. odour-conspecific on a world with no odour:conspecific
+    // stimulus) hides its whole row, not just its legend — unlike the always-shown food/danger/heat/grid rows,
+    // this switch has nothing to control at all on such a world. Omitted keys default to available (every
+    // existing caller that passes no `available` keeps every row shown).
+    const available = view.available?.[id] ?? true;
+    setHidden(row, !available);
+    if (!available) continue;
     const on = Boolean(view.layers[id]);
     const btn = row.querySelector('.arcade-switch');
     setAttr(btn, 'aria-checked', String(on));

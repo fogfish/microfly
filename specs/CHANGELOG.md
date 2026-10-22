@@ -1,5 +1,35 @@
 # Changelog
 
+# 2026-10-21
+
+/speckit-specify Social and pheromone senses. The current version on the brain deliberately excluded `putative_ppk23` / `putative_ppk25` (136 of 300 front-leg GRNs) from leg taste (ADR 007, D16). In a male CNS they are pheromone receptors that drive courtship, and feeding them flower stimulus put food taste through the courtship circuit. 
+* Only male connectome exisits so that females are built on males brain wearing a name tag, defined per fly.
+* Use `odour-conspecific` (antennae) to detect other flies, as a moving odour source.
+* Use `contact-pheromone` (front legs) leg contact with another fly.
+* Fly–fly contact is a A front-leg site overlapping another fly's body radius.
+* Adjust extraction with required neurons.
+* Adjust the world and calibration to support the feature. 
+
+/speckit-plan Implement pheromone senses through `putative_ppk23` / `putative_ppk25` pheromone receptors in front-leg GRNs. 
+* `odour-conspecific` uses receptor neurons ORN_DA1 (Or67d, cVA), ORN_VA1v (Or47b), ORN_VA1d (Or88a); optionally ORN_VL2a (Ir84a); moving odour source is visualized and supported by the world, same manner as a static one;
+* `contact-pheromone` uses front-leg `putative_ppk23` / `putative_ppk25` receptor neurons;
+* fly sex configuration defines which cues it emits. 
+* World requires a dynamic conspecific field, add a per-tick field from the other flies'positions (6 flies × a small falloff kernel, excluding self), sampled at each antenna. It is cheap and stays on the main thread.
+* A front-leg site overlapping another fly's body radius gives `contact-pheromone` = 1. Bodies could optionally become solid to one another, which also feeds `touch`.
+* Add the conspecific ORN types to the input pools and the ppk23/ppk25 neurons as their own pair in the config.
+* Add seeds for the known social pathway so it survives the cut: the PNs of those glomeruli (already present via `ALPN`), P1/pC1, vAB3/mAL where annotated, and the song/wing DNs (pIP10, plus vPR6 and dPR1 if present). Check every type name against the annotations before relying on it.
+* Run the existing pathway-fidelity probe (ADR 009 style) for the conspecific contrast, and record what fraction of the whole-connectome signal the cut keeps.
+* Let the D27 probe pick `drive.odour-conspecific`, `drive.contact-pheromone` and, if any survive, side pools.
+* Add a named output pool `song` (pIP10 and related DNs). The body layer draws wing extension when `song` drive is above threshold, the same way smallfly gates song on song DNs, but read from a probed pool.
+* DO NOT declare config up front. Measure the brain-only response first (approach vs avoid, as the ADR 007 claim tables do). Then declare what the brain does and show it in the panel. cVA in males is expected to be aversive or aggression-related rather than attractive, so let the data decide.
+* **Metrics and arms.**
+  - Nearest-neighbour distance and time within 2 tiles of another fly, vs random walk.
+  - A following index (heading correlation when close).
+  - Song bouts per contact vs per tick spent alone.
+  - Arms: full brain, pheromone-ORN-ablated brain (same config minus the social pools), random-graph null, random walk.
+* Watch out the risk: Social channels share AL and LH circuitry with food odour; re-run the food and danger metrics to rule out regressions.
+
+
 # 2026-10-20
 
 Root-cause analysis of the failed MB regime gate, and a retry (ADR 011 D40, D41). The gate now **passes** and

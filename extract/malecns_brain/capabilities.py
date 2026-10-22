@@ -281,3 +281,99 @@ def validate_capabilities_v5(decl, neuron_count, subject="snapshot"):
         for key in channel:
             if key not in allowed:
                 _fail(f"{subject} channel {channel['id']} has unknown field {key}")
+
+
+# Channel declaration, version 6 (contracts/channel-declaration-v6.md, ADR 012 R12). R1-R9 and R11 are copied
+# from v5 unchanged; R10 generalises to allow one optional `song` drive alongside the six forager-wide drives,
+# so a `forager-wide` snapshot without a song output still reads byte-for-byte as it did under v5.
+FORAGER_WIDE_OPTIONAL_DRIVES = ("song",)
+
+
+def validate_capabilities_v6(decl, neuron_count, subject="snapshot"):
+    """Channel declaration, version 6: v5's R1-R9 and R11, with R10 generalised to allow at most one `song`
+    drive in addition to the six required forager-wide drives."""
+    # R1: present and an object.
+    if not isinstance(decl, dict):
+        _fail(f"{subject} capabilities are missing")
+
+    # R2: signals are a list of unique strings; inputs and outputs are lists.
+    signals = decl.get("signals")
+    if not (isinstance(signals, list) and all(isinstance(s, str) for s in signals)
+            and len(set(signals)) == len(signals)):
+        _fail(f"{subject} signals are malformed")
+    channels = decl.get("channels")
+    if not (isinstance(channels, dict) and isinstance(channels.get("inputs"), list)
+            and isinstance(channels.get("outputs"), list)):
+        _fail(f"{subject} channels are malformed")
+    inputs, outputs = channels["inputs"], channels["outputs"]
+    everything = [(ch, "input") for ch in inputs] + [(ch, "output") for ch in outputs]
+
+    # R3: ids match the pattern and are unique across inputs and outputs.
+    seen = set()
+    for channel, _ in everything:
+        cid = _name(channel)
+        if not (isinstance(cid, str) and ID_PATTERN.fullmatch(cid)):
+            _fail(f"{subject} channel {cid} has a malformed id")
+        if cid in seen:
+            _fail(f"duplicate id {cid}")
+        seen.add(cid)
+
+    # R4: label, side, neurons (non-empty list of distinct integers) and range.
+    for channel, _ in everything:
+        cid = channel["id"]
+        label = channel.get("label")
+        if not (isinstance(label, str) and 0 < len(label) <= LABEL_MAX):
+            _fail(f"{subject} channel {cid} is malformed: label")
+        if channel.get("side") not in SIDES:
+            _fail(f"{subject} channel {cid} is malformed: side")
+        neurons = channel.get("neurons")
+        listed = isinstance(neurons, list) and len(neurons) > 0 and all(_is_int(n) for n in neurons)
+        if not listed or len(set(neurons)) != len(neurons):
+            _fail(f"{subject} channel {cid} is malformed: neurons")
+        rng = channel.get("range", DEFAULT_RANGE)
+        if not (isinstance(rng, list) and len(rng) == 2 and all(_is_number(x) for x in rng) and rng[0] < rng[1]):
+            _fail(f"{subject} channel {cid} is malformed: range")
+
+    # R5: every neuron index is at least 0 and below neuronCount.
+    for channel, _ in everything:
+        for n in channel["neurons"]:
+            if not (0 <= n < neuron_count):
+                _fail(f"{subject} channel {channel['id']} references neuron {n} outside neuronCount")
+
+    # R6: no two input channels share a neuron.
+    owner = {}
+    for channel in inputs:
+        for n in channel["neurons"]:
+            if n in owner:
+                _fail(f"{subject} input channels {owner[n]} and {channel['id']} share neuron {n}")
+            owner[n] = channel["id"]
+
+    # R9: every input channel carries a non-empty sense and site.
+    for channel in inputs:
+        sense = channel.get("sense")
+        if not (isinstance(sense, str) and sense):
+            _fail(f"{subject} channel {channel['id']} is malformed: sense")
+        site = channel.get("site")
+        if not (isinstance(site, str) and site):
+            _fail(f"{subject} channel {channel['id']} is malformed: site")
+
+    # R10 (v6): the six forager-wide drives, each exactly once, plus at most one optional song drive. No
+    # other drive value is accepted.
+    wanted = KIND_DRIVES["forager-wide"]
+    allowed_drives = set(wanted) | set(FORAGER_WIDE_OPTIONAL_DRIVES)
+    drives = [ch.get("drive") for ch in outputs]
+    if not all(d in allowed_drives for d in drives):
+        _fail(f"{subject} outputs must have exactly one of each forager-wide drive")
+    for want in wanted:
+        if drives.count(want) != 1:
+            _fail(f"{subject} outputs must have exactly one of each forager-wide drive")
+    for optional in FORAGER_WIDE_OPTIONAL_DRIVES:
+        if drives.count(optional) > 1:
+            _fail(f"{subject} outputs may declare {optional} at most once")
+
+    # R11: no fields beyond the declaration (inputs take sense and site; outputs are unchanged from v4).
+    for channel, role in everything:
+        allowed = INPUT_FIELDS_V5 if role == "input" else DECLARATION_FIELDS_V4
+        for key in channel:
+            if key not in allowed:
+                _fail(f"{subject} channel {channel['id']} has unknown field {key}")

@@ -26,6 +26,11 @@
     {
       "file": "forager-brain-mb.brain",
       "label": "Mushroom-body valence-learning forager brain (ADR 011, v2, 14.5K)"
+    },
+    {
+      "file": "forager-brain-social.brain",
+      "label": "Social and pheromone-sense forager brain (ADR 012, v3, 15.3K)",
+      "description": "The MB brain plus odour-conspecific and contact-pheromone senses, the pC1/mAL/vAB3 social pathway seeds, and a song output on pIP10. Seed groups show as seed:type."
     }
   ]
 }

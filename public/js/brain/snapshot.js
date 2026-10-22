@@ -3,7 +3,7 @@
 // specs/008-hungry-forager-brain/contracts/container-v4.md (the forager brain). Both share the section code.
 // The rules and messages match extract/malecns_brain/container.py.
 
-import { validateCapabilities, validateCapabilitiesV4, validateCapabilitiesV5 } from './capabilities.js';
+import { validateCapabilities, validateCapabilitiesV4, validateCapabilitiesV5, validateCapabilitiesV6 } from './capabilities.js';
 
 const MAGIC = 'MFBR';
 const FORMAT_VERSIONS = [3, 4];
@@ -172,6 +172,9 @@ function checkForager(manifest, neuronCount) {
 
 // Kind "forager-wide" header rules (ADR 007 D20, channel-declaration-v5.md): the v5 declaration in place of v4's;
 // weight rule, synapse cap, roles, signs and modulators are otherwise identical to checkForager.
+//
+// ADR 012 (channel-declaration-v6.md): manifest.capabilities.declaration picks the validator. Absent means v5,
+// read exactly as before; 6 means v6 (v5 plus an optional song drive); any other value is rejected.
 function checkForagerWide(manifest, neuronCount) {
   if (!['postFraction', 'postFractionAbsolute'].includes(manifest.weightRule)) {
     reject(`snapshot weight rule "${manifest.weightRule}" is not supported`);
@@ -179,7 +182,15 @@ function checkForagerWide(manifest, neuronCount) {
   if (!(Number.isInteger(manifest.synapseCap) && manifest.synapseCap >= 1 && manifest.synapseCap <= 65535)) {
     reject('snapshot synapseCap must be an integer from 1 to 65535');
   }
-  const [capabilityError] = validateCapabilitiesV5(manifest.capabilities, neuronCount);
+  const declaration = manifest.capabilities?.declaration;
+  let capabilityError;
+  if (declaration === undefined) {
+    [capabilityError] = validateCapabilitiesV5(manifest.capabilities, neuronCount);
+  } else if (declaration === 6) {
+    [capabilityError] = validateCapabilitiesV6(manifest.capabilities, neuronCount);
+  } else {
+    reject(`unsupported channel declaration ${declaration}`);
+  }
   if (capabilityError) reject(capabilityError);
   checkForagerNeurons(manifest.neurons, manifest.capabilities, neuronCount);
   const inputIds = new Set(manifest.capabilities.channels.inputs.map((ch) => ch.id));

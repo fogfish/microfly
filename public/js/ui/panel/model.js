@@ -2,6 +2,7 @@
 // from. Pure: built from one fly record and a clock reading, so the sections can be tested without a DOM.
 
 import { actionLabel, forageAction } from '../../fly/action.js';
+import { pairOf } from '../../fly/decoder.js';
 import { activeCount, windowCounts } from './counts.js';
 
 // The width of a 0–100% bar for a value in [0, 1], as a CSS percentage (FR-031). Out-of-range values are clamped.
@@ -49,6 +50,9 @@ export function buildStatusModel(record, nowMs) {
     // v3 fly, same convention as provenance/fidelity above.
     decoded: record.capabilities.signals?.includes('decoder') ? last?.decoded : undefined,
     decoderPools: record.capabilities.signals?.includes('decoder') ? record.decoderFile?.pools : undefined,
+    // W17 (ADR 012 R12): read off the fly state body-layer.js maintains, not out of `decoded` (decoded.named
+    // is the raw per-tick readout; singing is the integrator's own state, which outlasts a single tick).
+    singing: record.capabilities.signals?.includes('decoder') ? Boolean(record.state.singing) : undefined,
     // ADR 011 (Phase 8, contracts/worker-protocol-v3-learning.md): the latest motor.learning, kept by
     // fly-host.js. null (not undefined) when plasticity is off, so the learning section can show "learning
     // off" rather than stale or zero numbers; undefined (section does not mount) for a non-decoder fly.
@@ -56,6 +60,14 @@ export function buildStatusModel(record, nowMs) {
     // ADR 011 (contracts/world-config-v3-learning.md "events"): senses this world drives from a world event
     // rather than the connectome, for the "injected" tag.
     injectedSenses: record.injectedSenses ?? [],
+    // ADR 012 R9 (contracts/world-config-v3-social.md): "female" reads as "female (male connectome)" — the
+    // tag changes only emission, never the brain, so the panel says so rather than letting a reader assume a
+    // female-specific brain exists. undefined on a world with no sex tags at all (every pre-social world).
+    sexLabel: record.state.sex === 'female' ? 'female (male connectome)'
+      : record.state.sex === 'male' ? 'male' : undefined,
+    // ADR 012 (contracts/world-config-v3-social.md "Telemetry"): the other fly's id this fly's front-leg
+    // contact is currently reading, or null; undefined on a world with no contact:pheromone sense at all.
+    contactWith: record.state.contactWith,
     activeCount: counts ? activeCount(counts) : 0,
     // Points drawn: a snapshot brain draws only neurons with a soma (FR-030); the rest are left out and counted.
     coveredCount: record.positions ? record.positions.length / 3 : 0,
@@ -67,10 +79,16 @@ export function buildStatusModel(record, nowMs) {
     activity: record.activity ?? null,
     brightness: record.activity ? record.activity.brightness(nowMs) : null,
     // A forager entry has one value per declared input; a v0 entry has the single sensory value for every row.
-    inputs: record.capabilities.channels.inputs.map((channel, k) => ({
-      channel,
-      value: !last ? 0 : last.inputs ? last.inputs[k] : last.sensory,
-    })),
+    // ADR 012 R7: a decoded sense's declared valence is appended to its label (e.g. "Conspecific odour left
+    // (none)"), the same information the decoder section already shows per pair, generically for every sense
+    // that has one — not special-cased to the two social pairs.
+    inputs: record.capabilities.channels.inputs.map((channel, k) => {
+      const valence = last?.decoded?.senses?.[pairOf(channel.id)]?.valence;
+      return {
+        channel: valence === undefined ? channel : { ...channel, label: `${channel.label} (${valence})` },
+        value: !last ? 0 : last.inputs ? last.inputs[k] : last.sensory,
+      };
+    }),
     outputs: outputs.map((channel, k) => ({
       channel,
       value: last ? last.outputs[k] : 0,

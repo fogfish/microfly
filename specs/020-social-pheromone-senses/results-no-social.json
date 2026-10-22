@@ -1,0 +1,76 @@
+{
+  "world": "world/world-forager-social.json",
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "ticks": 3000,
+  "arms": {
+    "social": {
+      "forager": {
+        "find": {
+          "rate": 0.9555555555555556,
+          "found": 172,
+          "count": 180,
+          "ci95": [
+            0.9222222222222223,
+            0.9833333333333333
+          ]
+        },
+        "feeding": {
+          "rate": 0.48976109215017066,
+          "arrivals": 586,
+          "fed": 287
+        },
+        "approach": {
+          "fruit": {
+            "median": 1042,
+            "included": 129,
+            "excluded": 38
+          },
+          "floral": {
+            "median": 834,
+            "included": 129,
+            "excluded": 36
+          }
+        },
+        "escape": {
+          "encounters": 277,
+          "resolved": 43,
+          "rate": 0.1552346570397112
+        }
+      },
+      "metrics": null,
+      "bySex": null
+    }
+  },
+  "noSocialStimuli": true
+}

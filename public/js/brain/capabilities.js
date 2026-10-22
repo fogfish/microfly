@@ -314,3 +314,106 @@ export function validateCapabilitiesV5(decl, neuronCount, subject = 'snapshot') 
 
   return [];
 }
+
+// Channel declaration, version 6 (contracts/channel-declaration-v6.md, ADR 012 R12). R1-R9 and R11 are copied
+// from v5 unchanged; R10 generalises to allow one optional `song` drive alongside the six forager-wide drives,
+// so a forager-wide snapshot without a song output still reads exactly as it did under v5.
+export const FORAGER_WIDE_OPTIONAL_DRIVES = Object.freeze(['song']);
+
+export function validateCapabilitiesV6(decl, neuronCount, subject = 'snapshot') {
+  const fail = (message) => [message];
+
+  // R1: present and an object.
+  if (!isObject(decl)) return fail(`${subject} capabilities are missing`);
+
+  // R2: signals are a list of unique strings; inputs and outputs are lists.
+  const { signals, channels } = decl;
+  if (!Array.isArray(signals) || !signals.every((s) => typeof s === 'string') || new Set(signals).size !== signals.length) {
+    return fail(`${subject} signals are malformed`);
+  }
+  if (!isObject(channels) || !Array.isArray(channels.inputs) || !Array.isArray(channels.outputs)) {
+    return fail(`${subject} channels are malformed`);
+  }
+  const inputs = channels.inputs;
+  const outputs = channels.outputs;
+  const everything = [...inputs.map((ch) => ({ ch, kind: 'input' })), ...outputs.map((ch) => ({ ch, kind: 'output' }))];
+
+  // R3: ids match the pattern and are unique across inputs and outputs.
+  const seen = new Set();
+  for (const { ch } of everything) {
+    const id = nameOf(ch);
+    if (typeof id !== 'string' || !ID_PATTERN.test(id)) return fail(`${subject} channel ${id} has a malformed id`);
+    if (seen.has(id)) return fail(`duplicate id ${id}`);
+    seen.add(id);
+  }
+
+  // R4: label, side, neurons (non-empty, distinct integers) and range.
+  for (const { ch } of everything) {
+    const { id, label, side, neurons } = ch;
+    if (!(typeof label === 'string' && [...label].length > 0 && [...label].length <= LABEL_MAX)) {
+      return fail(`${subject} channel ${id} is malformed: label`);
+    }
+    if (!SIDES.includes(side)) return fail(`${subject} channel ${id} is malformed: side`);
+    const listed = Array.isArray(neurons) && neurons.length > 0 && neurons.every(isInt);
+    if (!listed || new Set(neurons).size !== neurons.length) {
+      return fail(`${subject} channel ${id} is malformed: neurons`);
+    }
+    const range = 'range' in ch ? ch.range : DEFAULT_RANGE;
+    if (!(Array.isArray(range) && range.length === 2 && range.every(isFiniteNumber) && range[0] < range[1])) {
+      return fail(`${subject} channel ${id} is malformed: range`);
+    }
+  }
+
+  // R5: every neuron index is at least 0 and below neuronCount.
+  for (const { ch } of everything) {
+    for (const n of ch.neurons) {
+      if (!(n >= 0 && n < neuronCount)) {
+        return fail(`${subject} channel ${ch.id} references neuron ${n} outside neuronCount`);
+      }
+    }
+  }
+
+  // R6: no two input channels share a neuron.
+  const owner = new Map();
+  for (const ch of inputs) {
+    for (const n of ch.neurons) {
+      if (owner.has(n)) return fail(`${subject} input channels ${owner.get(n)} and ${ch.id} share neuron ${n}`);
+      owner.set(n, ch.id);
+    }
+  }
+
+  // R9: every input channel carries a non-empty sense and site.
+  for (const ch of inputs) {
+    if (!(typeof ch.sense === 'string' && ch.sense.length > 0)) return fail(`${subject} channel ${ch.id} is malformed: sense`);
+    if (!(typeof ch.site === 'string' && ch.site.length > 0)) return fail(`${subject} channel ${ch.id} is malformed: site`);
+  }
+
+  // R10 (v6): the six forager-wide drives, each exactly once, plus at most one optional song drive. No other
+  // drive value is accepted.
+  const wanted = KIND_DRIVES['forager-wide'];
+  const allowedDrives = new Set([...wanted, ...FORAGER_WIDE_OPTIONAL_DRIVES]);
+  const drives = outputs.map((ch) => ch.drive);
+  if (!drives.every((d) => allowedDrives.has(d))) {
+    return fail(`${subject} outputs must have exactly one of each forager-wide drive`);
+  }
+  for (const want of wanted) {
+    if (drives.filter((d) => d === want).length !== 1) {
+      return fail(`${subject} outputs must have exactly one of each forager-wide drive`);
+    }
+  }
+  for (const optional of FORAGER_WIDE_OPTIONAL_DRIVES) {
+    if (drives.filter((d) => d === optional).length > 1) {
+      return fail(`${subject} outputs may declare ${optional} at most once`);
+    }
+  }
+
+  // R11: no fields beyond the declaration (inputs take sense and site; outputs are unchanged from v4).
+  for (const { ch, kind: role } of everything) {
+    const allowed = role === 'input' ? INPUT_FIELDS_V5 : DECLARATION_FIELDS_V4;
+    for (const key of Object.keys(ch)) {
+      if (!allowed.includes(key)) return fail(`${subject} channel ${ch.id} has unknown field ${key}`);
+    }
+  }
+
+  return [];
+}

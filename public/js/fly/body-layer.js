@@ -27,7 +27,10 @@ export function initBodyLayerFly(fly, seed) {
     feed: 0,
     // Motor stage (BUG-004): current signed speed, and the escape sprint in progress (distance left, heading).
     velocity: 0, sprintLeft: 0, sprintHeading: 0, sprintTicks: 0,
+    // W17 (ADR 012 R12): the song integrator. Stays 0 when flies.body.song is not declared.
+    song: 0,
   };
+  fly.singing = false;
   return fly;
 }
 
@@ -230,6 +233,18 @@ export function stepBodyLayer(fly, decoded, cfg, env) {
     fly.bout = null;
   }
   fly.eating = eating;
+
+  // W17 (ADR 012 R12): song ← song + (max(0, r(song) − rest) − song) / songTau, read only from the decoded
+  // `song` pool (named.song.drive is already that max(0, r − rest)). fly.singing is true while song ≥
+  // threshold; the renderer draws one wing extended from it (drawing only — nothing here, or in locomotion,
+  // reads fly.singing back). Off (state.song stays 0, fly.singing stays false) when flies.body.song is not
+  // declared, so a brain with no song output, or a world that does not declare the reflex, is unaffected.
+  if (cfg.song) {
+    state.song += ((named.song?.drive ?? 0) - state.song) / cfg.song.tau;
+    fly.singing = state.song >= cfg.song.threshold;
+  } else {
+    fly.singing = false;
+  }
 
   // ADR 011 (contracts/world-config-v3-learning.md "events"): the fly's own outcome this tick, for a
   // reinforcement:reward/punish stimulus to read next tick (senseForagerFlyWide/updateEventPulses, read-only —
