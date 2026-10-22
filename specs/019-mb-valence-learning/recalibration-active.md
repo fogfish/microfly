@@ -59,11 +59,23 @@ otherExcitatoryInto [ALPN, Kenyon_Cell] × 0.04
   or touch.
 - The regime probe ran with `plasticity: null` (the probe predates L12 in the world config).
 
-## Open issues
+## Fix: flies never left a flower (2026-10-22)
 
-- **Eating:** weaker and not hunger-gated. `feed` reads `drive.taste-mouth`, which at ss15 saturates on contact
-  whatever the hunger gain. The next lever is the declared feed rule (`food.feedThreshold`/`feedTau`), or the
-  hunger modulator's gain range, refit on calibration seeds.
+Mouth taste is gated by the snapshot modulator `hunger-taste` (gain [0.1, 1.5]). The world only overrode `hunger`
+(odours), so a sated fly still got 10% taste. On food that gives a feed drive of 0.034 in this brain, against
+`feedThreshold` 0.015 (shipped brain: 0.004). The eating reflex therefore never ended. Fix, in declared data: both
+candidate worlds set `flies.modulators["hunger-taste"].gain` to [0, 1.5]. A sated fly (hunger < 0.4) gets no taste
+input, and its feed drive falls to rest (−0.001).
+
+Calibration seeds 6–10, 3000 ticks, main cohort:
+
+| | On flower | Eating | Longest stay, median / max (ticks) | Bouts ended sated / walked / empty |
+|---|---|---|---|---|
+| shipped | 10.2% | 3.1% | 175 / 234 | 30 / 17 / 1 |
+| candidate before the fix | 67.0% | 66.8% | 2206 / 3000 | 0 / 12 / 1 |
+| candidate with the fix | 13.6% | 7.3% | 185 / 295 | 83 / 21 / 5 |
+
+## Open issues
 - **Danger odour avoidance** is weaker than shipped, though still well above the random walk.
 - **Learning specificity:** odour B takes up about a third of A's shift (shipped: about a tenth).
 - KC B density is at the 15% ceiling. ALPN→KC 0.55 had more density margin but less reliability margin.
