@@ -1122,9 +1122,9 @@ function validateFlyBrain(brain, err) {
     const notNumbers = entries.filter(([key, value]) => {
       if (!Object.hasOwn(defaults, key)) return false;
       if (key === 'outputScale' && isObject(value)) return false; // handled above
-      // pathwayGain (L11, ADR 011 D40) and plasticity (L12, ADR 011) are each an object or null; resolveParamsV1
-      // below checks their shape.
-      if ((key === 'pathwayGain' || key === 'plasticity') && (value === null || isObject(value))) return false;
+      // pathwayGain (L11, ADR 011 D40), plasticity (L12, ADR 011) and noiseClassScale (L13) are each an object or
+      // null; resolveParamsV1 below checks their shape.
+      if (['pathwayGain', 'plasticity', 'noiseClassScale'].includes(key) && (value === null || isObject(value))) return false;
       return !isNum(value);
     });
     for (const [key] of notNumbers) err(`flies.brain.lif.${key}`, 'must be a number');

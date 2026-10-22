@@ -27,6 +27,7 @@ reference for the bit-exact check below.
 | `inhibitoryScale` | 1 | Multiplier of every negative edge weight (L8, ADR 005 Annex B). `1` is a no-op: the graph's own weight array is used unchanged. Applied before `synapticScale`/`outputScale`, so it composes with both. |
 | `baselineCurrent` | 0 | Constant input current added to every neuron every step (L10). `0` is a no-op. |
 | `pathwayGain` | `null` | Gains on excitatory edges chosen by pre/post `class` or `type` (L11, ADR 011 D40). `null` is a no-op. Applied once to a copy of the weights, after L8. Full rules: `specs/019-mb-valence-learning/contracts/lif-v1-plasticity.md`. |
+| `noiseClassScale` | `null` | Per-class multiplier of `noiseAmplitude` that replaces `noiseBulkScale` for non-input neurons of the named `class` (L13). `null` is a no-op. Input pools keep the full amplitude. Full rules: `specs/019-mb-valence-learning/contracts/lif-v1-noise-class.md`. |
 
 `resolveParams(overrides)` throws naming the parameter for: an unknown key, `dt ≤ 0`, `tau ≤ 0`, `refractorySteps`
 not a non-negative integer, `vThreshold ≤ vReset`, `tauSyn < 0`, `tauAdapt < 0`, `adaptStep < 0`, `thresholdJitter`

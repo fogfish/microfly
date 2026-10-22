@@ -25,6 +25,7 @@ export const LIF_V1_DEFAULTS = Object.freeze({
   baselineCurrent: 0,     // constant input current added to every neuron every step; 0 is a no-op (L10)
   pathwayGain: null,      // gain on excitatory edges chosen by pre/post class; null is a no-op (L11, ADR 011)
   plasticity: null,       // three-factor depression on KC->MBON edges; null is a no-op, no per-step work (L12, ADR 011)
+  noiseClassScale: null,  // per-class noise multiplier replacing noiseBulkScale for non-input neurons; null is a no-op (L13)
 });
 
 // L12 (contracts/lif-v1-plasticity.md): defaults for a declared-but-partial plasticity block.
@@ -133,6 +134,18 @@ export function resolveParams(overrides = {}) {
     }
     p.plasticity = Object.freeze(merged);
   }
+  if (p.noiseClassScale !== null) {
+    const nc = p.noiseClassScale;
+    if (!(nc !== null && typeof nc === 'object' && !Array.isArray(nc))) {
+      throw new Error('LIF parameter "noiseClassScale" must be null or an object');
+    }
+    for (const [cls, value] of Object.entries(nc)) {
+      if (!(Number.isFinite(value) && value >= 0)) {
+        throw new Error(`LIF parameter "noiseClassScale.${cls}" must be a number of 0 or more`);
+      }
+    }
+    p.noiseClassScale = Object.freeze({ ...nc });
+  }
   return Object.freeze(p);
 }
 
@@ -200,6 +213,22 @@ export function createNetwork(graph, overrides = {}, seed = 0) {
   let noiseOf;
   if (noiseRand !== undefined) {
     noiseOf = new Float64Array(n).fill(params.noiseAmplitude * params.noiseBulkScale);
+    // L13: a per-class multiplier in place of noiseBulkScale. Bulk noise is what keeps the central brain and the
+    // descending neurons active at high synapticScale, but on KCs and the antennal lobe it drowns the sparse odour
+    // code the MB gate needs (MB recalibration, 2026-10-22). Input pools keep the full amplitude, set below.
+    if (params.noiseClassScale !== null) {
+      const classes = graph.neuronClass ?? [];
+      const declared = new Set(classes.filter((c) => c !== null && c !== undefined));
+      for (const name of Object.keys(params.noiseClassScale)) {
+        if (!declared.has(name)) throw new Error(`E-LIF-NOISE: class "${name}" is not in the snapshot`);
+      }
+      for (let i = 0; i < n; i++) {
+        const cls = classes[i];
+        if (typeof cls === 'string' && Object.hasOwn(params.noiseClassScale, cls)) {
+          noiseOf[i] = params.noiseAmplitude * params.noiseClassScale[cls];
+        }
+      }
+    }
     for (const neuron of graph.inputNeurons ?? []) noiseOf[neuron] = params.noiseAmplitude;
   }
   // L8 (ADR 005 Annex B): a gain on inhibitory (negative) edges, applied once to a copy of the weights so the step

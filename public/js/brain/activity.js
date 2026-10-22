@@ -4,8 +4,8 @@
 export const ACTIVITY_DEFAULTS = Object.freeze({
   base: 0.05,
   riseMs: 120,
-  fallMs: 300,
-  holdMs: 60,
+  fallMs: 500,
+  holdMs: 1000,
 });
 
 // Brightness at tMs after a spike: a short rise, then an exponential fall back to base.
