@@ -238,7 +238,7 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
       const overlays = ['odour-food', 'odour-danger', 'odour-heat', 'grid']
         .filter((id) => layers[id] && overlayCanvas[id])
         .map((id) => overlayCanvas[id]);
-      renderer.render({ camera, scene, flies, overlays });
+      renderer.render({ camera, scene, flies, overlays, selectedId });
     });
   };
 
@@ -249,6 +249,7 @@ function startWorld({ config, catalog, sprites, snapshot, decoder, learning, mbo
     selectedId = id;
     if (id !== null) tab = nextTab(tab, { type: 'select' });
     updatePanel();
+    requestDraw();
   };
   const switchTab = (name) => {
     tab = nextTab(tab, { type: 'tab', tab: name });

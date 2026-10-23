@@ -29,6 +29,8 @@
   --odour-heat-high: 30, 58, 138;
   --odour-heat-alpha: 0.55;
   --grid-line-color: rgba(27, 29, 42, 0.18);
+  /* Ring around the selected fly on the map (renderer.js) */
+  --fly-selected: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -58,6 +60,8 @@
     --odour-heat-high: 37, 99, 235;
     --odour-heat-alpha: 0.55;
     --grid-line-color: rgba(232, 230, 217, 0.18);
+  /* Ring around the selected fly on the map (renderer.js) */
+  --fly-selected: #ffffff;
   }
 }
 
@@ -87,6 +91,8 @@
   --odour-heat-high: 37, 99, 235;
   --odour-heat-alpha: 0.55;
   --grid-line-color: rgba(232, 230, 217, 0.18);
+  /* Ring around the selected fly on the map (renderer.js) */
+  --fly-selected: #ffffff;
 }
 
 html,

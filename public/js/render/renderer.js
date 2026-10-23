@@ -7,6 +7,12 @@
 
 import { CELL_PX } from '../world/layout.js';
 
+// The ring's colour is the --fly-selected token (style.css). Used when the token is absent.
+const DEFAULT_SELECTED = '#ffffff';
+// Ring gap beyond the sprite's half size, and its minimum radius, in CSS px. A zoomed-out sprite can be tiny.
+const RING_GAP_PX = 3;
+const RING_MIN_PX = 6;
+
 export function createRenderer(canvas, sprites) {
   const ctx = canvas.getContext('2d');
   let cssWidth = 0;
@@ -22,9 +28,10 @@ export function createRenderer(canvas, sprites) {
     canvas.height = Math.round(height * dpr);
   }
 
-  // state: { camera, scene, flies, overlays }. scene is the composed canvas. camera.x, y are in scene px.
+  // state: { camera, scene, flies, overlays, selectedId }. scene is the composed canvas. camera.x, y are in scene px.
   // overlays: canvases of the scene's size, drawn between the scene and the flies.
-  function render({ camera, scene, flies = [], overlays = [] }) {
+  // selectedId: the fly to mark with a ring, drawn over the flies so it stays visible.
+  function render({ camera, scene, flies = [], overlays = [], selectedId = null }) {
     const z = camera.zoom;
     const scale = z * dpr;
 
@@ -62,6 +69,19 @@ export function createRenderer(canvas, sprites) {
       ctx.rotate((f.body.heading ?? 0) + Math.PI / 2);
       ctx.drawImage(s.source, s.sx, s.sy, s.sw, s.sh, -Math.round(w / 2), -Math.round(h / 2), w, h);
       ctx.restore();
+    }
+
+    const selected = selectedId === null ? undefined : flies.find((f) => f.id === selectedId);
+    if (selected) {
+      const s = sprites.get(selected.sprite);
+      const half = Math.max(s.dw ?? s.sw, s.dh ?? s.sh) / 2;
+      const radius = Math.max(RING_MIN_PX, half + RING_GAP_PX) * dpr;
+      const colour = getComputedStyle(canvas).getPropertyValue('--fly-selected').trim() || DEFAULT_SELECTED;
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = Math.max(2, Math.round(2 * dpr));
+      ctx.beginPath();
+      ctx.arc(toDeviceX(selected.body.x), toDeviceY(selected.body.y), radius, 0, 2 * Math.PI);
+      ctx.stroke();
     }
   }
 
