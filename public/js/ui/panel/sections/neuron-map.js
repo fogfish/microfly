@@ -120,8 +120,7 @@ export const neuronMapSection = {
 
     const update = (m) => {
       activity = m.activity;
-      const left = m.leftOut > 0 ? `${m.leftOut} without a soma position not drawn, ` : '';
-      setText(counts, `${m.neuronCount} neurons, ${left}${m.activeCount} active in the last ${WINDOW_TICKS} ticks`);
+      setText(counts, `${m.neuronCount} neurons, ${m.activeCount} active in the last ${WINDOW_TICKS} ticks`);
       start();
     };
     update(model);

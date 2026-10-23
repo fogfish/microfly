@@ -206,7 +206,7 @@ body {
 
 .neuron-counts {
   font-family: ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 /* Seed-vs-fill legend and click-to-identify (specs/012-class-seeded-forager-brain) */
