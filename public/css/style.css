@@ -209,39 +209,7 @@ body {
   font-size: 11px;
 }
 
-/* Seed-vs-fill legend and click-to-identify (specs/012-class-seeded-forager-brain) */
-.neuron-legend {
-  display: flex;
-  gap: 12px;
-  list-style: none;
-  margin: 4px 0;
-  padding: 0;
-  font-size: 12px;
-}
-
-.neuron-legend li {
-  padding-left: 16px;
-  position: relative;
-}
-
-.neuron-legend li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.neuron-legend li.seed::before {
-  background: rgb(242, 166, 38);
-}
-
-.neuron-legend li.fill::before {
-  background: rgb(64, 217, 115);
-}
-
+/* Click-to-identify line (specs/012-class-seeded-forager-brain) */
 .neuron-identity {
   font-family: ui-monospace, monospace;
   font-size: 12px;

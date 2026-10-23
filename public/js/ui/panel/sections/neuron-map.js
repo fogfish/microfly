@@ -14,19 +14,32 @@ import { setText } from '../dom.js';
 // const BASE_COLOUR = [0.55, 0.8, 1];
 // const BASE_COLOUR = [0.3, 0.9, 1];
 const BASE_COLOUR = [0.1, 0.4, 1];
-// Seed-vs-fill colour channel (specs/012-class-seeded-forager-brain contracts/panel-provenance-signals.md),
-// independent of the spike-brightness envelope above: shown only when capabilities.signals has "origin".
-const SEED_COLOUR = [0.95, 0.65, 0.15];
-const FILL_COLOUR = [0.25, 0.85, 0.45];
+// Neuron class colour (the snapshot's per-neuron `class`), independent of the spike-brightness envelope above.
+// A class not listed here, and a neuron with no class (null), keep BASE_COLOUR. Pool neurons are mostly null.
+const CLASS_COLOUR = new Map([
+  ['Kenyon_Cell', [0.9, 0.3, 0.6]],
+  ['ALPN', [0.2, 0.85, 0.9]],
+  ['ALLN', [0.4, 0.9, 0.5]],
+  ['gustatory', [1, 0.6, 0.2]],
+  ['DAN', [1, 0.9, 0.2]],
+  ['olfactory', [0.6, 0.9, 0.2]],
+  ['mechanosensory_tactile', [0.8, 0.5, 1]],
+  ['MBON', [1, 0.35, 0.35]],
+  ['CX', [0.2, 0.95, 0.75]],
+  ['ALIN', [0.95, 0.75, 0.8]],
+  ['ALON', [0.7, 0.7, 0.7]],
+  ['thermosensory', [0.95, 0.95, 0.95]],
+  ['SEZPN', [0.5, 0.4, 0.9]],
+  ['unknown_sensory', [0.35, 0.35, 0.35]],
+]);
 
-// One base colour per drawn point: the uniform BASE_COLOUR unless the model carries per-neuron origin data.
+// One base colour per drawn point, from the neuron's class. A model without a neuron table keeps BASE_COLOUR.
 function baseColoursFor(model) {
-  if (!model.neurons || !model.capabilities.signals.includes('origin')) return BASE_COLOUR;
+  if (!model.neurons) return BASE_COLOUR;
   const indices = model.drawn ?? Array.from({ length: model.neuronCount }, (_, i) => i);
   const out = new Float32Array(indices.length * 3);
   indices.forEach((neuronIndex, k) => {
-    const origin = model.neurons[neuronIndex]?.origin ?? null;
-    const colour = origin == null ? BASE_COLOUR : origin === 'fill' ? FILL_COLOUR : SEED_COLOUR;
+    const colour = CLASS_COLOUR.get(model.neurons[neuronIndex]?.class) ?? BASE_COLOUR;
     out[3 * k] = colour[0]; out[3 * k + 1] = colour[1]; out[3 * k + 2] = colour[2];
   });
   return out;
@@ -55,14 +68,9 @@ export const neuronMapSection = {
     const counts = document.createElement('p');
     counts.className = 'neuron-counts';
     const hasOrigin = model.capabilities.signals.includes('origin');
-    const legend = document.createElement('ul');
-    legend.className = 'neuron-legend';
-    if (hasOrigin) {
-      legend.innerHTML = '<li class="seed">Seed</li><li class="fill">Fill</li>';
-    }
     const identity = document.createElement('p');
     identity.className = 'neuron-identity';
-    body.replaceChildren(canvas, counts, ...(hasOrigin ? [legend, identity] : []));
+    body.replaceChildren(canvas, counts, ...(hasOrigin ? [identity] : []));
 
     const cloud = createPointCloud(canvas);
     cloud.setPoints(model.positions, baseColoursFor(model));
