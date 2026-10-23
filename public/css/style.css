@@ -29,6 +29,13 @@
   --odour-heat-high: 30, 58, 138;
   --odour-heat-alpha: 0.55;
   --grid-line-color: rgba(27, 29, 42, 0.18);
+  /* Bars and sparklines in the panel (viz.js, .viz-* rules) */
+  --viz-fill: #60a5fa;
+  --viz-reward: #34d399;
+  --viz-punish: #f87171;
+  --viz-muted: #9ca3af;
+  --valence-approach: #34d399;
+  --valence-avoid: #f87171;
   /* Ring around the selected fly on the map (renderer.js) */
   --fly-selected: #ffffff;
 }
@@ -60,6 +67,13 @@
     --odour-heat-high: 37, 99, 235;
     --odour-heat-alpha: 0.55;
     --grid-line-color: rgba(232, 230, 217, 0.18);
+  /* Bars and sparklines in the panel (viz.js, .viz-* rules) */
+  --viz-fill: #60a5fa;
+  --viz-reward: #34d399;
+  --viz-punish: #f87171;
+  --viz-muted: #9ca3af;
+  --valence-approach: #34d399;
+  --valence-avoid: #f87171;
   /* Ring around the selected fly on the map (renderer.js) */
   --fly-selected: #ffffff;
   }
@@ -91,6 +105,13 @@
   --odour-heat-high: 37, 99, 235;
   --odour-heat-alpha: 0.55;
   --grid-line-color: rgba(232, 230, 217, 0.18);
+  /* Bars and sparklines in the panel (viz.js, .viz-* rules) */
+  --viz-fill: #60a5fa;
+  --viz-reward: #34d399;
+  --viz-punish: #f87171;
+  --viz-muted: #9ca3af;
+  --valence-approach: #34d399;
+  --valence-avoid: #f87171;
   /* Ring around the selected fly on the map (renderer.js) */
   --fly-selected: #ffffff;
 }
@@ -278,6 +299,114 @@ body {
 .learning-injected-row {
   opacity: 0.85;
 }
+
+/* Bars, markers, sparklines and trend glyphs (viz.js) for the decoder and learning sections */
+.viz-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.viz-row > span:first-child {
+  flex: none;
+  width: 4.5em;
+  opacity: 0.8;
+}
+
+.viz-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 6px;
+}
+
+.viz-bar {
+  position: relative;
+  flex: 1;
+  min-width: 60px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.viz-bar.viz-absent {
+  border-style: dashed;
+  opacity: 0.35;
+}
+
+.viz-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--viz-fill);
+}
+
+.viz-fill-side-L { background: var(--bar-left); }
+.viz-fill-side-R { background: var(--bar-right); }
+.viz-fill-drive { background: var(--viz-fill); }
+.viz-fill-reward { background: var(--viz-reward); }
+.viz-fill-punish { background: var(--viz-punish); }
+.viz-fill-wmod { background: var(--viz-fill); }
+.viz-fill-gain { background: var(--viz-fill); }
+
+/* The zero, rest, or unchanged mark on a bar */
+.viz-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.viz-spark {
+  flex: 1;
+  min-width: 80px;
+  height: 24px;
+  overflow: visible;
+}
+
+.viz-spark polyline {
+  fill: none;
+  stroke: var(--viz-fill);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.viz-spark .viz-spark-ref {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.decoder-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 6px;
+}
+
+.trend-up { color: var(--viz-reward); }
+.trend-down { color: var(--viz-punish); }
+.trend-flat { opacity: 0.6; }
+
+.valence-chip {
+  align-self: flex-start;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--bg);
+}
+
+.valence-chip.valence-approach { background: var(--valence-approach); }
+.valence-chip.valence-avoid { background: var(--valence-avoid); }
+.valence-chip.valence-none { background: var(--viz-muted); }
 
 /* Tabs (BUG-001): World (fly list) and Fly (status) */
 .tabs {

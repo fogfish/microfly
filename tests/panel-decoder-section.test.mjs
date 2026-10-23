@@ -8,13 +8,17 @@ import { selectSections, unmetSections } from '../public/js/ui/panel/registry.js
 import { decoderSection } from '../public/js/ui/panel/sections/decoder.js';
 
 class FakeElement {
-  constructor(tag) { this.tagName = tag; this.className = ''; this.textContent = ''; this.hidden = false; this.children = []; }
+  constructor(tag) { this.tagName = tag; this.className = ''; this.textContent = ''; this.hidden = false; this.children = []; this.style = {}; this.attributes = {}; }
+  setAttribute(name, value) { this.attributes[name] = String(value); }
   appendChild(node) { this.children.push(node); return node; }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
   addEventListener() {}
 }
-globalThis.document = { createElement: (tag) => new FakeElement(tag) };
+globalThis.document = {
+  createElement: (tag) => new FakeElement(tag),
+  createElementNS: (ns, tag) => new FakeElement(tag),
+};
 
 const POOLS = {
   'drive.odour-food': [1, 2, 3], 'side.odour-food.L': [1, 2], 'side.odour-food.R': [3],
