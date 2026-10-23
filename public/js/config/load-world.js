@@ -1,6 +1,6 @@
 // Fetches and parses the world config. Returns { config } or { errors }.
 
-const DEFAULT_WORLD = 'world/world-forager-demo.json';
+const DEFAULT_WORLD = 'world/world-forager-learning-active.json';
 
 export async function loadWorldConfig({ root, search = location.search }) {
   const path = new URLSearchParams(search).get('world') ?? DEFAULT_WORLD;

@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createCamera, panBy, zoomAt, resize } from '../public/js/render/camera.js';
+import { createCamera, panBy, zoomAt, resize, floorZoom } from '../public/js/render/camera.js';
 
 const zoom = { min: 1, max: 4, default: 2 };
 
-// 100 cells × 16 px = 1600 world px
-const make = (overrides = {}) =>
-  createCamera({
+// 100 cells × 16 px = 1600 world px. The world is larger than the view, so the default zoom is the fit
+// zoom. The fixture sets 2× explicitly, so the pan and zoom maths below run at a fixed zoom.
+const make = (overrides = {}) => {
+  const cam = createCamera({
     worldWidthPx: 1600,
     worldHeightPx: 1600,
     zoom,
@@ -14,6 +15,13 @@ const make = (overrides = {}) =>
     viewportHeight: 600,
     ...overrides,
   });
+  cam.zoom = zoom.default;
+  // Centre the view at the new zoom, so drag and resize tests start away from the edges.
+  cam.x = 1600 / 2 - cam.viewportWidth / (2 * cam.zoom);
+  cam.y = 1600 / 2 - cam.viewportHeight / (2 * cam.zoom);
+  panBy(cam, 0, 0);
+  return cam;
+};
 
 test('zoom at the cursor keeps the world point under it fixed', () => {
   const cam = make();
@@ -21,23 +29,65 @@ test('zoom at the cursor keeps the world point under it fixed', () => {
   const sy = 200;
   const before = { x: cam.x + sx / cam.zoom, y: cam.y + sy / cam.zoom };
 
-  zoomAt(cam, 1, sx, sy);
+  zoomAt(cam, 1.5, sx, sy);
 
   const after = { x: cam.x + sx / cam.zoom, y: cam.y + sy / cam.zoom };
   assert.ok(Math.abs(before.x - after.x) < 1e-9);
   assert.ok(Math.abs(before.y - after.y) < 1e-9);
 });
 
-test('zoom moves in whole steps and clamps to min and max', () => {
-  const step = make();
-  zoomAt(step, 1, 0, 0);
-  assert.equal(step.zoom, 3);
+test('zoom in multiplies the zoom and clamps to max', () => {
   const cam = make();
-  for (let i = 0; i < 100; i++) zoomAt(cam, -1, 400, 300);
-  assert.equal(cam.zoom, zoom.min);
-
-  for (let i = 0; i < 100; i++) zoomAt(cam, 1, 400, 300);
+  zoomAt(cam, 1.5, 0, 0);
+  assert.equal(cam.zoom, 3);
+  for (let i = 0; i < 100; i++) zoomAt(cam, 1.5, 400, 300);
   assert.equal(cam.zoom, zoom.max);
+});
+
+test('small zoom factors change the zoom by a small proportion', () => {
+  const cam = make();
+  zoomAt(cam, 1.1, 400, 300);
+  assert.ok(Math.abs(cam.zoom - 2.2) < 1e-9);
+  zoomAt(cam, 1 / 1.1, 400, 300);
+  assert.ok(Math.abs(cam.zoom - 2) < 1e-9);
+});
+
+test('zoom out stops where the whole world fits the viewport', () => {
+  const cam = make();
+  zoomAt(cam, 0.5, 400, 300);
+  assert.equal(cam.zoom, 1);
+  zoomAt(cam, 0.5, 400, 300);
+  assert.equal(cam.zoom, 0.5);
+
+  for (let i = 0; i < 100; i++) zoomAt(cam, 0.5, 400, 300);
+  // 1600 world px, 600 view px tall: the height is the binding axis.
+  assert.equal(cam.zoom, 600 / 1600);
+  assert.ok(1600 * cam.zoom <= 600 + 1e-9 && 1600 * cam.zoom <= 800 + 1e-9);
+  assert.equal(floorZoom(cam), 600 / 1600);
+});
+
+test('the default zoom fits the whole world when the world is larger than the view', () => {
+  const cam = createCamera({ worldWidthPx: 1600, worldHeightPx: 1600, zoom, viewportWidth: 800, viewportHeight: 600 });
+  assert.equal(cam.zoom, 600 / 1600);
+  assert.ok(1600 * cam.zoom <= 600 + 1e-9);
+});
+
+test('the default zoom is the configured one when the world fits at that zoom', () => {
+  const cam = createCamera({
+    worldWidthPx: 200,
+    worldHeightPx: 100,
+    zoom,
+    viewportWidth: 800,
+    viewportHeight: 600,
+  });
+  assert.equal(cam.zoom, zoom.default);
+});
+
+test('resize into a larger view lifts a zoom that is now below the floor', () => {
+  const cam = make();
+  for (let i = 0; i < 100; i++) zoomAt(cam, 0.5, 400, 300);
+  resize(cam, 1600, 1600);
+  assert.equal(cam.zoom, 1);
 });
 
 test('drag pan moves the view opposite the drag direction', () => {

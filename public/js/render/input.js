@@ -1,10 +1,15 @@
-// Mouse input: drag to pan, wheel to step the zoom at the cursor, and click to report a world tile.
+// Mouse input: drag to pan, wheel to zoom at the cursor, and click to report a world tile.
 // Calls onChange after each camera change so the caller can schedule a redraw.
 // options.onClick(tileX, tileY) runs on a press and release within CLICK_SLOP px; needs options.tileSize.
 
 import { panBy, zoomAt } from './camera.js';
 
 const CLICK_SLOP = 4;
+// Zoom per wheel pixel, as an exponent: one 100 px mouse notch zooms by about 1.16. Trackpads send many
+// small deltas, so each event is smooth. A single event is capped so one large delta cannot jump the zoom.
+const WHEEL_ZOOM_RATE = 0.0015;
+const WHEEL_DELTA_CAP = 200;
+const PX_PER_LINE = 16;
 
 export function attachInput(canvas, camera, onChange, options = {}) {
   const { onClick, tileSize } = options;
@@ -49,14 +54,16 @@ export function attachInput(canvas, camera, onChange, options = {}) {
     endDrag(e);
   });
 
-  // Each wheel event moves one integer zoom step. The size of deltaY is ignored.
+  // Each wheel event multiplies the zoom by a factor that follows deltaY. Scrolling down zooms out.
   canvas.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
       if (e.deltaY === 0) return;
       const rect = canvas.getBoundingClientRect();
-      zoomAt(camera, e.deltaY > 0 ? -1 : 1, e.clientX - rect.left, e.clientY - rect.top);
+      const px = e.deltaMode === 1 ? e.deltaY * PX_PER_LINE : e.deltaY;
+      const capped = Math.max(-WHEEL_DELTA_CAP, Math.min(WHEEL_DELTA_CAP, px));
+      zoomAt(camera, Math.exp(-capped * WHEEL_ZOOM_RATE), e.clientX - rect.left, e.clientY - rect.top);
       onChange();
     },
     { passive: false },

@@ -2,8 +2,8 @@
 //
 // The scene is one bitmap (world/compose.js), so each frame copies a window of it. Overlays (canvases
 // the size of the scene, such as the odour heatmap) are copied with the same window. Flies are drawn
-// on top, centred on their continuous position in cells. Zoom is an integer, so every art pixel is
-// a whole number of device pixels, and the window is copied with smoothing off (research R5).
+// on top, centred on their continuous position in cells. Zoom is continuous (camera.js), so an art
+// pixel is usually a fraction of a device pixel. The window is copied with smoothing off to keep edges sharp (research R5).
 
 import { CELL_PX } from '../world/layout.js';
 
